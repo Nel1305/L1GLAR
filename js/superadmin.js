@@ -10,9 +10,11 @@ let adminSession = null;
    DB HELPERS (admin-specific)
 ════════════════════════════ */
 async function dbAdminLogin(email, password) {
+  const { data, error } = await db.from('admins').select('*').eq('email', email.trim()).maybeSingle();
+  if (error) return { error: 'Erreur : ' + error.message };
+  if (!data) return { error: 'Email ou mot de passe incorrect.' };
   const hash = btoa(unescape(encodeURIComponent(password)));
-  const { data, error } = await db.from('admins').select('*').eq('email', email).eq('password', hash).maybeSingle();
-  if (error || !data) return { error: 'Email ou mot de passe incorrect.' };
+  if (data.password !== hash) return { error: 'Email ou mot de passe incorrect.' };
   return { admin: data };
 }
 
