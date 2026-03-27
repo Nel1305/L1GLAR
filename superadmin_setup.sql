@@ -13,9 +13,10 @@ create table if not exists admins (
 );
 
 -- Insère ton compte admin (change l'email et le mot de passe !)
--- Mot de passe ici = "admin2024" encodé en btoa
+-- Mot de passe ici = "admin2024" encodé en btoa (valeur actuelle : YWRtaW4yMDI0)
+-- Après le premier login, le mot de passe sera migré en SHA-256 (plus sûr) par le code JS.
 insert into admins (email, password, name)
-values ('admin@glar.com', 'YWRtaW4yMDI0', 'Nel''si Admin')
+values ('cbuabey@gmail.com', 'YWRtaW4yMDI0', 'Nel''si Admin')
 on conflict (email) do nothing;
 
 -- 2. Paramètres de facturation par vendeur

@@ -14,7 +14,14 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 function getSession()        { return JSON.parse(localStorage.getItem('glar_session') || 'null'); }
 function setSession(user)    { localStorage.setItem('glar_session', JSON.stringify(user)); }
 function clearSession()      { localStorage.removeItem('glar_session'); }
-
+async function hashPassword(password) {
+  if (window.crypto && window.crypto.subtle) {
+    const data = new TextEncoder().encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  return btoa(unescape(encodeURIComponent(password))); // fallback for anciens comptes
+}
 /* ════════════════════════════════════
    USERS
 ════════════════════════════════════ */
@@ -29,7 +36,7 @@ async function dbCreateUser(firstName, lastName, email, phone, password) {
   if (existing) return { error: 'Cet email est déjà utilisé.' };
 
   const name = firstName + (lastName ? ' ' + lastName[0].toUpperCase() + '.' : '');
-  const hash = btoa(unescape(encodeURIComponent(password))); // encodage simple
+  const hash = await hashPassword(password);
 
   const { data, error } = await db
     .from('users')
@@ -42,13 +49,32 @@ async function dbCreateUser(firstName, lastName, email, phone, password) {
 }
 
 async function dbLoginUser(email, password) {
-  const hash = btoa(unescape(encodeURIComponent(password)));
-  const { data, error } = await db
+  const hashed = await hashPassword(password);
+  let { data, error } = await db
     .from('users')
     .select('*')
     .eq('email', email)
-    .eq('password', hash)
+    .eq('password', hashed)
     .maybeSingle();
+
+  if (!data) {
+    // Compatibilité : anciens comptes codés en base64
+    const legacyHash = btoa(unescape(encodeURIComponent(password)));
+    const res = await db
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .eq('password', legacyHash)
+      .maybeSingle();
+    data = res.data;
+    error = res.error;
+
+    if (data) {
+      // Migration automatique vers SHA-256
+      await db.from('users').update({ password: hashed }).eq('id', data.id);
+      data.password = hashed;
+    }
+  }
 
   if (error || !data) return { error: 'Email ou mot de passe incorrect.' };
   return { user: normalizeUser(data) };
@@ -63,7 +89,7 @@ async function dbUpdateUser(userId, fields) {
   if (fields.phone !== undefined)    payload.phone     = fields.phone;
   if (fields.bio !== undefined)      payload.bio       = fields.bio;
   if (fields.shopOpen !== undefined) payload.shop_open = fields.shopOpen;
-  if (fields.password)   payload.password  = btoa(unescape(encodeURIComponent(fields.password)));
+  if (fields.password)   payload.password  = await hashPassword(fields.password);
 
   const { data, error } = await db
     .from('users')

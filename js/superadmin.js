@@ -3,32 +3,56 @@
    Panneau Super Admin : commissions, vendeurs, blocage
 ═══════════════════════════════════════════════════ */
 
-const COMMISSION_RATE = 5; // %
 let adminSession = null;
 
 /* ════════════════════════════
    DB HELPERS (admin-specific)
 ════════════════════════════ */
 async function dbAdminLogin(email, password) {
-  const { data, error } = await db.from('admins').select('*').eq('email', email.trim()).maybeSingle();
-  if (error) return { error: 'Erreur : ' + error.message };
-  if (!data) return { error: 'Email ou mot de passe incorrect.' };
-  const hash = btoa(unescape(encodeURIComponent(password)));
-  if (data.password !== hash) return { error: 'Email ou mot de passe incorrect.' };
-  return { admin: data };
+  try {
+    const hashed = await hashPassword(password);
+    let { data, error } = await db.from('admins').select('*').eq('email', email.trim()).maybeSingle();
+    if (error) return { error: 'Erreur : ' + error.message };
+    if (!data) return { error: 'Email ou mot de passe incorrect.' };
+    
+    // Vérifier le mot de passe
+    if (data.password !== hashed) {
+      // Fallback : tester format legacy (btoa)
+      const legacyHash = btoa(unescape(encodeURIComponent(password)));
+      if (data.password !== legacyHash) {
+        return { error: 'Email ou mot de passe incorrect.' };
+      }
+      // Migration vers SHA-256
+      await db.from('admins').update({ password: hashed }).eq('id', data.id);
+    }
+    return { admin: data };
+  } catch (err) {
+    console.error('Erreur dbAdminLogin:', err);
+    return { error: 'Erreur serveur. Réessayez.' };
+  }
 }
 
 async function dbGetAllUsers() {
-  const { data } = await db.from('users').select('*').order('created_at', { ascending: false });
-  return (data || []).map(normalizeUser);
+  try {
+    const { data } = await db.from('users').select('*').order('created_at', { ascending: false });
+    return (data || []).map(normalizeUser);
+  } catch (err) {
+    console.error('Erreur dbGetAllUsers:', err);
+    return [];
+  }
 }
 
 async function dbGetCommissions(filters = {}) {
-  let q = db.from('commissions').select('*').order('period_start', { ascending: false });
-  if (filters.status && filters.status !== 'all') q = q.eq('status', filters.status);
-  if (filters.sellerId) q = q.eq('seller_id', filters.sellerId);
-  const { data } = await q;
-  return data || [];
+  try {
+    let q = db.from('commissions').select('*').order('period_start', { ascending: false });
+    if (filters.status && filters.status !== 'all') q = q.eq('status', filters.status);
+    if (filters.sellerId) q = q.eq('seller_id', filters.sellerId);
+    const { data } = await q;
+    return data || [];
+  } catch (err) {
+    console.error('Erreur dbGetCommissions:', err);
+    return [];
+  }
 }
 
 async function dbInsertCommission(c) {
@@ -111,7 +135,7 @@ function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').style.display    = '';
   document.getElementById('adminName').textContent     = adminSession.name || 'Admin';
-  showLoader(false);
+  showLoader(true);
   renderDashboard();
 }
 
@@ -270,68 +294,73 @@ async function previewGenerate() {
   if (!start || !end) { showToast('Dates manquantes', '', 'var(--red)'); return; }
 
   showLoader(true);
-  const users  = await dbGetAllUsers();
-  const orders = await dbGetOrders();
-  showLoader(false);
+  try {
+    const users  = await dbGetAllUsers();
+    const orders = await dbGetOrders();
+    showLoader(false);
 
-  // Filtrer les vendeurs (pas les bloqués) et calculer leur CA sur la période
-  const preview = [];
-  for (const u of users) {
-    if (u.billing_period && u.billing_period !== type && type !== 'all') continue;
-    const myOrders = orders.filter(o =>
-      o.sellerId === u.id &&
-      o.status === 'done' &&
-      o.createdAt >= start &&
-      o.createdAt <= end
-    );
-    const revenue = myOrders.reduce((s, o) => s + o.total, 0);
-    if (revenue > 0) {
-      preview.push({
-        sellerId:   u.id,
-        sellerName: u.name,
-        revenue,
-        amountDue:  Math.round(revenue * rate / 100),
-        rate,
-      });
+    // Filtrer les vendeurs (pas les bloqués) et calculer leur CA sur la période
+    const preview = [];
+    for (const u of users) {
+      if (u.billing_period && u.billing_period !== type && type !== 'all') continue;
+      const myOrders = orders.filter(o =>
+        o.sellerId === u.id &&
+        o.status === 'done' &&
+        o.createdAt >= start &&
+        o.createdAt <= end
+      );
+      const revenue = myOrders.reduce((s, o) => s + o.total, 0);
+      if (revenue > 0) {
+        preview.push({
+          sellerId:   u.id,
+          sellerName: u.name,
+          revenue,
+          amountDue:  Math.round(revenue * rate / 100),
+          rate,
+        });
+      }
     }
-  }
 
-  const tbody = document.getElementById('genPreviewBody');
-  const periodLabel = type === 'monthly'
-    ? new Date(start).toLocaleDateString('fr-FR', { month:'long', year:'numeric' })
-    : `${start} → ${end}`;
+    const tbody = document.getElementById('genPreviewBody');
+    const periodLabel = type === 'monthly'
+      ? new Date(start).toLocaleDateString('fr-FR', { month:'long', year:'numeric' })
+      : `${start} → ${end}`;
 
-  if (!preview.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="table-empty">Aucun vendeur avec des ventes sur cette période</td></tr>`;
+    if (!preview.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="table-empty">Aucun vendeur avec des ventes sur cette période</td></tr>`;
+      document.getElementById('genPreview').style.display = '';
+      document.getElementById('generateBtn').disabled = true;
+      return;
+    }
+
+    tbody.innerHTML = preview.map(p => `
+      <tr>
+        <td><strong>${p.sellerName}</strong></td>
+        <td style="font-size:0.78rem;color:var(--text2)">${periodLabel}</td>
+        <td>${p.revenue.toLocaleString()} FCFA</td>
+        <td style="font-weight:700;color:var(--orange)">${p.amountDue.toLocaleString()} FCFA</td>
+      </tr>
+    `).join('');
+
+    const totalDue = preview.reduce((s, p) => s + p.amountDue, 0);
+    document.getElementById('genTotal').innerHTML = `
+      <span>${preview.length} vendeur(s) · Période : <strong>${periodLabel}</strong></span>
+      <span>Total à collecter : <strong>${totalDue.toLocaleString()} FCFA</strong></span>
+    `;
+
     document.getElementById('genPreview').style.display = '';
-    document.getElementById('generateBtn').disabled = true;
-    return;
+    document.getElementById('generateBtn').disabled = false;
+    document.getElementById('generateBtn').dataset.preview = JSON.stringify(preview);
+    document.getElementById('generateBtn').dataset.start   = start;
+    document.getElementById('generateBtn').dataset.end     = end;
+    document.getElementById('generateBtn').dataset.due     = document.getElementById('genDue').value;
+    document.getElementById('generateBtn').dataset.type    = type;
+    document.getElementById('generateBtn').dataset.label   = periodLabel;
+  } catch (err) {
+    showLoader(false);
+    console.error('Erreur previewGenerate:', err);
+    showToast('Erreur', 'Impossible de générer la prévisualisation.', 'var(--red)');
   }
-
-  tbody.innerHTML = preview.map(p => `
-    <tr>
-      <td><strong>${p.sellerName}</strong></td>
-      <td style="font-size:0.78rem;color:var(--text2)">${periodLabel}</td>
-      <td>${p.revenue.toLocaleString()} FCFA</td>
-      <td style="font-weight:700;color:var(--orange)">${p.amountDue.toLocaleString()} FCFA</td>
-    </tr>
-  `).join('');
-
-  const totalDue = preview.reduce((s, p) => s + p.amountDue, 0);
-  document.getElementById('genTotal').innerHTML = `
-    <span>${preview.length} vendeur(s) · Période : <strong>${periodLabel}</strong></span>
-    <span>Total à collecter : <strong>${totalDue.toLocaleString()} FCFA</strong></span>
-  `;
-
-  document.getElementById('genPreview').style.display = '';
-  document.getElementById('generateBtn').disabled = false;
-  // Stocker preview pour génération
-  document.getElementById('generateBtn').dataset.preview = JSON.stringify(preview);
-  document.getElementById('generateBtn').dataset.start   = start;
-  document.getElementById('generateBtn').dataset.end     = end;
-  document.getElementById('generateBtn').dataset.due     = document.getElementById('genDue').value;
-  document.getElementById('generateBtn').dataset.type    = type;
-  document.getElementById('generateBtn').dataset.label   = periodLabel;
 }
 
 async function doGenerate() {
@@ -346,32 +375,43 @@ async function doGenerate() {
   if (!preview.length) return;
 
   showLoader(true);
-  let created = 0;
-  for (const p of preview) {
-    await dbInsertCommission({
-      seller_id:    p.sellerId,
-      seller_name:  p.sellerName,
-      period_label: label,
-      period_type:  type,
-      period_start: start,
-      period_end:   end,
-      revenue:      p.revenue,
-      rate:         p.rate,
-      amount_due:   p.amountDue,
-      amount_paid:  0,
-      status:       'pending',
-      due_date:     due || null,
-    });
-    created++;
+  let created = 0, failed = 0;
+  try {
+    for (const p of preview) {
+      const res = await dbInsertCommission({
+        seller_id:    p.sellerId,
+        seller_name:  p.sellerName,
+        period_label: label,
+        period_type:  type,
+        period_start: start,
+        period_end:   end,
+        revenue:      p.revenue,
+        rate:         p.rate,
+        amount_due:   p.amountDue,
+        amount_paid:  0,
+        status:       'pending',
+        due_date:     due || null,
+      });
+      if (res.error) failed++;
+      else created++;
+    }
+  } catch (err) {
+    console.error('Erreur doGenerate:', err);
+    failed++;
   }
   showLoader(false);
 
-  const totalDue = preview.reduce((s, p) => s + p.amountDue, 0);
-  document.getElementById('genSuccessText').innerHTML =
-    `${created} factures générées · Total à collecter : <strong>${totalDue.toLocaleString()} FCFA</strong>`;
-  document.getElementById('genSuccess').classList.add('show');
-  btn.disabled = true;
-  showToast('Factures générées !', `${created} vendeurs facturés`, 'var(--green)');
+  if (created > 0) {
+    const totalDue = preview.slice(0, created).reduce((s, p) => s + p.amountDue, 0);
+    document.getElementById('genSuccessText').innerHTML =
+      `${created} factures générées · Total à collecter : <strong>${totalDue.toLocaleString()} FCFA</strong>` +
+      (failed ? ` · ${failed} erreur(s)` : '');
+    document.getElementById('genSuccess').classList.add('show');
+    btn.disabled = true;
+    showToast('Factures générées !', `${created} vendeurs facturés${failed ? ' (' + failed + ' erreurs)' : ''}`, 'var(--green)');
+  } else {
+    showToast('Erreur', 'Impossible de générer les factures.', 'var(--red)');
+  }
 }
 
 /* ════════════════════════════
@@ -382,54 +422,67 @@ function bindPaymentModal() {
 }
 
 async function openPayment(commId) {
-  const comms = await dbGetCommissions();
-  const c = comms.find(x => x.id === commId);
-  if (!c) return;
+  try {
+    const comms = await dbGetCommissions();
+    const c = comms.find(x => x.id === commId);
+    if (!c) { showToast('Erreur', 'Commission non trouvée.', 'var(--red)'); return; }
 
-  const reste = c.amount_due - c.amount_paid;
-  document.getElementById('payCommId').value   = commId;
-  document.getElementById('paymentSub').textContent = `${c.seller_name} · ${c.period_label}`;
-  document.getElementById('paymentInfo').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">CA réalisé</span><strong>${c.revenue.toLocaleString()} FCFA</strong></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Commission due (${c.rate}%)</span><strong>${c.amount_due.toLocaleString()} FCFA</strong></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Déjà reçu</span><strong style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</strong></div>
-      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px"><span style="color:var(--text2)">Reste à payer</span><strong style="color:var(--red)">${reste.toLocaleString()} FCFA</strong></div>
-    </div>
-  `;
-  document.getElementById('payAmount').value = reste;
-  document.getElementById('payNote').value   = '';
-  openModal('paymentModal');
+    const reste = c.amount_due - c.amount_paid;
+    document.getElementById('payCommId').value   = commId;
+    document.getElementById('paymentSub').textContent = `${c.seller_name} · ${c.period_label}`;
+    document.getElementById('paymentInfo').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">CA réalisé</span><strong>${c.revenue.toLocaleString()} FCFA</strong></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Commission due (${c.rate}%)</span><strong>${c.amount_due.toLocaleString()} FCFA</strong></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Déjà reçu</span><strong style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</strong></div>
+        <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px"><span style="color:var(--text2)">Reste à payer</span><strong style="color:var(--red)">${reste.toLocaleString()} FCFA</strong></div>
+      </div>
+    `;
+    document.getElementById('payAmount').value = reste;
+    document.getElementById('payNote').value   = '';
+    openModal('paymentModal');
+  } catch (err) {
+    console.error('Erreur openPayment:', err);
+    showToast('Erreur', 'Impossible d\'ouvrir le paiement.', 'var(--red)');
+  }
 }
 
 async function savePayment() {
-  const commId = parseInt(document.getElementById('payCommId').value);
-  const amount = parseInt(document.getElementById('payAmount').value);
-  const note   = document.getElementById('payNote').value.trim();
+  try {
+    const commId = parseInt(document.getElementById('payCommId').value);
+    const amount = parseInt(document.getElementById('payAmount').value);
+    const note   = document.getElementById('payNote').value.trim();
 
-  if (!amount || amount < 1) { showToast('Montant invalide', '', 'var(--red)'); return; }
+    if (!amount || amount < 1) { showToast('Montant invalide', '', 'var(--red)'); return; }
 
-  const comms = await dbGetCommissions();
-  const c = comms.find(x => x.id === commId);
-  if (!c) return;
+    const comms = await dbGetCommissions();
+    const c = comms.find(x => x.id === commId);
+    if (!c) { showToast('Erreur', 'Commission non trouvée.', 'var(--red)'); return; }
 
-  const newPaid = c.amount_paid + amount;
-  const reste   = c.amount_due - newPaid;
-  let newStatus = reste <= 0 ? 'paid' : newPaid > 0 ? 'partial' : 'pending';
+    const newPaid = c.amount_paid + amount;
+    const reste   = c.amount_due - newPaid;
+    let newStatus = reste <= 0 ? 'paid' : newPaid > 0 ? 'partial' : 'pending';
 
-  showLoader(true);
-  await dbUpdateCommission(commId, {
-    amount_paid: newPaid,
-    status:      newStatus,
-    note:        note || c.note,
-    paid_at:     newStatus === 'paid' ? new Date().toISOString() : null,
-  });
-  showLoader(false);
+    showLoader(true);
+    const res = await dbUpdateCommission(commId, {
+      amount_paid: newPaid,
+      status:      newStatus,
+      note:        note || c.note,
+      paid_at:     newStatus === 'paid' ? new Date().toISOString() : null,
+    });
+    showLoader(false);
 
-  closeModal('paymentModal');
-  showToast('Paiement enregistré', `${amount.toLocaleString()} FCFA reçus ✅`, 'var(--green)');
-  await renderDashboard();
-  if (document.getElementById('page-commissions').classList.contains('active')) await renderCommissions();
+    if (res.error) { showToast('Erreur', res.error, 'var(--red)'); return; }
+
+    closeModal('paymentModal');
+    showToast('Paiement enregistré', `${amount.toLocaleString()} FCFA reçus ✅`, 'var(--green)');
+    await renderDashboard();
+    if (document.getElementById('page-commissions').classList.contains('active')) await renderCommissions();
+  } catch (err) {
+    showLoader(false);
+    console.error('Erreur savePayment:', err);
+    showToast('Erreur', 'Impossible d\'enregistrer le paiement.', 'var(--red)');
+  }
 }
 
 /* ════════════════════════════
@@ -437,11 +490,12 @@ async function savePayment() {
 ════════════════════════════ */
 async function renderSellers() {
   showLoader(true);
-  const filter   = document.getElementById('sellerStatusFilter').value;
-  const users    = await dbGetAllUsers();
-  const orders   = await dbGetOrders();
-  const comms    = await dbGetCommissions();
-  showLoader(false);
+  try {
+    const filter   = document.getElementById('sellerStatusFilter').value;
+    const users    = await dbGetAllUsers();
+    const orders   = await dbGetOrders();
+    const comms    = await dbGetCommissions();
+    showLoader(false);
 
   let list = users;
   if (filter === 'active')  list = users.filter(u => !u.isBlocked);
@@ -503,38 +557,57 @@ async function renderSellers() {
       </div>
     `;
   }).join('');
+  } catch (err) {
+    showLoader(false);
+    console.error('Erreur renderSellers:', err);
+    showToast('Erreur', 'Impossible de charger les vendeurs.', 'var(--red)');
+  }
 }
 
 async function changeBilling(userId, period) {
-  await dbUpdateUserBilling(userId, period);
-  showToast('Période mise à jour', period === 'monthly' ? 'Facturation mensuelle' : 'Facturation hebdomadaire', 'var(--accent)');
+  try {
+    showLoader(true);
+    const res = await dbUpdateUserBilling(userId, period);
+    showLoader(false);
+    if (res.error) { showToast('Erreur', res.error, 'var(--red)'); return; }
+    showToast('Période mise à jour', period === 'monthly' ? 'Facturation mensuelle' : 'Facturation hebdomadaire', 'var(--accent)');
+  } catch (err) {
+    showLoader(false);
+    console.error('Erreur changeBilling:', err);
+    showToast('Erreur', 'Impossible de mettre à jour la période.', 'var(--red)');
+  }
 }
 
 async function viewSellerCommissions(sellerId) {
-  goPage('commissions');
-  // Filtrer sur ce vendeur (simplification : on filtre côté rendu)
-  showLoader(true);
-  const comms = await dbGetCommissions({ sellerId });
-  showLoader(false);
-  const tbody = document.getElementById('commissionsBody');
-  if (!comms.length) { tbody.innerHTML = `<tr><td colspan="9" class="table-empty">Aucune commission pour ce vendeur</td></tr>`; return; }
-  // Re-render avec filtre vendeur
-  document.getElementById('commissionsBody').innerHTML = comms.map(c => {
-    const reste = c.amount_due - c.amount_paid;
-    const pct   = c.amount_due > 0 ? Math.min(100, Math.round(c.amount_paid / c.amount_due * 100)) : 0;
-    return `
-      <tr>
-        <td><strong>${c.seller_name}</strong></td>
-        <td style="font-size:0.78rem;color:var(--text2)">${c.period_label}</td>
-        <td>${c.revenue.toLocaleString()} FCFA</td>
-        <td>${c.rate}%</td>
-        <td style="font-weight:700">${c.amount_due.toLocaleString()} FCFA</td>
-        <td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td>
-        <td style="color:${reste>0?'var(--red)':'var(--green)'};font-weight:600">${reste.toLocaleString()} FCFA</td>
-        <td><span class="status-badge comm-${c.status}">${commStatusLabel(c.status)}</span></td>
-        <td>${c.status !== 'paid' ? `<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>` : '✅'}</td>
-      </tr>`;
-  }).join('');
+  try {
+    goPage('commissions');
+    showLoader(true);
+    const comms = await dbGetCommissions({ sellerId });
+    showLoader(false);
+    const tbody = document.getElementById('commissionsBody');
+    if (!comms.length) { tbody.innerHTML = `<tr><td colspan="9" class="table-empty">Aucune commission pour ce vendeur</td></tr>`; return; }
+    // Re-render avec filtre vendeur
+    document.getElementById('commissionsBody').innerHTML = comms.map(c => {
+      const reste = c.amount_due - c.amount_paid;
+      const pct   = c.amount_due > 0 ? Math.min(100, Math.round(c.amount_paid / c.amount_due * 100)) : 0;
+      return `
+        <tr>
+          <td><strong>${c.seller_name}</strong></td>
+          <td style="font-size:0.78rem;color:var(--text2)">${c.period_label}</td>
+          <td>${c.revenue.toLocaleString()} FCFA</td>
+          <td>${c.rate}%</td>
+          <td style="font-weight:700">${c.amount_due.toLocaleString()} FCFA</td>
+          <td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td>
+          <td style="color:${reste>0?'var(--red)':'var(--green)'};font-weight:600">${reste.toLocaleString()} FCFA</td>
+          <td><span class="status-badge comm-${c.status}">${commStatusLabel(c.status)}</span></td>
+          <td>${c.status !== 'paid' ? `<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>` : '✅'}</td>
+        </tr>`;
+    }).join('');
+  } catch (err) {
+    showLoader(false);
+    console.error('Erreur viewSellerCommissions:', err);
+    showToast('Erreur', 'Impossible de charger les commissions du vendeur.', 'var(--red)');
+  }
 }
 
 /* ════════════════════════════
@@ -556,21 +629,29 @@ function openBlock(userId, name, block) {
 }
 
 async function confirmBlock() {
-  const userId = parseInt(document.getElementById('blockSellerId').value);
-  const action = document.getElementById('blockAction').value;
-  const reason = document.getElementById('blockReason').value.trim();
-  const block  = action === 'block';
+  try {
+    const userId = parseInt(document.getElementById('blockSellerId').value);
+    const action = document.getElementById('blockAction').value;
+    const reason = document.getElementById('blockReason').value.trim();
+    const block  = action === 'block';
 
-  showLoader(true);
-  // Bloquer aussi tous ses produits
-  const products = await dbGetProducts({ sellerId: userId });
-  await Promise.all(products.map(p => dbUpdateProduct(p.id, { available: !block })));
-  await dbBlockUser(userId, block, reason);
-  showLoader(false);
+    showLoader(true);
+    // Bloquer aussi tous ses produits
+    const products = await dbGetProducts({ sellerId: userId });
+    await Promise.all(products.map(p => dbUpdateProduct(p.id, { available: !block })));
+    const res = await dbBlockUser(userId, block, reason);
+    showLoader(false);
 
-  closeModal('blockModal');
-  showToast(block ? 'Vendeur bloqué 🚫' : 'Vendeur débloqué ✅', block ? 'Ses produits sont masqués' : 'Ses produits sont visibles', block ? 'var(--red)' : 'var(--green)');
-  await renderSellers();
+    if (res.error) { showToast('Erreur', res.error, 'var(--red)'); return; }
+
+    closeModal('blockModal');
+    showToast(block ? 'Vendeur bloqué 🚫' : 'Vendeur débloqué ✅', block ? 'Ses produits sont masqués' : 'Ses produits sont visibles', block ? 'var(--red)' : 'var(--green)');
+    await renderSellers();
+  } catch (err) {
+    showLoader(false);
+    console.error('Erreur confirmBlock:', err);
+    showToast('Erreur', 'Impossible de bloquer/débloquer le vendeur.', 'var(--red)');
+  }
 }
 
 /* ════════════════════════════
@@ -578,20 +659,26 @@ async function confirmBlock() {
 ════════════════════════════ */
 async function renderAllProducts() {
   showLoader(true);
-  const products = await dbGetProducts();
-  showLoader(false);
-  const tbody = document.getElementById('allProductsBody');
-  tbody.innerHTML = products.map(p => `
-    <tr>
-      <td><div class="prod-thumb">${p.photo?`<img src="${p.photo}" alt="">`:p.emoji}</div></td>
-      <td><div style="font-weight:600">${p.name}</div><div style="font-size:0.74rem;color:var(--text2)">${(p.desc||'').substring(0,50)}${(p.desc||'').length>50?'…':''}</div></td>
-      <td>${p.sellerName}</td>
-      <td><span class="badge badge-${p.cat}">${catLabel(p.cat)}</span></td>
-      <td style="font-weight:700">${p.price.toLocaleString()} FCFA</td>
-      <td>${p.votes?starsHtml(p.rating,'0.8rem'):'—'}</td>
-      <td><span class="status-badge ${p.available?'status-done':'status-cancel'}">${p.available?'✅ Dispo':'❌ Indispo'}</span></td>
-    </tr>
-  `).join('') || `<tr><td colspan="7" class="table-empty">Aucun produit</td></tr>`;
+  try {
+    const products = await dbGetProducts();
+    showLoader(false);
+    const tbody = document.getElementById('allProductsBody');
+    tbody.innerHTML = products.map(p => `
+      <tr>
+        <td><div class="prod-thumb">${p.photo?`<img src="${p.photo}" alt="">`:p.emoji}</div></td>
+        <td><div style="font-weight:600">${p.name}</div><div style="font-size:0.74rem;color:var(--text2)">${(p.desc||'').substring(0,50)}${(p.desc||'').length>50?'…':''}</div></td>
+        <td>${p.sellerName}</td>
+        <td><span class="badge badge-${p.cat}">${catLabel(p.cat)}</span></td>
+        <td style="font-weight:700">${p.price.toLocaleString()} FCFA</td>
+        <td>${p.votes?starsHtml(p.rating,'0.8rem'):'—'}</td>
+        <td><span class="status-badge ${p.available?'status-done':'status-cancel'}">${p.available?'✅ Dispo':'❌ Indispo'}</span></td>
+      </tr>
+    `).join('') || `<tr><td colspan="7" class="table-empty">Aucun produit</td></tr>`;
+  } catch (err) {
+    showLoader(false);
+    console.error('Erreur renderAllProducts:', err);
+    document.getElementById('allProductsBody').innerHTML = `<tr><td colspan="7" class="table-empty">Erreur lors du chargement des produits</td></tr>`;
+  }
 }
 
 /* ════════════════════════════
@@ -599,37 +686,51 @@ async function renderAllProducts() {
 ════════════════════════════ */
 async function renderAllOrders() {
   showLoader(true);
-  const filter = document.getElementById('allOrdersFilter').value;
-  let orders = await dbGetOrders();
-  if (filter !== 'all') orders = orders.filter(o => o.status === filter);
-  showLoader(false);
+  try {
+    const filter = document.getElementById('allOrdersFilter').value;
+    let orders = await dbGetOrders();
+    if (filter !== 'all') orders = orders.filter(o => o.status === filter);
+    showLoader(false);
 
-  const tbody = document.getElementById('allOrdersBody');
-  tbody.innerHTML = orders.map(o => `
-    <tr>
-      <td style="color:var(--text3);font-size:0.76rem">#${o.id}</td>
-      <td><strong>${o.buyerName}</strong><div style="font-size:0.72rem;color:var(--text3)">${o.buyerEmail}</div></td>
-      <td>${o.productName}</td>
-      <td style="color:var(--text2)">${o.sellerName || '—'}</td>
-      <td style="font-weight:700">${o.total.toLocaleString()} FCFA</td>
-      <td><span class="status-badge status-${o.status}">${statusLabel(o.status)}</span></td>
-      <td style="font-size:0.78rem;color:var(--text3)">${formatDate(o.createdAt)}</td>
-    </tr>
-  `).join('') || `<tr><td colspan="7" class="table-empty">Aucune commande</td></tr>`;
+    const tbody = document.getElementById('allOrdersBody');
+    tbody.innerHTML = orders.map(o => `
+      <tr>
+        <td style="color:var(--text3);font-size:0.76rem">#${o.id}</td>
+        <td><strong>${o.buyerName}</strong><div style="font-size:0.72rem;color:var(--text3)">${o.buyerEmail}</div></td>
+        <td>${o.productName}</td>
+        <td style="color:var(--text2)">${o.sellerName || '—'}</td>
+        <td style="font-weight:700">${o.total.toLocaleString()} FCFA</td>
+        <td><span class="status-badge status-${o.status}">${statusLabel(o.status)}</span></td>
+        <td style="font-size:0.78rem;color:var(--text3)">${formatDate(o.createdAt)}</td>
+      </tr>
+    `).join('') || `<tr><td colspan="7" class="table-empty">Aucune commande</td></tr>`;
+  } catch (err) {
+    showLoader(false);
+    console.error('Erreur renderAllOrders:', err);
+    document.getElementById('allOrdersBody').innerHTML = `<tr><td colspan="7" class="table-empty">Erreur lors du chargement des commandes</td></tr>`;
+  }
 }
 
 /* ════════════════════════════
    SETTINGS
 ════════════════════════════ */
 async function saveSettings() {
-  const pass = document.getElementById('newAdminPass').value;
-  if (pass && pass.length < 6) { showToast('Mot de passe trop court', 'Min. 6 caractères.', 'var(--red)'); return; }
-  if (pass) {
-    const hash = btoa(unescape(encodeURIComponent(pass)));
-    await db.from('admins').update({ password: hash }).eq('id', adminSession.id);
-    document.getElementById('newAdminPass').value = '';
+  try {
+    const pass = document.getElementById('newAdminPass').value;
+    if (pass && pass.length < 6) { showToast('Mot de passe trop court', 'Min. 6 caractères.', 'var(--red)'); return; }
+    if (pass) {
+      showLoader(true);
+      const hash = await hashPassword(pass);
+      await db.from('admins').update({ password: hash }).eq('id', adminSession.id);
+      showLoader(false);
+      document.getElementById('newAdminPass').value = '';
+    }
+    showToast('Paramètres sauvegardés', '', 'var(--green)');
+  } catch (err) {
+    showLoader(false);
+    console.error('Erreur saveSettings:', err);
+    showToast('Erreur', 'Impossible de sauvegarder les paramètres.', 'var(--red)');
   }
-  showToast('Paramètres sauvegardés', '', 'var(--green)');
 }
 
 /* ════════════════════════════
