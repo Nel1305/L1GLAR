@@ -19,8 +19,9 @@ async function dbAdminLogin(email, password) {
 }
 
 async function dbGetAllUsers() {
-  const { data } = await db.from('users').select('*').order('created_at', { ascending: false });
-  return (data || []).map(normalizeUser);
+  const { data, error } = await db.from('users').select('*').order('created_at', { ascending: false });
+  if (error) { console.error('dbGetAllUsers error:', error); return []; }
+  return (data || []).map(normalizeUserFull);
 }
 
 async function dbGetCommissions(filters = {}) {
@@ -58,6 +59,9 @@ async function dbUpdateUserBilling(userId, period) {
 ════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   adminSession = JSON.parse(sessionStorage.getItem('glar_admin') || 'null');
+
+  // Stopper le loader dans tous les cas après 5 secondes max
+  setTimeout(() => showLoader(false), 5000);
 
   if (adminSession) {
     showApp();
@@ -142,12 +146,18 @@ async function goPage(name) {
 ════════════════════════════ */
 async function renderDashboard() {
   showLoader(true);
-  const [users, products, orders, commissions] = await Promise.all([
-    dbGetAllUsers(),
-    dbGetProducts(),
-    dbGetOrders(),
-    dbGetCommissions(),
-  ]);
+  let users = [], products = [], orders = [], commissions = [];
+  try {
+    [users, products, orders, commissions] = await Promise.all([
+      dbGetAllUsers(),
+      dbGetProducts(),
+      dbGetOrders(),
+      dbGetCommissions(),
+    ]);
+  } catch(e) {
+    console.error('Dashboard error:', e);
+    showToast('Erreur de chargement', e.message, 'var(--red)');
+  }
   showLoader(false);
 
   const totalRevenue    = orders.filter(o => o.status === 'done').reduce((s, o) => s + o.total, 0);
@@ -437,10 +447,20 @@ async function savePayment() {
 ════════════════════════════ */
 async function renderSellers() {
   showLoader(true);
-  const filter   = document.getElementById('sellerStatusFilter').value;
-  const users    = await dbGetAllUsers();
-  const orders   = await dbGetOrders();
-  const comms    = await dbGetCommissions();
+  const filter = document.getElementById('sellerStatusFilter').value;
+  let users = [], orders = [], comms = [];
+  try {
+    [users, orders, comms] = await Promise.all([
+      dbGetAllUsers(),
+      dbGetOrders(),
+      dbGetCommissions(),
+    ]);
+  } catch(e) {
+    console.error('renderSellers error:', e);
+    showToast('Erreur chargement vendeurs', e.message, 'var(--red)');
+    showLoader(false);
+    return;
+  }
   showLoader(false);
 
   let list = users;
@@ -639,12 +659,20 @@ function commStatusLabel(s) {
   return s==='pending'?'⏳ En attente':s==='overdue'?'🔴 En retard':s==='partial'?'🟡 Partiel':'✅ Payé';
 }
 
-// normalizeUser étendu pour is_blocked et billing_period
-const _origNorm = normalizeUser;
-function normalizeUser(r) {
-  const u = _origNorm ? _origNorm(r) : { id:r.id, firstName:r.first_name, lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, createdAt:r.created_at };
-  u.isBlocked     = r.is_blocked     || false;
-  u.blockedReason = r.blocked_reason || '';
-  u.billingPeriod = r.billing_period || 'monthly';
-  return u;
+// Normalize user avec champs admin
+function normalizeUserFull(r) {
+  return {
+    id:             r.id,
+    firstName:      r.first_name,
+    lastName:       r.last_name,
+    name:           r.name,
+    email:          r.email,
+    phone:          r.phone,
+    bio:            r.bio,
+    shopOpen:       r.shop_open,
+    isBlocked:      r.is_blocked     || false,
+    blockedReason:  r.blocked_reason || '',
+    billingPeriod:  r.billing_period || 'monthly',
+    createdAt:      r.created_at,
+  };
 }
