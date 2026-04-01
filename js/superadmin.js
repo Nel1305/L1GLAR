@@ -199,6 +199,28 @@ async function doGenerate() {
   document.getElementById('genSuccess').classList.add('show');
   btn.disabled=true;
   showToast('Factures générées !',`${preview.length} vendeurs facturés`,'var(--green)');
+
+  // Envoyer les emails de facture à chaque vendeur
+  if (typeof sendInvoiceEmail !== 'undefined') {
+    const allUsers = await dbGetAllUsers();
+    let emailsSent = 0;
+    for (const p of preview) {
+      const seller = allUsers.find(u => u.id === p.sellerId);
+      if (!seller || !seller.email) continue;
+      const commData = {
+        period_label: btn.dataset.label,
+        revenue:      p.revenue,
+        amount_due:   p.amountDue,
+        rate:         p.rate,
+        due_date:     btn.dataset.due || null,
+      };
+      const res = await sendInvoiceEmail(seller, commData);
+      if (res.ok) emailsSent++;
+    }
+    if (emailsSent > 0) {
+      showToast('Emails envoyés', `${emailsSent} vendeur(s) notifié(s) par email 📧`, 'var(--green)');
+    }
+  }
 }
 
 /* ── PAYMENT ── */

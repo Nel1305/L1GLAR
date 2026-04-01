@@ -217,6 +217,12 @@ async function handleRegister() {
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
   setSession(r.user); closeModal('authModal'); syncSessionUI();
   showToast('Compte créé !', `Bienvenue ${first} 🎉`);
+  // Email de bienvenue
+  if (typeof sendWelcomeEmail !== 'undefined') {
+    sendWelcomeEmail(r.user).then(res => {
+      if (res.ok) showToast('Email envoyé', 'Vérifie ta boîte mail 📧');
+    });
+  }
 }
 
 function syncSessionUI() {
