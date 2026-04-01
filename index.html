@@ -1,53 +1,36 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Market Place · L1 GLAR</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-<!-- LOADER -->
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
-
 <div class="app">
   <aside class="sidebar">
-    <div class="logo">
-      <div class="logo-name">Market Place</div>
-      <div class="logo-sub">L1 GLAR · Université</div>
-    </div>
+    <div class="logo"><div class="logo-name">Market Place</div><div class="logo-sub">L1 GLAR · Université</div></div>
     <nav class="nav">
       <span class="nav-label">Catalogue</span>
-      <button class="nav-item active" data-page="products"><span class="icon">🛍️</span>Produits</button>
+      <button class="nav-item active" data-page="products"><span class="icon">🛍</span>Produits</button>
       <button class="nav-item" data-page="order"><span class="icon">📦</span>Commander</button>
       <button class="nav-item" data-page="reviews"><span class="icon">⭐</span>Avis</button>
     </nav>
     <div class="sidebar-footer">
       <div id="userPill" class="user-pill">
         <div class="avatar" id="userAvatar">?</div>
-        <div class="user-info">
-          <div class="user-name" id="userName">Se connecter</div>
-          <div class="user-role" id="userRole">Visiteur</div>
-        </div>
+        <div class="user-info"><div class="user-name" id="userName">Se connecter</div><div class="user-role" id="userRole">Visiteur</div></div>
       </div>
-      <a href="pages/admin.html" class="admin-btn" id="adminBtn" style="display:none">
-        <span class="icon">⚙️</span>Mon espace vendeur
-      </a>
-      <a href="pages/superadmin.html" class="credit" style="text-decoration:none;opacity:0.4;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.4">codé par Nel'si</a>
+      <a href="pages/admin.html" class="admin-btn highlight" id="adminBtn" style="display:none"><span class="icon">⚙</span>Mon espace vendeur</a>
+      <a href="pages/superadmin.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
-
   <main class="main">
-
-    <!-- PRODUCTS -->
     <div id="page-products" class="page active">
-      <div class="page-header">
-        <div><div class="page-title">Produits</div><div class="page-desc">Parcourez les offres de vos camarades</div></div>
-      </div>
+      <div class="page-header"><div><div class="page-title">Produits</div><div class="page-desc">Parcourez les offres de vos camarades</div></div></div>
       <div class="toolbar">
-        <div class="search-wrap"><span class="s-icon">🔍</span><input type="text" id="searchInput" placeholder="Rechercher un produit…"></div>
+        <div class="search-wrap"><span class="s-icon">🔍</span><input type="text" id="searchInput" placeholder="Rechercher…"></div>
         <div class="filters">
           <button class="filter-btn active" data-filter="all">Tout</button>
           <button class="filter-btn" data-filter="food">🥞 Nourriture</button>
@@ -57,8 +40,6 @@
       </div>
       <div class="grid" id="productsGrid"></div>
     </div>
-
-    <!-- ORDER -->
     <div id="page-order" class="page">
       <div class="page-header"><div><div class="page-title">Commander</div><div class="page-desc">Tu recevras une confirmation par email</div></div></div>
       <div class="form-wrap">
@@ -81,48 +62,35 @@
               <button class="qty-btn" id="qtyPlus">+</button>
             </div>
           </div>
-          <div class="field">
-            <label>Modifications / Ajouts</label>
-            <textarea id="oNotes" placeholder="Ex : sans sucre, sauce à part, extra fromage…"></textarea>
-            <div class="hint">Précise tout ce que tu veux changer ou ajouter à ta commande.</div>
-          </div>
+          <div class="field"><label>Modifications / Ajouts</label><textarea id="oNotes" placeholder="Ex : sans sucre, sauce à part…"></textarea><div class="hint">Précise tout ce que tu veux changer ou ajouter.</div></div>
         </div>
         <button class="btn-primary" id="submitOrderBtn">Confirmer la commande</button>
-        <div class="success-box" id="orderSuccess">
-          <div class="ico">✅</div><strong>Commande envoyée !</strong>
-          <p id="orderSuccessText"></p>
-        </div>
+        <div class="success-box" id="orderSuccess"><div class="ico">✓</div><strong>Commande envoyée !</strong><p id="orderSuccessText"></p></div>
       </div>
     </div>
-
-    <!-- REVIEWS -->
     <div id="page-reviews" class="page">
       <div class="page-header"><div><div class="page-title">Avis</div><div class="page-desc">Notes et retours de la promo</div></div></div>
       <button class="add-btn" id="openReviewBtn">+ Laisser un avis</button>
       <div class="reviews-list" id="reviewsList"></div>
     </div>
-
   </main>
 </div>
 
-<!-- MODAL AUTH -->
 <div class="overlay" id="authModal">
   <div class="modal">
     <button class="modal-x" data-close="authModal">✕</button>
     <div id="viewLogin">
-      <div class="modal-title">Connexion</div>
-      <div class="modal-sub">Accède à ton espace vendeur</div>
+      <div class="modal-title">Connexion</div><div class="modal-sub">Accède à ton espace vendeur</div>
       <div class="modal-form">
         <div class="field"><label>Email</label><input type="email" id="lEmail" placeholder="ton@email.com"></div>
         <div class="field"><label>Mot de passe</label><input type="password" id="lPass" placeholder="••••••••"></div>
         <button class="btn-primary" id="loginBtn">Se connecter</button>
         <div class="modal-sep">ou</div>
-        <div class="modal-link">Pas de compte ? <a id="goRegister">S'inscrire gratuitement</a></div>
+        <div class="modal-link">Pas de compte ? <a id="goRegister">S'inscrire</a></div>
       </div>
     </div>
     <div id="viewRegister" style="display:none">
-      <div class="modal-title">Créer un compte</div>
-      <div class="modal-sub">Rejoins Market Place L1 GLAR</div>
+      <div class="modal-title">Créer un compte</div><div class="modal-sub">Rejoins Market Place L1 GLAR</div>
       <div class="modal-form">
         <div class="modal-grid">
           <div class="field"><label>Prénom</label><input type="text" id="rFirst" placeholder="Amina"></div>
@@ -138,12 +106,10 @@
   </div>
 </div>
 
-<!-- MODAL REVIEW -->
 <div class="overlay" id="reviewModal">
   <div class="modal">
     <button class="modal-x" data-close="reviewModal">✕</button>
-    <div class="modal-title">Laisser un avis</div>
-    <div class="modal-sub">Note un produit que tu as commandé</div>
+    <div class="modal-title">Laisser un avis</div><div class="modal-sub">Note un produit commandé</div>
     <div class="modal-form">
       <div class="field"><label>Ton prénom</label><input type="text" id="rvName" placeholder="Ex : Fatou"></div>
       <div class="field"><label>Produit</label><select id="rvProduct"></select></div>
@@ -163,11 +129,6 @@
 </div>
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
-
-<!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/config.js"></script>
-<script src="js/db.js"></script>
-<script src="js/main.js"></script>
-</body>
-</html>
+<script src="js/config.js"></script><script src="js/db.js"></script><script src="js/main.js"></script>
+</body></html>
