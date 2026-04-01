@@ -5,7 +5,7 @@
 
 /* ── 1. SUPABASE ── */
 const SUPABASE_URL = 'https://iszoodumwzpovxotisnm.supabase.co'; // ← Settings → API → Project URL
-const SUPABASE_KEY = 'sb_publishable_RHr1M8JmzB57Eu1fFKicUA_2oHnFVg9'; // ← Settings → API → anon/public key
+const SUPABASE_KEY = 'sb_publishable_RHr1M8JmzB57Eu1fFKicUA_2oHnFVg9; // ← Settings → API → anon/public key
 
 /* ── 2. EMAILJS ── */
 const EMAILJS_PUBLIC_KEY    = 'C6F_StHUlgq2eIluh';  // ← Account → API Keys → Public Key
