@@ -4,17 +4,17 @@
 ═══════════════════════════════════════════════════════ */
 
 /* ── 1. SUPABASE ── */
-const SUPABASE_URL = 'https://XXXXXXXXXXXX.supabase.co'; // ← Settings → API → Project URL
-const SUPABASE_KEY = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'; // ← Settings → API → anon/public key
+const SUPABASE_URL = 'https://iszoodumwzpovxotisnm.supabase.co'; // ← Settings → API → Project URL
+const SUPABASE_KEY = 'sb_publishable_RHr1M8JmzB57Eu1fFKicUA_2oHnFVg9'; // ← Settings → API → anon/public key
 
 /* ── 2. EMAILJS ── */
-const EMAILJS_PUBLIC_KEY    = 'XXXXXXXXXXXXXXXX';  // ← Account → API Keys → Public Key
-const EMAILJS_SERVICE_ID    = 'service_XXXXXXX';   // ← Email Services → ton service
-const EMAILJS_TEMPLATE_WELCOME  = 'template_welcome';   // ← template confirmation de compte
-const EMAILJS_TEMPLATE_INVOICE  = 'template_invoice';   // ← template facture commission
+const EMAILJS_PUBLIC_KEY    = 'C6F_StHUlgq2eIluh';  // ← Account → API Keys → Public Key
+const EMAILJS_SERVICE_ID    = 'service_ba2jyzr';   // ← Email Services → ton service
+const EMAILJS_TEMPLATE_WELCOME  = 'template_8xy6ill';   // ← template confirmation de compte
+const EMAILJS_TEMPLATE_INVOICE  = 'template_qcc100g';   // ← template facture commission
 
 /* ── 3. PAIEMENT WAVE ── */
-const WAVE_NUMBER = '+221 XX XXX XX XX'; // ← Ton numéro Wave pour recevoir les paiements
+const WAVE_NUMBER = '+221 77 597 7114'; // ← Ton numéro Wave pour recevoir les paiements
 const WAVE_NAME   = 'Nel\'si';           // ← Ton prénom affiché dans le mail
 
 /* ── 4. PLATEFORME ── */
