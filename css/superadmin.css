@@ -1,0 +1,84 @@
+/* ═══════════════════════════════════════════
+   MARKET PLACE L1 GLAR — superadmin.css
+   Minimaliste premium — cohérent avec style.css
+═══════════════════════════════════════════ */
+
+/* LOGIN */
+#loginScreen { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+.login-box { background:var(--bg1); border:1px solid var(--line2); border-radius:var(--r-xl); padding:36px; width:100%; max-width:360px; display:flex; flex-direction:column; gap:12px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+.login-logo { text-align:center; margin-bottom:6px; padding-bottom:20px; border-bottom:1px solid var(--line); }
+.login-logo h1 { font-size:1rem; font-weight:600; color:var(--t1); margin-top:8px; letter-spacing:-.02em; }
+.login-logo p { font-size:.72rem; color:var(--t3); margin-top:3px; }
+
+/* ADMIN NAV active overrides */
+.admin-nav .nav-item.active { background:var(--bg2); color:var(--t1); }
+
+/* SECTION HEAD */
+.section-head { font-size:.84rem; font-weight:600; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; letter-spacing:-.01em; }
+
+/* ALERTS */
+.alert-section { background:var(--red-dim); border:1px solid rgba(240,108,108,.2); border-radius:var(--r-lg); padding:16px 18px; margin-bottom:24px; }
+.alert-title { font-weight:600; font-size:.84rem; color:var(--red); margin-bottom:10px; }
+.alert-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(240,108,108,.1); font-size:.8rem; gap:10px; flex-wrap:wrap; }
+.alert-row:last-child { border-bottom:none; }
+.alert-name { font-weight:500; }
+.alert-amount { color:var(--red); font-weight:600; }
+
+/* COMMISSION STATUS BADGES */
+.comm-pending { background:var(--amber-dim); color:var(--amber); }
+.comm-overdue { background:var(--red-dim);   color:var(--red); }
+.comm-partial { background:rgba(153,102,255,.1); color:var(--purple); }
+.comm-paid    { background:var(--green-dim); color:var(--green); }
+
+/* SELLERS GRID */
+.sellers-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:10px; }
+.seller-card { background:var(--bg1); border:1px solid var(--line); border-radius:var(--r-lg); padding:18px; transition:border-color .15s; }
+.seller-card:hover { border-color:var(--line2); }
+.seller-card.blocked { border-color:rgba(240,108,108,.25); }
+.seller-top { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.seller-avatar { width:38px; height:38px; border-radius:50%; background:var(--bg3); border:1px solid var(--line2); color:var(--t2); display:flex; align-items:center; justify-content:center; font-size:.95rem; font-weight:700; flex-shrink:0; }
+.seller-name { font-weight:600; font-size:.86rem; letter-spacing:-.01em; }
+.seller-email { font-size:.7rem; color:var(--t3); }
+.seller-period { font-size:.68rem; color:var(--t2); margin-top:2px; }
+.seller-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:12px; }
+.seller-stat { text-align:center; background:var(--bg2); border:1px solid var(--line); border-radius:6px; padding:8px 4px; }
+.seller-stat-val { font-weight:700; font-size:.92rem; }
+.seller-stat-label { font-size:.62rem; color:var(--t3); margin-top:1px; }
+.seller-actions { display:flex; gap:6px; }
+.seller-actions button { flex:1; }
+.blocked-badge { display:inline-flex; align-items:center; gap:3px; font-size:.64rem; font-weight:500; padding:1px 6px; border-radius:3px; background:var(--red-dim); color:var(--red); margin-left:6px; }
+.period-badge { display:inline-flex; align-items:center; font-size:.64rem; font-weight:500; padding:1px 6px; border-radius:3px; }
+.period-monthly { background:var(--blue-dim); color:var(--blue); }
+.period-weekly  { background:var(--amber-dim); color:var(--amber); }
+
+/* GENERATE */
+.gen-total { background:var(--bg2); border:1px solid var(--line2); border-radius:var(--r); padding:14px 16px; margin-bottom:18px; font-size:.82rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+.gen-total strong { font-size:1rem; color:var(--green); font-weight:700; }
+
+/* PROGRESS */
+.progress-wrap { margin-top:6px; }
+.progress-bar-bg { height:3px; background:var(--bg3); border-radius:2px; overflow:hidden; }
+.progress-bar-fill { height:100%; border-radius:2px; transition:width .4s; }
+.progress-label { font-size:.64rem; color:var(--t3); margin-top:3px; display:flex; justify-content:space-between; }
+
+/* DASH GRID */
+.dash-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:4px; }
+.dash-card { background:var(--bg1); border:1px solid var(--line); border-radius:var(--r-lg); padding:18px; }
+.dash-card-title { font-size:.8rem; font-weight:600; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--line); color:var(--t2); }
+.mini-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); font-size:.78rem; gap:10px; }
+.mini-row:last-child { border-bottom:none; }
+.mini-client { font-weight:500; }
+.mini-product { color:var(--t2); font-size:.72rem; }
+.mini-price { font-weight:600; white-space:nowrap; }
+
+/* GRAPH */
+.graph-wrap { background:var(--bg1); border:1px solid var(--line); border-radius:var(--r-lg); padding:24px; min-height:420px; }
+.graph-title { font-size:.9rem; font-weight:600; margin-bottom:4px; }
+.graph-sub { font-size:.76rem; color:var(--t2); margin-bottom:20px; }
+#graphCanvas { width:100%; height:360px; display:block; }
+.graph-legend { display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; }
+.graph-legend-item { display:flex; align-items:center; gap:6px; font-size:.7rem; color:var(--t2); }
+.graph-dot { width:8px; height:8px; border-radius:50%; }
+
+@media(max-width:900px) { .dash-grid { grid-template-columns:1fr; } }
+@media(max-width:720px) { .sellers-grid { grid-template-columns:1fr; } }
