@@ -1,23 +1,38 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="N Market — Espace vendeur">
+  <meta name="theme-color" content="#080c10">
   <title>Mon espace · N Market</title>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
-<div id="lockedScreen" style="display:none;text-align:center;padding:100px 20px;max-width:360px;margin:0 auto">
-  <div style="font-size:1.8rem;margin-bottom:14px">🔒</div>
+
+<!-- Accès refusé -->
+<div id="lockedScreen" style="display:none;text-align:center;padding:100px 20px;max-width:380px;margin:0 auto">
+  <div style="font-size:2rem;margin-bottom:16px">🔒</div>
   <div class="page-title" style="margin-bottom:8px">Accès refusé</div>
-  <p style="color:var(--t2);font-size:.82rem;margin-bottom:22px">Connecte-toi pour accéder à ton espace vendeur.</p>
-  <a href="../index.html" style="display:inline-block;padding:9px 22px;background:var(--t1);color:var(--bg);border-radius:var(--r2);text-decoration:none;font-weight:600;font-size:.82rem">← Retourner au site</a>
+  <p style="color:var(--t2);font-size:.82rem;margin-bottom:24px">Connecte-toi pour accéder à ton espace vendeur.</p>
+  <a href="../index.html" class="btn-primary sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">← Retourner au site</a>
 </div>
+
 <div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
-    <div class="logo"><div class="logo-name" id="shopName">Mon commerce</div><div class="logo-sub">N Market Place</div></div>
-    <nav class="nav">
+    <div class="logo">
+      <div class="logo-mark">N</div>
+      <div class="logo-text">
+        <div class="logo-name" id="shopName">Ma boutique</div>
+        <div class="logo-sub">N Market · Vendeur</div>
+      </div>
+    </div>
+
+    <nav class="nav" role="navigation" aria-label="Navigation vendeur">
       <span class="nav-label">Tableau de bord</span>
       <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Vue globale</button>
       <span class="nav-label">Ventes</span>
@@ -25,31 +40,50 @@
       <button class="nav-item" data-page="products"><span class="icon">🛍</span>Mes produits</button>
       <button class="nav-item" data-page="addproduct"><span class="icon">+</span>Ajouter un produit</button>
       <span class="nav-label">Communication</span>
-      <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="chatDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="chat">
+        <span class="icon">💬</span>Messages
+        <span class="badge-dot" id="chatDot" style="display:none"></span>
+      </button>
       <span class="nav-label">Compte</span>
       <button class="nav-item" data-page="profile"><span class="icon">⚙</span>Mon profil</button>
     </nav>
+
     <div class="sidebar-footer">
       <div class="user-pill" id="userPill">
         <div class="avatar" id="userAvatar">?</div>
-        <div class="user-info"><div class="user-name" id="userName">…</div><div class="user-role">Vendeur</div></div>
+        <div class="user-info">
+          <div class="user-name" id="userName">…</div>
+          <div class="user-role">Vendeur</div>
+        </div>
       </div>
       <button class="admin-btn" id="logoutBtn"><span class="icon">←</span>Se déconnecter</button>
-      <a href="../index.html" class="admin-btn"><span class="icon">←</span>Retour au site</a>
+      <a href="../index.html" class="admin-btn"><span class="icon">🏠</span>Retour au site</a>
       <a href="superadmin.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
+
   <main class="main">
 
+    <!-- Dashboard -->
     <div id="page-dashboard" class="page active">
-      <div class="page-header"><div><div class="page-title" id="dashTitle">Tableau de bord</div><div class="page-desc" id="dashDesc">Bienvenue</div></div></div>
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="dashTitle">Tableau de bord</div>
+          <div class="page-desc" id="dashDesc">Bienvenue</div>
+        </div>
+      </div>
       <div class="stats-row" id="dashStats"></div>
       <div style="margin-bottom:24px">
         <div style="font-size:.82rem;font-weight:500;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
           <span>Dernières commandes</span>
           <button class="btn-ghost" style="font-size:.72rem;padding:5px 12px" onclick="goPage('orders')">Tout voir</button>
         </div>
-        <div class="table-wrap"><table class="data-table"><thead><tr><th>Client</th><th>Produit</th><th>Qté</th><th>Total</th><th>Statut</th></tr></thead><tbody id="dashOrders"></tbody></table></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Client</th><th>Produit</th><th>Qté</th><th>Total</th><th>Statut</th></tr></thead>
+            <tbody id="dashOrders"></tbody>
+          </table>
+        </div>
       </div>
       <div>
         <div style="font-size:.82rem;font-weight:500;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
@@ -60,80 +94,146 @@
       </div>
     </div>
 
+    <!-- Commandes -->
     <div id="page-orders" class="page">
       <div class="page-header">
         <div><div class="page-title">Commandes</div><div class="page-desc">Toutes les commandes reçues</div></div>
-        <select class="select-sm" id="orderStatusFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select>
+        <select class="select-sm" id="orderStatusFilter">
+          <option value="all">Tous</option>
+          <option value="new">Nouvelles</option>
+          <option value="done">Livrées</option>
+          <option value="cancel">Annulées</option>
+        </select>
       </div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Client</th><th>Contact</th><th>Produit</th><th>Qté</th><th>Total</th><th>Modification</th><th>Statut</th><th></th></tr></thead><tbody id="ordersBody"></tbody></table></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Client</th><th>Contact</th><th>Produit</th><th>Qté</th><th>Total</th><th>Note</th><th>Statut</th><th></th></tr></thead>
+          <tbody id="ordersBody"></tbody>
+        </table>
+      </div>
     </div>
 
+    <!-- Produits -->
     <div id="page-products" class="page">
-      <div class="page-header"><div><div class="page-title">Mes produits</div><div class="page-desc">Gérer ta boutique</div></div><button class="btn-primary sm" onclick="goPage('addproduct')">+ Ajouter</button></div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>Photo</th><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Note</th><th>Dispo</th><th>Actions</th></tr></thead><tbody id="productsBody"></tbody></table></div>
+      <div class="page-header">
+        <div><div class="page-title">Mes produits</div><div class="page-desc">Gérer ta boutique</div></div>
+        <button class="btn-primary sm" onclick="goPage('addproduct')">+ Ajouter</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Photo</th><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Note</th><th>Dispo</th><th>Actions</th></tr></thead>
+          <tbody id="productsBody"></tbody>
+        </table>
+      </div>
     </div>
 
+    <!-- Ajouter produit -->
     <div id="page-addproduct" class="page">
-      <div class="page-header"><div><div class="page-title">Ajouter un produit</div><div class="page-desc">Décris ce que tu vends</div></div></div>
+      <div class="page-header">
+        <div><div class="page-title">Ajouter un produit</div><div class="page-desc">Décris ce que tu vends</div></div>
+      </div>
       <div class="form-wrap">
-        <div class="field"><label>Photo du produit</label>
-          <div class="photo-upload"><input type="file" accept="image/*" id="apPhoto"><div id="apPhotoPlaceholder"><div style="font-size:1.5rem;margin-bottom:6px">📷</div><div style="font-size:.8rem;font-weight:500;margin-bottom:2px">Clique ou glisse une photo</div><div style="font-size:.7rem;color:var(--t3)">JPG, PNG — max 5 Mo</div></div><img id="apPhotoPreview" class="photo-preview" alt=""></div>
+        <div class="field">
+          <label>Photo du produit</label>
+          <div class="photo-upload">
+            <input type="file" accept="image/*" id="apPhoto">
+            <div id="apPhotoPlaceholder">
+              <div style="font-size:1.6rem;margin-bottom:6px">📷</div>
+              <div style="font-size:.8rem;font-weight:500;margin-bottom:2px">Clique ou glisse une photo</div>
+              <div style="font-size:.7rem;color:var(--t3)">JPG, PNG — max 5 Mo</div>
+            </div>
+            <img id="apPhotoPreview" class="photo-preview" alt="">
+          </div>
         </div>
-        <div class="field"><label>Nom du produit</label><input type="text" id="apName" placeholder="Ex : Crêpes au Nutella"></div>
-        <div class="field"><label>Description</label><textarea id="apDesc" placeholder="Décris ton produit : ingrédients, taille, disponibilités…"></textarea></div>
+        <div class="field"><label for="apName">Nom du produit</label><input type="text" id="apName" placeholder="Ex : Crêpes au Nutella" maxlength="100"></div>
+        <div class="field"><label for="apDesc">Description</label><textarea id="apDesc" placeholder="Décris ton produit : ingrédients, taille, disponibilités…" maxlength="500"></textarea></div>
         <div class="field-row">
-          <div class="field"><label>Catégorie</label><select id="apCat"><option value="food">🥞 Nourriture</option><option value="drink">🥤 Boissons</option><option value="other">✨ Autres</option></select></div>
-          <div class="field"><label>Prix (FCFA)</label><input type="number" id="apPrice" placeholder="500" min="1"></div>
+          <div class="field">
+            <label for="apCat">Catégorie</label>
+            <select id="apCat">
+              <option value="food">🥞 Nourriture</option>
+              <option value="drink">🥤 Boissons</option>
+              <option value="other">✨ Autres</option>
+            </select>
+          </div>
+          <div class="field"><label for="apPrice">Prix (FCFA)</label><input type="number" id="apPrice" placeholder="500" min="1" max="9999999"></div>
         </div>
-        <div class="field"><label>Emoji (si pas de photo)</label><input type="text" id="apEmoji" placeholder="🥞" style="max-width:100px"></div>
+        <div class="field"><label for="apEmoji">Emoji (si pas de photo)</label><input type="text" id="apEmoji" placeholder="🥞" style="max-width:100px" maxlength="4"></div>
         <div class="divider"></div>
         <button class="btn-primary" id="saveProductBtn">Publier le produit</button>
-        <div class="success-box" id="addSuccess"><div class="ico">✓</div><strong>Produit publié !</strong><p>Il est maintenant visible par toute la promo.</p></div>
+        <div class="success-box" id="addSuccess">
+          <div class="ico">✓</div>
+          <strong>Produit publié !</strong>
+          <p>Il est maintenant visible par toute la promo.</p>
+        </div>
       </div>
     </div>
 
+    <!-- Chat -->
     <div id="page-chat" class="page">
-      <div class="page-header"><div><div class="page-title">Messages</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Chiffré E2E</span></div></div></div>
+      <div class="page-header">
+        <div>
+          <div class="page-title">Messages</div>
+          <div class="page-desc">Canal général + conversations privées · <span class="chat-lock">🔒 Chiffré E2E</span></div>
+        </div>
+      </div>
       <div class="chat-wrap">
         <div class="chat-sidebar">
-          <div class="chat-sidebar-hd">Conversations</div>
+          <div class="chat-sidebar-title">Conversations</div>
           <div class="chat-rooms" id="chatRooms"></div>
         </div>
         <div class="chat-main">
           <div class="chat-header">
-            <div class="chat-header-info">
-              <div class="chat-header-name" id="chatHeaderName">Canal général</div>
+            <div>
+              <div class="chat-header-title" id="chatHeaderName">Canal général</div>
               <div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div>
             </div>
-            <span class="e2e-badge">🔒 Chiffré</span>
+            <span class="chat-lock">🔒 Chiffré</span>
           </div>
-          <div class="chat-messages" id="chatMessages"><div class="chat-empty"><span>💬</span><span>Sélectionne une conversation</span></div></div>
+          <div class="chat-messages" id="chatMessages">
+            <div class="chat-empty"><span>💬</span><span>Sélectionne une conversation</span></div>
+          </div>
           <div class="chat-input-area">
-            <textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1"></textarea>
-            <button class="chat-send" id="chatSendBtn">↑</button>
+            <textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1" aria-label="Message" maxlength="1000"></textarea>
+            <button class="chat-send" id="chatSendBtn" aria-label="Envoyer">↑</button>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Profil -->
     <div id="page-profile" class="page">
-      <div class="page-header"><div><div class="page-title">Mon profil</div><div class="page-desc">Gérer les informations de ton commerce</div></div></div>
+      <div class="page-header">
+        <div><div class="page-title">Mon profil</div><div class="page-desc">Informations de ton commerce</div></div>
+      </div>
       <div class="form-wrap">
         <div class="f-section">
           <span class="f-label">Informations</span>
-          <div class="field-row"><div class="field"><label>Prénom</label><input type="text" id="pfFirst"></div><div class="field"><label>Nom</label><input type="text" id="pfLast"></div></div>
-          <div class="field"><label>Email</label><input type="email" id="pfEmail"></div>
-          <div class="field"><label>Téléphone</label><input type="tel" id="pfPhone"></div>
+          <div class="field-row">
+            <div class="field"><label for="pfFirst">Prénom</label><input type="text" id="pfFirst" autocomplete="given-name" maxlength="60"></div>
+            <div class="field"><label for="pfLast">Nom</label><input type="text" id="pfLast" autocomplete="family-name" maxlength="60"></div>
+          </div>
+          <div class="field"><label for="pfEmail">Email</label><input type="email" id="pfEmail" autocomplete="email" maxlength="150"></div>
+          <div class="field"><label for="pfPhone">Téléphone</label><input type="tel" id="pfPhone" autocomplete="tel" maxlength="20"></div>
         </div>
         <div class="divider"></div>
         <div class="f-section">
           <span class="f-label">Ma boutique</span>
-          <div class="field"><label>Nom affiché</label><input type="text" id="pfShopName"></div>
-          <div class="field"><label>Description</label><textarea id="pfBio" placeholder="Ex : Crêpes maison tous les midis en salle 12 !"></textarea></div>
-          <div class="toggle-row"><div class="toggle-info"><strong>Boutique ouverte</strong><span>Tes produits sont visibles</span></div><button class="toggle on" id="pfToggle"></button></div>
+          <div class="field"><label for="pfShopName">Nom affiché</label><input type="text" id="pfShopName" maxlength="80"></div>
+          <div class="field"><label for="pfBio">Description</label><textarea id="pfBio" placeholder="Ex : Crêpes maison tous les midis en salle 12 !" maxlength="300"></textarea></div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <strong>Boutique ouverte</strong>
+              <span>Tes produits sont visibles</span>
+            </div>
+            <button class="toggle on" id="pfToggle" aria-pressed="true" aria-label="Statut boutique"></button>
+          </div>
         </div>
         <div class="divider"></div>
-        <div class="f-section"><span class="f-label">Sécurité</span><div class="field"><label>Nouveau mot de passe</label><input type="password" id="pfPass" placeholder="Laisser vide pour ne pas changer"></div></div>
+        <div class="f-section">
+          <span class="f-label">Sécurité</span>
+          <div class="field"><label for="pfPass">Nouveau mot de passe</label><input type="password" id="pfPass" placeholder="Laisser vide pour ne pas changer" maxlength="100" autocomplete="new-password"></div>
+        </div>
         <button class="btn-primary" id="saveProfileBtn">Sauvegarder</button>
       </div>
     </div>
@@ -141,37 +241,64 @@
   </main>
 </div>
 
-<div class="overlay" id="editProductModal">
+<!-- Modal modifier produit -->
+<div class="overlay" id="editProductModal" role="dialog" aria-modal="true" aria-labelledby="editProductTitle">
   <div class="modal modal-lg">
-    <button class="modal-x" data-close="editProductModal">✕</button>
-    <div class="modal-title">Modifier le produit</div><div class="modal-sub">Changements visibles immédiatement</div>
+    <button class="modal-x" data-close="editProductModal" aria-label="Fermer">✕</button>
+    <div class="modal-title" id="editProductTitle">Modifier le produit</div>
+    <div class="modal-sub">Changements visibles immédiatement</div>
     <div class="modal-form">
       <input type="hidden" id="editId">
-      <div class="field"><label>Photo</label><div class="photo-upload"><input type="file" accept="image/*" id="editPhoto"><div id="editPhotoPlaceholder"><div style="font-size:1.4rem;margin-bottom:4px">📷</div><div style="font-size:.78rem;font-weight:500">Changer la photo</div></div><img id="editPhotoPreview" class="photo-preview" alt=""></div></div>
-      <div class="field"><label>Nom</label><input type="text" id="editName"></div>
-      <div class="field"><label>Description</label><textarea id="editDesc"></textarea></div>
-      <div class="modal-grid">
-        <div class="field"><label>Catégorie</label><select id="editCat"><option value="food">🥞 Nourriture</option><option value="drink">🥤 Boissons</option><option value="other">✨ Autres</option></select></div>
-        <div class="field"><label>Prix (FCFA)</label><input type="number" id="editPrice"></div>
+      <div class="field">
+        <label>Photo</label>
+        <div class="photo-upload">
+          <input type="file" accept="image/*" id="editPhoto">
+          <div id="editPhotoPlaceholder"><div style="font-size:1.4rem;margin-bottom:4px">📷</div><div style="font-size:.78rem;font-weight:500">Changer la photo</div></div>
+          <img id="editPhotoPreview" class="photo-preview" alt="">
+        </div>
       </div>
-      <div class="field"><label>Emoji</label><input type="text" id="editEmoji" style="max-width:90px"></div>
+      <div class="field"><label for="editName">Nom</label><input type="text" id="editName" maxlength="100"></div>
+      <div class="field"><label for="editDesc">Description</label><textarea id="editDesc" maxlength="500"></textarea></div>
+      <div class="modal-grid">
+        <div class="field">
+          <label for="editCat">Catégorie</label>
+          <select id="editCat">
+            <option value="food">🥞 Nourriture</option>
+            <option value="drink">🥤 Boissons</option>
+            <option value="other">✨ Autres</option>
+          </select>
+        </div>
+        <div class="field"><label for="editPrice">Prix (FCFA)</label><input type="number" id="editPrice" min="1" max="9999999"></div>
+      </div>
+      <div class="field"><label for="editEmoji">Emoji</label><input type="text" id="editEmoji" style="max-width:90px" maxlength="4"></div>
       <button class="btn-primary" id="saveEditBtn">Sauvegarder</button>
     </div>
   </div>
 </div>
 
-<div class="overlay" id="orderDetailModal">
-  <div class="modal"><button class="modal-x" data-close="orderDetailModal">✕</button>
-    <div class="modal-title">Détail commande</div><div class="modal-sub" id="orderDetailSub"></div>
+<!-- Modal détail commande -->
+<div class="overlay" id="orderDetailModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <button class="modal-x" data-close="orderDetailModal" aria-label="Fermer">✕</button>
+    <div class="modal-title">Détail commande</div>
+    <div class="modal-sub" id="orderDetailSub"></div>
     <div id="orderDetailContent"></div>
   </div>
 </div>
 
-<div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../js/config.js"></script><script src="../js/db.js"></script>
-<script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- Toast -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <div class="toast-title" id="toastTitle"></div>
+  <div class="toast-msg" id="toastMsg"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="../js/config.js"></script>
+<script src="../js/db.js"></script>
+<script src="../js/crypto.js"></script>
+<script src="../js/chat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" crossorigin="anonymous"></script>
 <script src="../js/email.js"></script>
 <script src="../js/admin.js"></script>
-</body></html>
+</body>
+</html>

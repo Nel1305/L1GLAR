@@ -1,29 +1,52 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Super Admin · Market Place L1 GLAR</title>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="N Market — Super Administration">
+  <meta name="theme-color" content="#080c10">
+  <title>Super Admin · N Market</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/superadmin.css">
 </head>
 <body>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
 
+<!-- Écran de connexion admin -->
 <div id="loginScreen" style="display:none">
   <div class="login-box">
-    <div class="login-logo"><div style="font-size:1.5rem;margin-bottom:8px">◆</div><div style="font-size:.98rem;font-weight:600">Super Admin</div><div style="font-size:.7rem;color:var(--t3);margin-top:3px">Market Place L1 GLAR</div></div>
-    <div class="field"><label>Email admin</label><input type="email" id="aEmail" placeholder="admin@glar.com"></div>
-    <div class="field"><label>Mot de passe</label><input type="password" id="aPass" placeholder="••••••••"></div>
+    <div class="login-logo">
+      <div class="logo-mark" style="margin:0 auto 12px;width:44px;height:44px;font-size:1.2rem">N</div>
+      <div style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;background:var(--gold-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Super Admin</div>
+      <div style="font-size:.7rem;color:var(--t3);margin-top:4px">N Market · Accès restreint</div>
+    </div>
+    <div class="field">
+      <label for="aEmail">Email admin</label>
+      <input type="email" id="aEmail" placeholder="admin@nmarket.sn" autocomplete="email" maxlength="150">
+    </div>
+    <div class="field">
+      <label for="aPass">Mot de passe</label>
+      <input type="password" id="aPass" placeholder="••••••••" autocomplete="current-password" maxlength="100">
+    </div>
     <button class="btn-primary" id="adminLoginBtn">Se connecter</button>
-    <a href="../index.html" style="display:block;text-align:center;font-size:.72rem;color:var(--t3);margin-top:10px;text-decoration:none">← Retour au site</a>
+    <a href="../index.html" style="display:block;text-align:center;font-size:.72rem;color:var(--t3);margin-top:12px;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--t3)'">← Retour au site</a>
   </div>
 </div>
 
 <div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
-    <div class="logo"><div class="logo-name">Super Admin</div><div class="logo-sub">Market Place L1 GLAR</div></div>
-    <nav class="nav">
+    <div class="logo">
+      <div class="logo-mark">N</div>
+      <div class="logo-text">
+        <div class="logo-name">Super Admin</div>
+        <div class="logo-sub">N Market · Contrôle</div>
+      </div>
+    </div>
+
+    <nav class="nav" role="navigation" aria-label="Navigation super admin">
       <span class="nav-label">Vue globale</span>
       <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Tableau de bord</button>
       <span class="nav-label">Finances</span>
@@ -35,97 +58,237 @@
       <button class="nav-item" data-page="products"><span class="icon">🛍</span>Tous les produits</button>
       <button class="nav-item" data-page="orders"><span class="icon">📦</span>Toutes les commandes</button>
       <span class="nav-label">Communication</span>
-      <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="adminChatDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="chat">
+        <span class="icon">💬</span>Messages
+        <span class="badge-dot" id="adminChatDot" style="display:none"></span>
+      </button>
       <span class="nav-label">Paramètres</span>
       <button class="nav-item" data-page="settings"><span class="icon">⚙</span>Paramètres</button>
     </nav>
+
     <div class="sidebar-footer">
-      <div class="user-pill"><div class="avatar">◆</div><div class="user-info"><div class="user-name" id="adminName">Admin</div><div class="user-role">Super administrateur</div></div></div>
+      <div class="user-pill">
+        <div class="avatar" style="font-size:.7rem">◆</div>
+        <div class="user-info">
+          <div class="user-name" id="adminName">Admin</div>
+          <div class="user-role">Super administrateur</div>
+        </div>
+      </div>
       <button class="admin-btn" id="adminLogoutBtn"><span class="icon">←</span>Se déconnecter</button>
-      <a href="../index.html" class="admin-btn"><span class="icon">←</span>Retour au site</a>
+      <a href="../index.html" class="admin-btn"><span class="icon">🏠</span>Retour au site</a>
       <a href="../index.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
 
   <main class="main">
 
+    <!-- Dashboard -->
     <div id="page-dashboard" class="page active">
-      <div class="page-header"><div><div class="page-title">Tableau de bord</div><div class="page-desc">Vue globale de la marketplace</div></div><div id="dashDate" style="font-size:.74rem;color:var(--t3)"></div></div>
+      <div class="page-header">
+        <div><div class="page-title">Tableau de bord</div><div class="page-desc">Vue globale de la marketplace</div></div>
+        <div id="dashDate" style="font-size:.74rem;color:var(--t3)"></div>
+      </div>
       <div class="stats-row" id="dashStats"></div>
-      <div class="alert-section" id="alertSection" style="display:none"><div class="alert-title">Paiements en retard</div><div id="alertList"></div></div>
+      <div class="alert-section" id="alertSection" style="display:none">
+        <div class="alert-title">⚠ Paiements en retard</div>
+        <div id="alertList"></div>
+      </div>
       <div class="dash-grid">
-        <div class="dash-card"><div class="dash-card-title">Dernières commandes</div><div id="recentOrders"></div></div>
-        <div class="dash-card"><div class="dash-card-title">Commissions en attente</div><div id="recentCommissions"></div></div>
+        <div class="dash-card">
+          <div class="dash-card-title">Dernières commandes</div>
+          <div id="recentOrders"></div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-title">Commissions en attente</div>
+          <div id="recentCommissions"></div>
+        </div>
       </div>
     </div>
 
+    <!-- Commissions -->
     <div id="page-commissions" class="page">
-      <div class="page-header"><div><div class="page-title">Commissions</div><div class="page-desc">Suivi des paiements (5%)</div></div><select class="select-sm" id="commStatusFilter"><option value="all">Tous</option><option value="pending">En attente</option><option value="overdue">En retard</option><option value="partial">Partiel</option><option value="paid">Payé</option></select></div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur</th><th>Période</th><th>CA</th><th>Taux</th><th>Dû</th><th>Reçu</th><th>Reste</th><th>Statut</th><th></th></tr></thead><tbody id="commissionsBody"></tbody></table></div>
+      <div class="page-header">
+        <div><div class="page-title">Commissions</div><div class="page-desc">Suivi des paiements (5%)</div></div>
+        <select class="select-sm" id="commStatusFilter">
+          <option value="all">Tous</option>
+          <option value="pending">En attente</option>
+          <option value="overdue">En retard</option>
+          <option value="partial">Partiel</option>
+          <option value="paid">Payé</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Vendeur</th><th>Période</th><th>CA</th><th>Taux</th><th>Dû</th><th>Reçu</th><th>Reste</th><th>Statut</th><th></th></tr></thead>
+          <tbody id="commissionsBody"></tbody>
+        </table>
+      </div>
     </div>
 
+    <!-- Générer factures -->
     <div id="page-generate" class="page">
-      <div class="page-header"><div><div class="page-title">Générer les factures</div><div class="page-desc">Calcule automatiquement les commissions dues</div></div></div>
+      <div class="page-header">
+        <div><div class="page-title">Générer les factures</div><div class="page-desc">Calcule automatiquement les commissions dues</div></div>
+      </div>
       <div class="form-wrap">
-        <div class="f-section"><span class="f-label">Paramètres</span>
-          <div class="field-row"><div class="field"><label>Type</label><select id="genType"><option value="monthly">Mensuel</option><option value="weekly">Hebdomadaire</option></select></div><div class="field"><label>Taux (%)</label><input type="number" id="genRate" value="5" min="1" max="100" step="0.5"></div></div>
-          <div class="field-row"><div class="field"><label>Début</label><input type="date" id="genStart"></div><div class="field"><label>Fin</label><input type="date" id="genEnd"></div></div>
-          <div class="field"><label>Date limite</label><input type="date" id="genDue"></div>
+        <div class="f-section">
+          <span class="f-label">Paramètres</span>
+          <div class="field-row">
+            <div class="field">
+              <label for="genType">Type</label>
+              <select id="genType"><option value="monthly">Mensuel</option><option value="weekly">Hebdomadaire</option></select>
+            </div>
+            <div class="field">
+              <label for="genRate">Taux (%)</label>
+              <input type="number" id="genRate" value="5" min="1" max="100" step="0.5">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="genStart">Début</label><input type="date" id="genStart"></div>
+            <div class="field"><label for="genEnd">Fin</label><input type="date" id="genEnd"></div>
+          </div>
+          <div class="field"><label for="genDue">Date limite</label><input type="date" id="genDue"></div>
         </div>
         <div class="divider"></div>
         <div id="genPreview" style="display:none">
           <span class="f-label">Prévisualisation</span>
-          <div class="table-wrap" style="margin-bottom:14px"><table class="data-table"><thead><tr><th>Vendeur</th><th>Période</th><th>CA</th><th>Commission</th></tr></thead><tbody id="genPreviewBody"></tbody></table></div>
+          <div class="table-wrap" style="margin-bottom:14px">
+            <table class="data-table">
+              <thead><tr><th>Vendeur</th><th>Période</th><th>CA</th><th>Commission</th></tr></thead>
+              <tbody id="genPreviewBody"></tbody>
+            </table>
+          </div>
           <div id="genTotal" class="gen-total"></div>
         </div>
-        <div style="display:flex;gap:8px"><button class="btn-ghost" id="previewBtn" style="flex:1">Prévisualiser</button><button class="btn-primary" id="generateBtn" style="flex:2" disabled>Générer</button></div>
-        <div class="success-box" id="genSuccess"><div class="ico">✓</div><strong>Factures générées !</strong><p id="genSuccessText"></p></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-ghost" id="previewBtn" style="flex:1">Prévisualiser</button>
+          <button class="btn-primary" id="generateBtn" style="flex:2" disabled>Générer</button>
+        </div>
+        <div class="success-box" id="genSuccess">
+          <div class="ico">✓</div>
+          <strong>Factures générées !</strong>
+          <p id="genSuccessText"></p>
+        </div>
       </div>
     </div>
 
+    <!-- Vendeurs -->
     <div id="page-sellers" class="page">
-      <div class="page-header"><div><div class="page-title">Vendeurs</div><div class="page-desc">Gérer tous les comptes</div></div><select class="select-sm" id="sellerStatusFilter"><option value="all">Tous</option><option value="active">Actifs</option><option value="blocked">Bloqués</option></select></div>
+      <div class="page-header">
+        <div><div class="page-title">Vendeurs</div><div class="page-desc">Gérer tous les comptes</div></div>
+        <select class="select-sm" id="sellerStatusFilter">
+          <option value="all">Tous</option>
+          <option value="active">Actifs</option>
+          <option value="blocked">Bloqués</option>
+        </select>
+      </div>
       <div class="sellers-grid" id="sellersGrid"></div>
     </div>
 
+    <!-- Réseau vendeurs -->
     <div id="page-network" class="page">
-      <div class="page-header"><div><div class="page-title">Réseau vendeurs</div><div class="page-desc">Qui est en contact avec qui — tu vois, eux non</div></div></div>
-      <div class="network-wrap" style="margin-bottom:16px">
-        <h3>Graphe des connexions</h3>
-        <p>Chaque ligne indique que deux vendeurs se sont déjà parlé. Le contenu des discussions reste privé.</p>
+      <div class="page-header">
+        <div><div class="page-title">Réseau vendeurs</div><div class="page-desc">Qui est en contact avec qui — tu vois, eux non</div></div>
+      </div>
+      <div class="graph-wrap" style="margin-bottom:16px">
+        <div class="graph-title">Graphe des connexions</div>
+        <div class="graph-sub">Chaque lien indique que deux vendeurs se sont déjà parlé. Le contenu reste privé.</div>
         <canvas id="graphCanvas"></canvas>
       </div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur A</th><th>Vendeur B</th><th>Statut</th><th>Dernier contact</th></tr></thead><tbody id="connectionsBody"></tbody></table></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Vendeur A</th><th>Vendeur B</th><th>Statut</th><th>Dernier contact</th></tr></thead>
+          <tbody id="connectionsBody"></tbody>
+        </table>
+      </div>
     </div>
 
+    <!-- Tous les produits -->
     <div id="page-products" class="page">
-      <div class="page-header"><div><div class="page-title">Tous les produits</div><div class="page-desc">Vue globale</div></div></div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>Photo</th><th>Produit</th><th>Vendeur</th><th>Catégorie</th><th>Prix</th><th>Note</th><th>Dispo</th></tr></thead><tbody id="allProductsBody"></tbody></table></div>
+      <div class="page-header">
+        <div><div class="page-title">Tous les produits</div><div class="page-desc">Vue globale de la marketplace</div></div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Photo</th><th>Produit</th><th>Vendeur</th><th>Catégorie</th><th>Prix</th><th>Note</th><th>Dispo</th></tr></thead>
+          <tbody id="allProductsBody"></tbody>
+        </table>
+      </div>
     </div>
 
+    <!-- Toutes les commandes -->
     <div id="page-orders" class="page">
-      <div class="page-header"><div><div class="page-title">Toutes les commandes</div><div class="page-desc">Vue globale</div></div><select class="select-sm" id="allOrdersFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select></div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Client</th><th>Produit</th><th>Vendeur</th><th>Total</th><th>Statut</th><th>Date</th></tr></thead><tbody id="allOrdersBody"></tbody></table></div>
+      <div class="page-header">
+        <div><div class="page-title">Toutes les commandes</div><div class="page-desc">Vue globale</div></div>
+        <select class="select-sm" id="allOrdersFilter">
+          <option value="all">Tous</option>
+          <option value="new">Nouvelles</option>
+          <option value="done">Livrées</option>
+          <option value="cancel">Annulées</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Client</th><th>Produit</th><th>Vendeur</th><th>Total</th><th>Statut</th><th>Date</th></tr></thead>
+          <tbody id="allOrdersBody"></tbody>
+        </table>
+      </div>
     </div>
 
+    <!-- Chat -->
     <div id="page-chat" class="page">
-      <div class="page-header"><div><div class="page-title">Messages vendeurs</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Chiffré E2E</span></div></div></div>
+      <div class="page-header">
+        <div>
+          <div class="page-title">Messages vendeurs</div>
+          <div class="page-desc">Canal général + conversations · <span class="chat-lock">🔒 Chiffré E2E</span></div>
+        </div>
+      </div>
       <div class="chat-wrap">
-        <div class="chat-sidebar"><div class="chat-sidebar-hd">Conversations</div><div class="chat-rooms" id="chatRooms"></div></div>
+        <div class="chat-sidebar">
+          <div class="chat-sidebar-title">Conversations</div>
+          <div class="chat-rooms" id="chatRooms"></div>
+        </div>
         <div class="chat-main">
-          <div class="chat-header"><div class="chat-header-info"><div class="chat-header-name" id="chatHeaderName">Canal général</div><div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div></div><span class="e2e-badge">🔒 Chiffré</span></div>
-          <div class="chat-messages" id="chatMessages"></div>
-          <div class="chat-input-area"><textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1"></textarea><button class="chat-send" id="chatSendBtn">↑</button></div>
+          <div class="chat-header">
+            <div>
+              <div class="chat-header-title" id="chatHeaderName">Canal général</div>
+              <div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div>
+            </div>
+            <span class="chat-lock">🔒 Chiffré</span>
+          </div>
+          <div class="chat-messages" id="chatMessages">
+            <div class="chat-empty"><span>💬</span><span>Sélectionne une conversation</span></div>
+          </div>
+          <div class="chat-input-area">
+            <textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1" maxlength="1000"></textarea>
+            <button class="chat-send" id="chatSendBtn" aria-label="Envoyer">↑</button>
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- Paramètres -->
     <div id="page-settings" class="page">
-      <div class="page-header"><div><div class="page-title">Paramètres</div><div class="page-desc">Configuration de la plateforme</div></div></div>
+      <div class="page-header">
+        <div><div class="page-title">Paramètres</div><div class="page-desc">Configuration de la plateforme</div></div>
+      </div>
       <div class="form-wrap">
-        <div class="f-section"><span class="f-label">Commission</span><div class="field"><label>Taux global (%)</label><input type="number" id="globalRate" value="5" min="1" max="50" step="0.5" style="max-width:120px"><div class="hint">Appliqué lors de la génération des factures.</div></div></div>
+        <div class="f-section">
+          <span class="f-label">Commission</span>
+          <div class="field">
+            <label for="globalRate">Taux global (%)</label>
+            <input type="number" id="globalRate" value="5" min="1" max="50" step="0.5" style="max-width:120px">
+            <div class="hint">Appliqué lors de la génération des factures.</div>
+          </div>
+        </div>
         <div class="divider"></div>
-        <div class="f-section"><span class="f-label">Sécurité</span><div class="field"><label>Nouveau mot de passe admin</label><input type="password" id="newAdminPass" placeholder="Min. 6 caractères"></div></div>
+        <div class="f-section">
+          <span class="f-label">Sécurité</span>
+          <div class="field">
+            <label for="newAdminPass">Nouveau mot de passe admin</label>
+            <input type="password" id="newAdminPass" placeholder="Min. 6 caractères" maxlength="100" autocomplete="new-password">
+          </div>
+        </div>
         <button class="btn-primary" id="saveSettingsBtn">Sauvegarder</button>
       </div>
     </div>
@@ -133,35 +296,59 @@
   </main>
 </div>
 
-<div class="overlay" id="paymentModal">
-  <div class="modal"><button class="modal-x" data-close="paymentModal">✕</button>
-    <div class="modal-title">Enregistrer un paiement</div><div class="modal-sub" id="paymentSub"></div>
+<!-- Modal paiement -->
+<div class="overlay" id="paymentModal" role="dialog" aria-modal="true" aria-labelledby="paymentTitle">
+  <div class="modal">
+    <button class="modal-x" data-close="paymentModal" aria-label="Fermer">✕</button>
+    <div class="modal-title" id="paymentTitle">Enregistrer un paiement</div>
+    <div class="modal-sub" id="paymentSub"></div>
     <div class="modal-form">
       <input type="hidden" id="payCommId">
-      <div id="paymentInfo" style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--r2);padding:14px;font-size:.8rem"></div>
-      <div class="field"><label>Montant reçu (FCFA)</label><input type="number" id="payAmount" placeholder="Ex : 2500" min="1"></div>
-      <div class="field"><label>Note (optionnel)</label><input type="text" id="payNote" placeholder="Ex : Wave, cash…"></div>
+      <div id="paymentInfo" style="background:var(--bg3);border:1px solid var(--gb1);border-radius:var(--r);padding:14px;font-size:.8rem;color:var(--t2)"></div>
+      <div class="field">
+        <label for="payAmount">Montant reçu (FCFA)</label>
+        <input type="number" id="payAmount" placeholder="Ex : 2500" min="1" max="99999999">
+      </div>
+      <div class="field">
+        <label for="payNote">Note (optionnel)</label>
+        <input type="text" id="payNote" placeholder="Ex : Wave, cash…" maxlength="200">
+      </div>
       <button class="btn-primary" id="savePaymentBtn">Confirmer le paiement</button>
     </div>
   </div>
 </div>
 
-<div class="overlay" id="blockModal">
-  <div class="modal"><button class="modal-x" data-close="blockModal">✕</button>
-    <div class="modal-title" id="blockTitle">Bloquer</div><div class="modal-sub" id="blockSub"></div>
+<!-- Modal bloquer vendeur -->
+<div class="overlay" id="blockModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <button class="modal-x" data-close="blockModal" aria-label="Fermer">✕</button>
+    <div class="modal-title" id="blockTitle">Bloquer</div>
+    <div class="modal-sub" id="blockSub"></div>
     <div class="modal-form">
-      <input type="hidden" id="blockSellerId"><input type="hidden" id="blockAction">
-      <div class="field"><label>Raison (optionnel)</label><textarea id="blockReason" placeholder="Ex : Commission impayée…" style="min-height:70px"></textarea></div>
+      <input type="hidden" id="blockSellerId">
+      <input type="hidden" id="blockAction">
+      <div class="field">
+        <label for="blockReason">Raison (optionnel)</label>
+        <textarea id="blockReason" placeholder="Ex : Commission impayée…" style="min-height:70px" maxlength="500"></textarea>
+      </div>
       <button class="btn-primary" id="confirmBlockBtn">Confirmer</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../js/config.js"></script><script src="../js/db.js"></script>
-<script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- Toast -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <div class="toast-title" id="toastTitle"></div>
+  <div class="toast-msg" id="toastMsg"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="../js/config.js"></script>
+<script src="../js/db.js"></script>
+<script src="../js/crypto.js"></script>
+<script src="../js/chat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" crossorigin="anonymous"></script>
 <script src="../js/email.js"></script>
 <script src="../js/superadmin.js"></script>
-</body></html>
+</body>
+</html>
