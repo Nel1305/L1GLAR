@@ -1,6 +1,11 @@
 /* ═══════════════════════════════════════════════════
-   MARKET PLACE L1 GLAR — superadmin.js
+   N MARKET — superadmin.js
+   Sécurisé : XSS mitigé via esc()
 ═══════════════════════════════════════════════════ */
+
+'use strict';
+
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
 let adminSession = null;
 

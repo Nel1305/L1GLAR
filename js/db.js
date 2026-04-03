@@ -99,7 +99,14 @@ async function dbGetOrders(f = {}) {
   return (data || []).map(no);
 }
 async function dbInsertOrder(f) {
-  const { data, error } = await db.from('orders').insert({ seller_id:f.sellerId, seller_name:f.sellerName||'', product_id:f.productId, product_name:f.productName, buyer_name:f.buyerName, buyer_email:f.buyerEmail, buyer_phone:f.buyerPhone||'', qty:f.qty, total:f.total, notes:f.notes||'', status:'new' }).select().single();
+  const { data, error } = await db.from('orders').insert({
+    seller_id:f.sellerId, seller_name:f.sellerName||'',
+    product_id:f.productId, product_name:f.productName,
+    buyer_name:f.buyerName, buyer_email:f.buyerEmail,
+    buyer_phone:f.buyerPhone||'', qty:f.qty, total:f.total,
+    notes:f.notes||'', status:'new',
+    order_code: f.orderCode || ''
+  }).select().single();
   if (error) return { error: error.message };
   return { order: no(data) };
 }
@@ -108,7 +115,14 @@ async function dbUpdateOrderStatus(id, status) {
   return error ? { error: error.message } : { ok: true };
 }
 function no(r) {
-  return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'', productId:r.product_id, productName:r.product_name, buyerName:r.buyer_name, buyerEmail:r.buyer_email, buyerPhone:r.buyer_phone, qty:r.qty, total:r.total, notes:r.notes, status:r.status, createdAt:r.created_at };
+  return {
+    id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'',
+    productId:r.product_id, productName:r.product_name,
+    buyerName:r.buyer_name, buyerEmail:r.buyer_email,
+    buyerPhone:r.buyer_phone, qty:r.qty, total:r.total,
+    notes:r.notes, status:r.status, createdAt:r.created_at,
+    orderCode:r.order_code||''
+  };
 }
 
 /* ── REVIEWS ── */
