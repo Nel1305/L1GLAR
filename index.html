@@ -1,136 +1,303 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Market Place · L1 GLAR</title>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="N Market — La marketplace de l'université">
+  <meta name="theme-color" content="#080c10">
+  <title>N Market</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+<!-- Loader -->
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
+
 <div class="app">
+
+  <!-- ── Sidebar Desktop ── -->
   <aside class="sidebar">
-    <div class="logo"><div class="logo-name">N Market Place</div><div class="logo-sub">Étudiant · Université</div></div>
-    <nav class="nav">
-      <span class="nav-label">Catalogue</span>
-      <button class="nav-item active" data-page="products"><span class="icon">🛍</span>Produits</button>
-      <button class="nav-item" data-page="order"><span class="icon">📦</span>Commander</button>
-      <button class="nav-item" data-page="reviews"><span class="icon">⭐</span>Avis</button>
-    </nav>
-    <div class="sidebar-footer">
-      <div id="userPill" class="user-pill">
-        <div class="avatar" id="userAvatar">?</div>
-        <div class="user-info"><div class="user-name" id="userName">Se connecter</div><div class="user-role" id="userRole">Visiteur</div></div>
+    <div class="logo">
+      <div class="logo-mark">N</div>
+      <div class="logo-text">
+        <div class="logo-name">N Market</div>
+        <div class="logo-sub">Université · L1 GLAR</div>
       </div>
-      <a href="pages/admin.html" class="admin-btn highlight" id="adminBtn" style="display:none"><span class="icon">⚙</span>Mon espace vendeur</a>
+    </div>
+
+    <nav class="nav" role="navigation" aria-label="Navigation principale">
+      <span class="nav-label">Catalogue</span>
+      <button class="nav-item active" data-page="products" aria-current="page">
+        <span class="icon" aria-hidden="true">🛍</span>Produits
+      </button>
+      <button class="nav-item" data-page="order">
+        <span class="icon" aria-hidden="true">📦</span>Commander
+      </button>
+      <button class="nav-item" data-page="reviews">
+        <span class="icon" aria-hidden="true">⭐</span>Avis
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div id="userPill" class="user-pill" role="button" tabindex="0" aria-label="Se connecter">
+        <div class="avatar" id="userAvatar" aria-hidden="true">?</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">Se connecter</div>
+          <div class="user-role" id="userRole">Visiteur</div>
+        </div>
+      </div>
+      <a href="pages/admin.html" class="admin-btn" id="adminBtn" style="display:none">
+        <span class="icon" aria-hidden="true">⚙</span>Mon espace vendeur
+      </a>
+      <button class="admin-btn" id="logoutBtn" style="display:none">
+        <span class="icon" aria-hidden="true">←</span>Se déconnecter
+      </button>
       <a href="pages/superadmin.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
-  <main class="main">
-    <div id="page-products" class="page active">
-      <div class="page-header"><div><div class="page-title">Produits</div><div class="page-desc">Parcourez les offres de vos camarades</div></div></div>
+
+  <!-- ── Main ── -->
+  <main class="main" id="mainContent">
+
+    <!-- Produits -->
+    <div id="page-products" class="page active" role="main">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Produits</div>
+          <div class="page-desc">Parcourez les offres de vos camarades</div>
+        </div>
+      </div>
       <div class="toolbar">
-        <div class="search-wrap"><span class="s-icon">🔍</span><input type="text" id="searchInput" placeholder="Rechercher…"></div>
-        <div class="filters">
+        <div class="search-wrap" role="search">
+          <span class="s-icon" aria-hidden="true">🔍</span>
+          <input type="search" id="searchInput" placeholder="Rechercher un produit…" aria-label="Rechercher">
+        </div>
+        <div class="filters" role="group" aria-label="Filtrer par catégorie">
           <button class="filter-btn active" data-filter="all">Tout</button>
           <button class="filter-btn" data-filter="food">🥞 Nourriture</button>
           <button class="filter-btn" data-filter="drink">🥤 Boissons</button>
           <button class="filter-btn" data-filter="other">✨ Autres</button>
         </div>
       </div>
-      <div class="grid" id="productsGrid"></div>
+      <div class="grid" id="productsGrid" aria-live="polite" aria-label="Produits disponibles"></div>
     </div>
+
+    <!-- Commander -->
     <div id="page-order" class="page">
-      <div class="page-header"><div><div class="page-title">Commander</div><div class="page-desc">Tu recevras une confirmation par email</div></div></div>
+      <div class="page-header">
+        <div>
+          <div class="page-title">Commander</div>
+          <div class="page-desc">Tu recevras une confirmation par email</div>
+        </div>
+      </div>
       <div class="form-wrap">
         <div class="f-section">
           <span class="f-label">Tes informations</span>
-          <div class="field"><label>Nom complet</label><input type="text" id="oName" placeholder="Ex : Amina Diallo"></div>
+          <div class="field">
+            <label for="oName">Nom complet</label>
+            <input type="text" id="oName" placeholder="Ex : Amina Diallo" autocomplete="name" maxlength="100">
+          </div>
           <div class="field-row">
-            <div class="field"><label>Email</label><input type="email" id="oEmail" placeholder="ton@email.com"></div>
-            <div class="field"><label>Téléphone</label><input type="tel" id="oPhone" placeholder="+221 77 …"></div>
+            <div class="field">
+              <label for="oEmail">Email</label>
+              <input type="email" id="oEmail" placeholder="ton@email.com" autocomplete="email" maxlength="150">
+            </div>
+            <div class="field">
+              <label for="oPhone">Téléphone</label>
+              <input type="tel" id="oPhone" placeholder="+221 77 …" autocomplete="tel" maxlength="20">
+            </div>
           </div>
         </div>
         <div class="divider"></div>
         <div class="f-section">
           <span class="f-label">Ta commande</span>
-          <div class="field"><label>Produit</label><select id="oProduct"><option value="">Choisir…</option></select></div>
-          <div class="field"><label>Quantité</label>
+          <div class="field">
+            <label for="oProduct">Produit</label>
+            <select id="oProduct" aria-required="true">
+              <option value="">Choisir un produit…</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="oQty">Quantité</label>
             <div class="qty-row">
-              <button class="qty-btn" id="qtyMinus">−</button>
-              <input class="qty-num" id="oQty" type="number" value="1" min="1">
-              <button class="qty-btn" id="qtyPlus">+</button>
+              <button class="qty-btn" id="qtyMinus" aria-label="Diminuer la quantité">−</button>
+              <input class="qty-num" id="oQty" type="number" value="1" min="1" max="99" aria-label="Quantité">
+              <button class="qty-btn" id="qtyPlus" aria-label="Augmenter la quantité">+</button>
             </div>
           </div>
-          <div class="field"><label>Modifications / Ajouts</label><textarea id="oNotes" placeholder="Ex : sans sucre, sauce à part…"></textarea><div class="hint">Précise tout ce que tu veux changer ou ajouter.</div></div>
+          <div class="field">
+            <label for="oNotes">Modifications / Ajouts</label>
+            <textarea id="oNotes" placeholder="Ex : sans sucre, sauce à part…" maxlength="500"></textarea>
+            <div class="hint">Précise tout ce que tu veux changer ou ajouter.</div>
+          </div>
         </div>
         <button class="btn-primary" id="submitOrderBtn">Confirmer la commande</button>
-        <div class="success-box" id="orderSuccess"><div class="ico">✓</div><strong>Commande envoyée !</strong><p id="orderSuccessText"></p></div>
+        <div class="success-box" id="orderSuccess" role="alert" aria-live="assertive">
+          <div class="ico">✓</div>
+          <strong>Commande envoyée !</strong>
+          <p id="orderSuccessText"></p>
+        </div>
       </div>
     </div>
+
+    <!-- Avis -->
     <div id="page-reviews" class="page">
-      <div class="page-header"><div><div class="page-title">Avis</div><div class="page-desc">Notes et retours de la promo</div></div></div>
+      <div class="page-header">
+        <div>
+          <div class="page-title">Avis</div>
+          <div class="page-desc">Notes et retours de la promo</div>
+        </div>
+      </div>
       <button class="add-btn" id="openReviewBtn">+ Laisser un avis</button>
-      <div class="reviews-list" id="reviewsList"></div>
+      <div class="reviews-list" id="reviewsList" aria-live="polite"></div>
     </div>
+
   </main>
 </div>
 
-<div class="overlay" id="authModal">
+<!-- ── Mobile Bottom Nav ── -->
+<nav class="mob-nav" role="navigation" aria-label="Navigation mobile">
+  <button class="mob-nav-item active" data-page="products">
+    <span class="mob-icon" aria-hidden="true">🛍</span>
+    <span>Produits</span>
+  </button>
+  <button class="mob-nav-item" data-page="order">
+    <span class="mob-icon" aria-hidden="true">📦</span>
+    <span>Commander</span>
+  </button>
+  <button class="mob-nav-item" data-page="reviews">
+    <span class="mob-icon" aria-hidden="true">⭐</span>
+    <span>Avis</span>
+  </button>
+  <button class="mob-nav-item" id="mobUserBtn">
+    <span class="mob-icon" aria-hidden="true" id="mobUserIcon">👤</span>
+    <span id="mobUserLabel">Compte</span>
+  </button>
+</nav>
+
+<!-- ── Modal Auth ── -->
+<div class="overlay" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
   <div class="modal">
-    <button class="modal-x" data-close="authModal">✕</button>
+    <button class="modal-x" data-close="authModal" aria-label="Fermer">✕</button>
+
     <div id="viewLogin">
-      <div class="modal-title">Connexion</div><div class="modal-sub">Accède à ton espace vendeur</div>
+      <div class="modal-title" id="authTitle">Connexion</div>
+      <div class="modal-sub">Accède à ton espace vendeur</div>
       <div class="modal-form">
-        <div class="field"><label>Email</label><input type="email" id="lEmail" placeholder="ton@email.com"></div>
-        <div class="field"><label>Mot de passe</label><input type="password" id="lPass" placeholder="••••••••"></div>
+        <div class="field">
+          <label for="lEmail">Email</label>
+          <input type="email" id="lEmail" placeholder="ton@email.com" autocomplete="email" maxlength="150">
+        </div>
+        <div class="field">
+          <label for="lPass">Mot de passe</label>
+          <input type="password" id="lPass" placeholder="••••••••" autocomplete="current-password" maxlength="100">
+        </div>
         <button class="btn-primary" id="loginBtn">Se connecter</button>
         <div class="modal-sep">ou</div>
-        <div class="modal-link">Pas de compte ? <a id="goRegister">S'inscrire</a></div>
+        <div class="modal-link">Pas de compte ? <a id="goRegister" role="button" tabindex="0">S'inscrire</a></div>
       </div>
     </div>
+
     <div id="viewRegister" style="display:none">
-      <div class="modal-title">Créer un compte</div><div class="modal-sub">Rejoins Market Place L1 GLAR</div>
+      <div class="modal-title">Créer un compte</div>
+      <div class="modal-sub">Rejoins N Market</div>
       <div class="modal-form">
         <div class="modal-grid">
-          <div class="field"><label>Prénom</label><input type="text" id="rFirst" placeholder="Amina"></div>
-          <div class="field"><label>Nom</label><input type="text" id="rLast" placeholder="Diallo"></div>
+          <div class="field">
+            <label for="rFirst">Prénom</label>
+            <input type="text" id="rFirst" placeholder="Amina" autocomplete="given-name" maxlength="60">
+          </div>
+          <div class="field">
+            <label for="rLast">Nom</label>
+            <input type="text" id="rLast" placeholder="Diallo" autocomplete="family-name" maxlength="60">
+          </div>
         </div>
-        <div class="field"><label>Email</label><input type="email" id="rEmail" placeholder="ton@email.com"></div>
-        <div class="field"><label>Téléphone</label><input type="tel" id="rPhone" placeholder="+221 77 …"></div>
-        <div class="field"><label>Mot de passe</label><input type="password" id="rPass" placeholder="Min. 6 caractères"></div>
+        <div class="field">
+          <label for="rEmail">Email</label>
+          <input type="email" id="rEmail" placeholder="ton@email.com" autocomplete="email" maxlength="150">
+        </div>
+        <div class="field">
+          <label for="rPhone">Téléphone</label>
+          <input type="tel" id="rPhone" placeholder="+221 77 …" autocomplete="tel" maxlength="20">
+        </div>
+        <div class="field">
+          <label for="rPass">Mot de passe</label>
+          <input type="password" id="rPass" placeholder="Min. 6 caractères" autocomplete="new-password" maxlength="100">
+        </div>
         <button class="btn-primary" id="registerBtn">Créer mon compte</button>
-        <div class="modal-link">Déjà inscrit ? <a id="goLogin">Se connecter</a></div>
+        <div class="modal-link">Déjà inscrit ? <a id="goLogin" role="button" tabindex="0">Se connecter</a></div>
       </div>
     </div>
   </div>
 </div>
 
-<div class="overlay" id="reviewModal">
+<!-- ── Modal Avis ── -->
+<div class="overlay" id="reviewModal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
   <div class="modal">
-    <button class="modal-x" data-close="reviewModal">✕</button>
-    <div class="modal-title">Laisser un avis</div><div class="modal-sub">Note un produit commandé</div>
+    <button class="modal-x" data-close="reviewModal" aria-label="Fermer">✕</button>
+    <div class="modal-title" id="reviewTitle">Laisser un avis</div>
+    <div class="modal-sub">Note un produit commandé</div>
     <div class="modal-form">
-      <div class="field"><label>Ton prénom</label><input type="text" id="rvName" placeholder="Ex : Fatou"></div>
-      <div class="field"><label>Produit</label><select id="rvProduct"></select></div>
-      <div class="field"><label>Note</label>
-        <div class="star-input">
-          <input type="radio" name="rv" id="rv5" value="5"><label for="rv5">★</label>
-          <input type="radio" name="rv" id="rv4" value="4"><label for="rv4">★</label>
-          <input type="radio" name="rv" id="rv3" value="3"><label for="rv3">★</label>
-          <input type="radio" name="rv" id="rv2" value="2"><label for="rv2">★</label>
-          <input type="radio" name="rv" id="rv1" value="1"><label for="rv1">★</label>
+      <div class="field">
+        <label for="rvName">Ton prénom</label>
+        <input type="text" id="rvName" placeholder="Ex : Fatou" maxlength="100">
+      </div>
+      <div class="field">
+        <label for="rvProduct">Produit</label>
+        <select id="rvProduct"></select>
+      </div>
+      <div class="field">
+        <label>Note</label>
+        <div class="star-input" role="radiogroup" aria-label="Note de 1 à 5 étoiles">
+          <input type="radio" name="rv" id="rv5" value="5"><label for="rv5" aria-label="5 étoiles">★</label>
+          <input type="radio" name="rv" id="rv4" value="4"><label for="rv4" aria-label="4 étoiles">★</label>
+          <input type="radio" name="rv" id="rv3" value="3"><label for="rv3" aria-label="3 étoiles">★</label>
+          <input type="radio" name="rv" id="rv2" value="2"><label for="rv2" aria-label="2 étoiles">★</label>
+          <input type="radio" name="rv" id="rv1" value="1"><label for="rv1" aria-label="1 étoile">★</label>
         </div>
       </div>
-      <div class="field"><label>Commentaire</label><textarea id="rvText" placeholder="C'était délicieux…"></textarea></div>
+      <div class="field">
+        <label for="rvText">Commentaire</label>
+        <textarea id="rvText" placeholder="C'était délicieux…" maxlength="500"></textarea>
+      </div>
       <button class="btn-primary" id="submitReviewBtn">Publier l'avis</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/config.js"></script><script src="js/db.js"></script><script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- Toast -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <div class="toast-title" id="toastTitle"></div>
+  <div class="toast-msg" id="toastMsg"></div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" crossorigin="anonymous"></script>
 <script src="js/email.js"></script>
 <script src="js/main.js"></script>
-</body></html>
+
+<script>
+/* Mobile user button */
+document.addEventListener('DOMContentLoaded', () => {
+  const mobBtn = document.getElementById('mobUserBtn');
+  if (mobBtn) {
+    mobBtn.addEventListener('click', () => {
+      const s = getSession();
+      if (s) {
+        openModal('authModal');
+      } else {
+        openModal('authModal');
+      }
+    });
+  }
+});
+</script>
+
+</body>
+</html>
