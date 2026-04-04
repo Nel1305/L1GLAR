@@ -47,36 +47,62 @@ function initMobUser() {
   btn.addEventListener('click', () => {
     const s = getSession();
     if (s) {
-      /* Connecté : proposer déconnexion */
-      showToast('Connecté', s.firstName + ' · ' + s.email);
+      openDrawer();
     } else {
       openModal('authModal');
     }
   });
 }
 
+/* ── DRAWER ── */
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+function navTo(page) {
+  closeDrawer();
+  document.querySelectorAll('.nav-item[data-page], .mob-nav-item[data-page], .drawer-item[data-page]').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('[data-page="' + page + '"]').forEach(b => b.classList.add('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pg = document.getElementById('page-' + page);
+  if (pg) pg.classList.add('active');
+  if (page === 'order') populateOrderSelects();
+  if (page === 'reviews') loadReviews();
+}
+function handleDrawerUserClick() {
+  const s = getSession();
+  if (s) {
+    // Already logged in - do nothing (vendor section visible)
+  } else {
+    closeDrawer();
+    openModal('authModal');
+  }
+}
+
+/* ── MOBILE SEARCH ── */
+function closeMobSearch() {
+  document.getElementById('mobSearchBar').classList.remove('open');
+  document.getElementById('searchInput').value = '';
+  const desktop = document.getElementById('searchInputDesktop');
+  if (desktop) desktop.value = '';
+  searchQ = '';
+  renderProducts();
+}
+
 /* ── NAV ── */
 function initNav() {
   document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      document.querySelectorAll('.nav-item[data-page], .mob-nav-item[data-page]').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll(`[data-page="${btn.dataset.page}"]`).forEach(b => b.classList.add('active'));
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById('page-' + btn.dataset.page)?.classList.add('active');
-      if (btn.dataset.page === 'order')   await populateOrderSelects();
-      if (btn.dataset.page === 'reviews') await loadReviews();
-    });
+    btn.addEventListener('click', () => navTo(btn.dataset.page));
   });
-  /* nav mobile */
+  /* nav mobile bottom */
   document.querySelectorAll('.mob-nav-item[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.nav-item[data-page], .mob-nav-item[data-page]').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll(`[data-page="${btn.dataset.page}"]`).forEach(b => b.classList.add('active'));
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById('page-' + btn.dataset.page)?.classList.add('active');
-      if (btn.dataset.page === 'order')   populateOrderSelects();
-      if (btn.dataset.page === 'reviews') loadReviews();
-    });
+    btn.addEventListener('click', () => navTo(btn.dataset.page));
   });
 }
 
@@ -131,17 +157,25 @@ function renderProducts() {
 }
 
 function initFilters() {
-  document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+  document.querySelectorAll('.cat-pill[data-filter]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeFilter = btn.dataset.filter;
       renderProducts();
     });
   });
-  document.getElementById('searchInput').addEventListener('input', e => {
-    searchQ = e.target.value.toLowerCase().trim();
-    renderProducts();
+  // Handle both mobile and desktop search inputs
+  ['searchInput', 'searchInputDesktop'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', e => {
+      searchQ = e.target.value.toLowerCase().trim();
+      // Sync the other input
+      const otherId = id === 'searchInput' ? 'searchInputDesktop' : 'searchInput';
+      const other = document.getElementById(otherId);
+      if (other) other.value = e.target.value;
+      renderProducts();
+    });
   });
 }
 
@@ -534,19 +568,44 @@ function syncSessionUI() {
   const u = getSession();
   const pill = document.getElementById('userPill');
   if (u) {
-    document.getElementById('userAvatar').textContent = u.firstName[0].toUpperCase();
-    document.getElementById('userName').textContent   = u.name;
-    document.getElementById('userRole').textContent   = 'Vendeur';
-    pill.style.cursor = 'default';
+    const init = u.firstName[0].toUpperCase();
+    // Sidebar desktop
+    if (pill) {
+      document.getElementById('userAvatar').textContent = init;
+      document.getElementById('userName').textContent   = u.name;
+      document.getElementById('userRole').textContent   = 'Vendeur';
+      pill.style.cursor = 'default';
+    }
     document.getElementById('adminBtn').style.display = '';
     document.getElementById('logoutBtn') && (document.getElementById('logoutBtn').style.display = '');
+    // Drawer mobile
+    document.getElementById('drawerAvatar').textContent       = init;
+    document.getElementById('drawerUserName').textContent     = u.name;
+    document.getElementById('drawerUserRole').textContent     = 'Vendeur · ' + u.email;
+    document.getElementById('drawerUserArrow').textContent    = '';
+    document.getElementById('drawerVendorSection').style.display = '';
+    document.getElementById('drawerLogout').style.display     = '';
+    // Bottom nav user tab
+    const mobLabel = document.getElementById('mobUserLabel');
+    if (mobLabel) mobLabel.textContent = u.firstName;
   } else {
-    document.getElementById('userAvatar').textContent = '?';
-    document.getElementById('userName').textContent   = 'Se connecter';
-    document.getElementById('userRole').textContent   = 'Visiteur';
-    pill.style.cursor = 'pointer';
+    if (pill) {
+      document.getElementById('userAvatar').textContent = '?';
+      document.getElementById('userName').textContent   = 'Se connecter';
+      document.getElementById('userRole').textContent   = 'Visiteur';
+      pill.style.cursor = 'pointer';
+    }
     document.getElementById('adminBtn').style.display = 'none';
     document.getElementById('logoutBtn') && (document.getElementById('logoutBtn').style.display = 'none');
+    // Drawer mobile
+    document.getElementById('drawerAvatar').textContent       = '?';
+    document.getElementById('drawerUserName').textContent     = 'Se connecter';
+    document.getElementById('drawerUserRole').textContent     = 'Appuie pour te connecter';
+    document.getElementById('drawerUserArrow').textContent    = '›';
+    document.getElementById('drawerVendorSection').style.display = 'none';
+    document.getElementById('drawerLogout').style.display     = 'none';
+    const mobLabel = document.getElementById('mobUserLabel');
+    if (mobLabel) mobLabel.textContent = 'Compte';
   }
 }
 
@@ -558,10 +617,25 @@ function initModals() {
   document.querySelectorAll('.overlay').forEach(ov => {
     ov.addEventListener('click', e => { if (e.target === ov) closeModal(ov.id); });
   });
-  /* fermer avec Escape */
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') document.querySelectorAll('.overlay.show').forEach(ov => closeModal(ov.id));
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.overlay.show').forEach(ov => closeModal(ov.id));
+      closeDrawer();
+    }
   });
+  // Mobile search toggle
+  const searchToggle = document.getElementById('mobSearchToggle');
+  if (searchToggle) {
+    searchToggle.addEventListener('click', () => {
+      document.getElementById('mobSearchBar').classList.toggle('open');
+      if (document.getElementById('mobSearchBar').classList.contains('open')) {
+        setTimeout(() => document.getElementById('searchInput').focus(), 150);
+      }
+    });
+  }
+  // Hamburger also via JS (backup)
+  const ham = document.getElementById('hamburgerBtn');
+  if (ham && !ham._bound) { ham.addEventListener('click', openDrawer); ham._bound = true; }
 }
 
 function openModal(id)  { document.getElementById(id)?.classList.add('show'); document.body.style.overflow = 'hidden'; }
@@ -569,7 +643,15 @@ function closeModal(id) { document.getElementById(id)?.classList.remove('show');
 
 /* ── HELPERS ── */
 function showLoader(v) { document.getElementById('loader').style.display = v ? 'flex' : 'none'; }
-function catLabel(c)   { return { food:'🥞 Nourriture', drink:'🥤 Boissons', other:'✨ Autres' }[c] || c; }
+function catLabel(c) {
+  const labels = {
+    food: 'Nourriture', drink: 'Boissons', clothing: 'Vêtements',
+    accessories: 'Accessoires', electronics: 'Électronique', books: 'Livres & Cours',
+    beauty: 'Beauté & Santé', sport: 'Sport', services: 'Services',
+    art: 'Art & Créations', tech: 'High-Tech', other: 'Divers'
+  };
+  return labels[c] || c;
+}
 function starsHtml(n)  { return Array.from({length:5}, (_,i) => `<span class="${i < n ? 'star-on' : 'star-off'}">★</span>`).join(''); }
 
 let _toastTimer;

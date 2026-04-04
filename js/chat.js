@@ -44,7 +44,7 @@ function renderRooms() {
   el.innerHTML = rooms.map(r => `
     <div class="chat-room ${chatRoom===r.id?'active':''}" onclick="openChatRoom('${r.id}')">
       <div class="chat-room-av">${r.icon}</div>
-      <div style="flex:1;min-width:0">
+      <div style="flex:1;min-width:0;overflow:hidden">
         <div class="chat-room-name">${r.name}</div>
         <div class="chat-room-last">${r.sub}</div>
       </div>
@@ -59,16 +59,20 @@ async function openChatRoom(roomId) {
   const hd   = document.getElementById('chatHeaderName');
   const sub  = document.getElementById('chatHeaderSub');
 
+  const av = document.getElementById('chatHeaderAv');
   if (roomId === 'general') {
-    if (hd)  hd.textContent  = '📢 Canal général';
+    if (hd)  hd.textContent  = 'Canal général';
     if (sub) sub.textContent = 'Visible par tous les vendeurs';
+    if (av)  av.textContent  = '📢';
   } else if (roomId === 'admin') {
-    if (hd)  hd.textContent  = '👑 Support admin';
+    if (hd)  hd.textContent  = 'Support admin';
     if (sub) sub.textContent = 'Chiffré de bout en bout';
+    if (av)  av.textContent  = '★';
   } else {
     const u = chatUsers.find(x => String(x.id) === roomId);
     if (hd)  hd.textContent  = u ? u.name : 'Conversation';
     if (sub) sub.textContent = 'Chiffré de bout en bout';
+    if (av)  av.textContent  = u ? u.name[0].toUpperCase() : '?';
   }
 
   await loadMessages();
@@ -91,28 +95,34 @@ async function renderMessages(msgs) {
   if (!el) return;
 
   if (!msgs.length) {
-    el.innerHTML = `<div class="chat-empty"><span>💬</span><span>Aucun message</span><span style="font-size:.7rem;color:var(--t3)">Sois le premier à écrire !</span></div>`;
+    el.innerHTML = `<div class="chat-empty"><div class="chat-empty-icon">💬</div><div>Aucun message</div><div style="font-size:.72rem">Sois le premier à écrire !</div></div>`;
     return;
   }
 
   const decrypted = await Promise.all(msgs.map(async m => ({ ...m, text: await decryptMsg(m.content) })));
 
-  el.innerHTML = decrypted.map(m => {
-    const mine  = m.sender_id === chatUser.id;
-    const isAdm = m.sender_role === 'admin';
-    const time  = new Date(m.created_at).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
-    return `
-      <div class="msg-wrap ${mine?'mine':''}">
-        ${!mine ? `<div class="msg-av" style="${isAdm?'border-color:var(--gold);color:var(--gold)':''}">${isAdm?'👑':m.sender_name[0]}</div>` : ''}
-        <div>
-          ${!mine ? `<div class="msg-name">${m.sender_name}${isAdm?' <span style="color:var(--gold);font-size:.6rem">ADMIN</span>':''}</div>` : ''}
-          <div class="msg-bubble ${isAdm&&!mine?'admin-msg':''}">
-            ${m.text}
-            <div class="msg-time">${time}</div>
-          </div>
-        </div>
-        ${mine ? `<div class="msg-av">${chatUser.name[0]}</div>` : ''}
-      </div>`;
+  el.innerHTML = decrypted.map((m, idx) => {
+    const mine    = m.sender_id === chatUser.id;
+    const isAdm   = m.sender_role === 'admin';
+    const time    = new Date(m.created_at).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+    const next    = decrypted[idx + 1];
+    const hideAv  = next && next.sender_id === m.sender_id;
+    const avText  = isAdm ? '★' : m.sender_name[0].toUpperCase();
+    const myAv    = chatUser.name[0].toUpperCase();
+    const avStyle = isAdm ? 'style="background:var(--gold-dim);color:var(--gold-l);border-color:rgba(201,168,76,.3)"' : '';
+    return (
+      '<div class="msg-wrap' + (mine ? ' mine' : '') + '">' +
+        (!mine ? '<div class="msg-av' + (hideAv ? ' hidden' : '') + '" ' + avStyle + '>' + avText + '</div>' : '') +
+        '<div class="msg-content">' +
+          (!mine && !hideAv ? '<div class="msg-name">' + m.sender_name + (isAdm ? ' <span style="color:var(--gold);font-size:.58rem;font-weight:700;letter-spacing:.04em;margin-left:4px">ADMIN</span>' : '') + '</div>' : '') +
+          '<div class="msg-bubble' + (isAdm && !mine ? ' admin-msg' : '') + '">' +
+            m.text +
+            '<div class="msg-time">' + time + '</div>' +
+          '</div>' +
+        '</div>' +
+        (mine ? '<div class="msg-av' + (hideAv ? ' hidden' : '') + '">' + myAv + '</div>' : '') +
+      '</div>'
+    );
   }).join('');
 
   el.scrollTop = el.scrollHeight;

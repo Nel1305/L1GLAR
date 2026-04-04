@@ -229,7 +229,12 @@ function starsHtml(r, sz) {
   sz = sz || '.85rem';
   return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--gold)':'var(--g3)'};font-size:${sz}">★</span>`).join('');
 }
-function catLabel(c)     { return c==='food'?'Nourriture':c==='drink'?'Boisson':'Autre'; }
+function catLabel(c) {
+  const l = { food:'Nourriture', drink:'Boissons', clothing:'Vêtements', accessories:'Accessoires',
+    electronics:'Électronique', books:'Livres & Cours', beauty:'Beauté & Santé', sport:'Sport',
+    services:'Services', art:'Art & Créations', tech:'High-Tech', other:'Divers' };
+  return l[c] || c;
+}
 function statusLabel(s)  { return s==='new'?'Nouvelle':s==='done'?'Livrée':'Annulée'; }
 function formatDate(s)   { if (!s) return '—'; return new Date(s).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }); }
 function today()         { return new Date().toISOString().split('T')[0]; }
