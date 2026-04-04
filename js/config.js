@@ -14,10 +14,10 @@ const EMAILJS_TEMPLATE_WELCOME = 'template_8xy6ill';
 const EMAILJS_TEMPLATE_INVOICE = 'template_qcc100g';
 
 /* 3. PAIEMENT WAVE */
-const WAVE_NUMBER = '+221 XX XXX XX XX';
-const WAVE_NAME   = "Nel'si";
+const WAVE_NUMBER = '+221 77 597 71 14';
+const WAVE_NAME   = "BUABEY Arold Yves Nel'si";
 
 /* 4. PLATEFORME */
 const PLATFORM_NAME       = 'N Market';
-const PLATFORM_EMAIL      = 'admin@nmarket.sn';
+const PLATFORM_EMAIL      = 'ppbuabey@gmail.com';
 const COMMISSION_RATE_PCT = 5;
