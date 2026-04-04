@@ -17,9 +17,43 @@ document.addEventListener('DOMContentLoaded', async () => {
   initFilters();
   initAuth();
   syncSessionUI();
+  initOrderForm();
+  initReviewForm();
   await loadProducts();
   initModals();
+  initMobUser();
 });
+
+function initOrderForm() {
+  document.getElementById('qtyMinus').addEventListener('click', () => {
+    const e = document.getElementById('oQty');
+    e.value = Math.max(1, parseInt(e.value || 1) - 1);
+  });
+  document.getElementById('qtyPlus').addEventListener('click', () => {
+    const e = document.getElementById('oQty');
+    e.value = parseInt(e.value || 1) + 1;
+  });
+  document.getElementById('submitOrderBtn').addEventListener('click', submitOrder);
+}
+
+function initReviewForm() {
+  document.getElementById('openReviewBtn').addEventListener('click', () => openModal('reviewModal'));
+  document.getElementById('submitReviewBtn').addEventListener('click', submitReview);
+}
+
+function initMobUser() {
+  const btn = document.getElementById('mobUserBtn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const s = getSession();
+    if (s) {
+      /* Connecté : proposer déconnexion */
+      showToast('Connecté', s.firstName + ' · ' + s.email);
+    } else {
+      openModal('authModal');
+    }
+  });
+}
 
 /* ── NAV ── */
 function initNav() {
@@ -130,17 +164,7 @@ async function populateOrderSelects() {
     `<option value="${esc(String(x.id))}">${esc(x.name)} — ${esc(x.sellerName)}</option>`).join('');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('qtyMinus').addEventListener('click', () => {
-    const e = document.getElementById('oQty');
-    e.value = Math.max(1, parseInt(e.value || 1) - 1);
-  });
-  document.getElementById('qtyPlus').addEventListener('click', () => {
-    const e = document.getElementById('oQty');
-    e.value = parseInt(e.value || 1) + 1;
-  });
-  document.getElementById('submitOrderBtn').addEventListener('click', submitOrder);
-});
+
 
 /* Génère un code de commande unique : NM-YYMM-XXXX */
 function generateOrderCode() {
@@ -337,12 +361,12 @@ function buildTicketCanvas(data) {
   ctx.fillStyle = 'rgba(255,255,255,0.25)';
   ctx.font      = '10px sans-serif';
   ctx.fillText(dateStr, W / 2, H - 78);
-  ctx.fillText('Conserve ce ticket comme preuve d'achat', W / 2, H - 62);
+  ctx.fillText("Conserve ce ticket comme preuve d'achat", W / 2, H - 62);
 
   /* Pied de page */
   ctx.fillStyle = 'rgba(201,168,76,0.4)';
   ctx.font      = '9px sans-serif';
-  ctx.fillText('codé par Nel'si · N Market', W / 2, H - 26);
+  ctx.fillText("codé par Nel'si · N Market", W / 2, H - 26);
 
   return canvas;
 }
@@ -382,7 +406,7 @@ function showScreenshotHint() {
     wrap.appendChild(canvas);
     wrap.style.display = 'block';
     wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    showToast('Ticket affiché', 'Fais une capture d'écran maintenant 📸');
+    showToast('Ticket affiché', "Fais une capture d'écran maintenant 📸");
   }
 }
 
@@ -408,10 +432,7 @@ async function loadReviews() {
     </div>`).join('');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('openReviewBtn').addEventListener('click', () => openModal('reviewModal'));
-  document.getElementById('submitReviewBtn').addEventListener('click', submitReview);
-});
+
 
 async function submitReview() {
   const name = document.getElementById('rvName').value.trim();

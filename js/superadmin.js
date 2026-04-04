@@ -126,7 +126,7 @@ async function renderDashboard() {
     <div class="mini-row">
       <div><div style="font-weight:500;font-size:.78rem">${c.seller_name}</div><div style="font-size:.68rem;color:var(--t3)">${c.period_label}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:.78rem;font-weight:500;color:var(--orange)">${c.amount_due.toLocaleString()} FCFA</span>
+        <span style="font-size:.78rem;font-weight:500;color:var(--amber)">${c.amount_due.toLocaleString()} FCFA</span>
         <button class="icon-btn edit" onclick="openPayment(${c.id})" title="Enregistrer">💳</button>
       </div>
     </div>`).join('') || '<div style="color:var(--t3);font-size:.76rem;padding:12px 0">Aucune commission en attente ✓</div>';
@@ -153,7 +153,7 @@ async function renderCommissions() {
       <td style="color:${reste>0?'var(--red)':'var(--green)'};font-weight:500">${reste.toLocaleString()} FCFA</td>
       <td>
         <span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span>
-        ${c.amount_due>0?`<div class="progress-wrap"><div class="progress-bg"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--blue)'}"></div></div><div class="progress-lbl">${pct}%</div></div>`:''}
+        ${c.amount_due>0?`<div class="progress-wrap"><div class="progress-bg"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--teal)'}"></div></div><div class="progress-lbl">${pct}%</div></div>`:''}
       </td>
       <td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>`:`<span style="color:var(--green);font-size:.72rem">Soldé</span>`}</td>
     </tr>`;
@@ -177,7 +177,7 @@ async function previewGen() {
   const pLabel = new Date(start).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   const tbody = document.getElementById('genPreviewBody');
   if (!preview.length) { tbody.innerHTML=`<tr><td colspan="4" class="table-empty">Aucun vendeur avec des ventes sur cette période</td></tr>`; document.getElementById('genPreview').style.display=''; document.getElementById('generateBtn').disabled=true; return; }
-  tbody.innerHTML = preview.map(p=>`<tr><td style="font-weight:500">${p.sellerName}</td><td style="color:var(--t2);font-size:.74rem">${pLabel}</td><td>${p.revenue.toLocaleString()} FCFA</td><td style="font-weight:500;color:var(--orange)">${p.amountDue.toLocaleString()} FCFA</td></tr>`).join('');
+  tbody.innerHTML = preview.map(p=>`<tr><td style="font-weight:500">${p.sellerName}</td><td style="color:var(--t2);font-size:.74rem">${pLabel}</td><td>${p.revenue.toLocaleString()} FCFA</td><td style="font-weight:500;color:var(--amber)">${p.amountDue.toLocaleString()} FCFA</td></tr>`).join('');
   const total=preview.reduce((s,p)=>s+p.amountDue,0);
   document.getElementById('genTotal').innerHTML=`<span>${preview.length} vendeur(s) · <span style="color:var(--t2)">${pLabel}</span></span><strong>${total.toLocaleString()} FCFA</strong>`;
   document.getElementById('genPreview').style.display='';
@@ -234,7 +234,7 @@ async function openPayment(commId) {
   const reste=c.amount_due-c.amount_paid;
   document.getElementById('payCommId').value=commId;
   document.getElementById('paymentSub').textContent=`${c.seller_name} · ${c.period_label}`;
-  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:.76rem"><span style="color:var(--t2)">${k}</span><span style="font-weight:500">${v}</span></div>`;
+  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gb1);font-size:.76rem"><span style="color:var(--t2)">${k}</span><span style="font-weight:500">${v}</span></div>`;
   document.getElementById('paymentInfo').innerHTML=row('CA réalisé',`${c.revenue.toLocaleString()} FCFA`)+row(`Commission (${c.rate}%)`,`${c.amount_due.toLocaleString()} FCFA`)+row('Déjà reçu',`<span style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</span>`)+row('Reste à payer',`<span style="color:var(--red);font-weight:600">${reste.toLocaleString()} FCFA</span>`);
   document.getElementById('payAmount').value=reste;
   document.getElementById('payNote').value='';
@@ -283,7 +283,7 @@ async function renderSellers() {
         </div>
       </div>
       <div class="seller-stats">
-        <div class="seller-stat"><div class="seller-stat-val" style="color:var(--blue)">${myO.length}</div><div class="seller-stat-label">Commandes</div></div>
+        <div class="seller-stat"><div class="seller-stat-val" style="color:var(--teal)">${myO.length}</div><div class="seller-stat-label">Commandes</div></div>
         <div class="seller-stat"><div class="seller-stat-val" style="color:var(--green)">${revenue.toLocaleString()}</div><div class="seller-stat-label">CA (FCFA)</div></div>
         <div class="seller-stat"><div class="seller-stat-val" style="color:${due>0?'var(--red)':'var(--green)'}">${due.toLocaleString()}</div><div class="seller-stat-label">Dû</div></div>
       </div>

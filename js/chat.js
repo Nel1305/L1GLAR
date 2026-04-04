@@ -91,7 +91,7 @@ async function renderMessages(msgs) {
   if (!el) return;
 
   if (!msgs.length) {
-    el.innerHTML = `<div class="chat-empty"><span>💬</span><span>Aucun message</span><span style="font-size:.7rem;color:var(--t4)">Sois le premier à écrire !</span></div>`;
+    el.innerHTML = `<div class="chat-empty"><span>💬</span><span>Aucun message</span><span style="font-size:.7rem;color:var(--t3)">Sois le premier à écrire !</span></div>`;
     return;
   }
 
@@ -103,9 +103,9 @@ async function renderMessages(msgs) {
     const time  = new Date(m.created_at).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
     return `
       <div class="msg-wrap ${mine?'mine':''}">
-        ${!mine ? `<div class="msg-av" style="${isAdm?'border-color:var(--orange);color:var(--orange)':''}">${isAdm?'👑':m.sender_name[0]}</div>` : ''}
+        ${!mine ? `<div class="msg-av" style="${isAdm?'border-color:var(--gold);color:var(--gold)':''}">${isAdm?'👑':m.sender_name[0]}</div>` : ''}
         <div>
-          ${!mine ? `<div class="msg-name">${m.sender_name}${isAdm?' <span style="color:var(--orange);font-size:.6rem">ADMIN</span>':''}</div>` : ''}
+          ${!mine ? `<div class="msg-name">${m.sender_name}${isAdm?' <span style="color:var(--gold);font-size:.6rem">ADMIN</span>':''}</div>` : ''}
           <div class="msg-bubble ${isAdm&&!mine?'admin-msg':''}">
             ${m.text}
             <div class="msg-time">${time}</div>

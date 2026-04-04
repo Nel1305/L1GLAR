@@ -89,7 +89,7 @@ async function renderDashboard() {
 
   document.getElementById('dashProducts').innerHTML = products.length
     ? products.slice(0,6).map(p=>`
-        <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r2);overflow:hidden">
+        <div style="background:var(--bg2);border:1px solid var(--gb1);border-radius:var(--r-lg);overflow:hidden">
           <div style="height:72px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1.8rem;position:relative;overflow:hidden">
             ${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" alt="">`:p.emoji}
             ${!p.available?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--red);font-weight:600;letter-spacing:.04em">INDISPO</div>`:''}
@@ -167,7 +167,7 @@ async function renderProductsTable() {
       <td><div style="font-weight:500">${p.name}</div><div style="font-size:.7rem;color:var(--t2);margin-top:2px">${(p.desc||'').substring(0,50)}${(p.desc||'').length>50?'…':''}</div></td>
       <td><span class="badge badge-${p.cat}">${catLabel(p.cat)}</span></td>
       <td style="font-weight:500">${p.price.toLocaleString()} FCFA</td>
-      <td>${p.votes?`<div style="display:flex;align-items:center;gap:3px">${starsHtml(p.rating,'.74rem')}<span style="font-size:.68rem;color:var(--t3);margin-left:2px">(${p.votes})</span></div>`:`<span style="color:var(--t4)">—</span>`}</td>
+      <td>${p.votes?`<div style="display:flex;align-items:center;gap:3px">${starsHtml(p.rating,'.74rem')}<span style="font-size:.68rem;color:var(--t3);margin-left:2px">(${p.votes})</span></div>`:`<span style="color:var(--t3)">—</span>`}</td>
       <td><button class="toggle ${p.available?'on':''}" onclick="toggleAvail(${p.id},${p.available})"></button></td>
       <td><div class="td-actions"><button class="icon-btn edit" onclick="openEditProduct(${p.id})" title="Modifier">✏</button><button class="icon-btn del" onclick="deleteProd(${p.id})" title="Supprimer">✕</button></div></td>
     </tr>`).join('');
@@ -175,7 +175,7 @@ async function renderProductsTable() {
 
 async function toggleAvail(id, current) {
   await dbUpdateProduct(id, { available: !current });
-  showToast(!current?'Produit disponible':'Produit indisponible', !current?'Visible sur la marketplace':'Masqué', !current?'var(--green)':'var(--orange)');
+  showToast(!current?'Produit disponible':'Produit indisponible', !current?'Visible sur la marketplace':'Masqué', !current?'var(--green)':'var(--amber)');
   await renderProductsTable();
 }
 

@@ -212,22 +212,22 @@ async function dbGetConnections() {
 }
 
 /* ── SHARED UI ── */
-function openModal(id)  { document.getElementById(id).classList.add('show'); }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function openModal(id)  { document.getElementById(id)?.classList.add('show'); document.body.style.overflow='hidden'; }
+function closeModal(id) { document.getElementById(id)?.classList.remove('show'); document.body.style.overflow=''; }
 function showToast(title, msg, color) {
   const t = document.getElementById('toast');
+  if (!t) return;
   document.getElementById('toastTitle').textContent = title;
   document.getElementById('toastMsg').textContent   = msg || '';
-  t.style.borderColor = color ? `var(--line2)` : 'var(--line2)';
-  if (color) t.style.borderLeftColor = color;
+  t.style.borderLeftColor = color || 'var(--gold)';
   t.classList.add('show');
   clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove('show'), 3600);
+  t._t = setTimeout(() => t.classList.remove('show'), 3800);
 }
 function showLoader(v) { const el = document.getElementById('loader'); if (el) el.style.display = v ? 'flex' : 'none'; }
 function starsHtml(r, sz) {
   sz = sz || '.85rem';
-  return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--yellow)':'var(--bg4)'};font-size:${sz}">★</span>`).join('');
+  return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--gold)':'var(--g3)'};font-size:${sz}">★</span>`).join('');
 }
 function catLabel(c)     { return c==='food'?'Nourriture':c==='drink'?'Boisson':'Autre'; }
 function statusLabel(s)  { return s==='new'?'Nouvelle':s==='done'?'Livrée':'Annulée'; }
