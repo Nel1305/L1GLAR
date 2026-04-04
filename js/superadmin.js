@@ -147,7 +147,7 @@ async function renderCommissions() {
       <td style="font-weight:500">${c.seller_name}</td>
       <td style="font-size:.72rem;color:var(--t2)">${c.period_label}</td>
       <td>${c.revenue.toLocaleString()} FCFA</td>
-      <td>${c.rate}%</td>
+      <td>${c.rate_pct}%</td>
       <td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td>
       <td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td>
       <td style="color:${reste>0?'var(--red)':'var(--green)'};font-weight:500">${reste.toLocaleString()} FCFA</td>
@@ -196,7 +196,7 @@ async function doGenerate() {
   if (!preview.length) return;
   showLoader(true);
   for (const p of preview) {
-    await dbInsertCommission({ seller_id:p.sellerId, seller_name:p.sellerName, period_label:btn.dataset.label, period_type:btn.dataset.type, period_start:btn.dataset.start, period_end:btn.dataset.end, revenue:p.revenue, rate:p.rate, amount_due:p.amountDue, amount_paid:0, status:'pending', due_date:btn.dataset.due||null });
+    await dbInsertCommission({ seller_id:p.sellerId, seller_name:p.sellerName, period_label:btn.dataset.label, period_type:btn.dataset.type, period_start:btn.dataset.start, period_end:btn.dataset.end, revenue:p.revenue, rate_pct:p.rate_pct, amount_due:p.amountDue, amount_paid:0, status:'pending', due_date:btn.dataset.due||null });
   }
   showLoader(false);
   const total=preview.reduce((s,p)=>s+p.amountDue,0);
@@ -216,7 +216,7 @@ async function doGenerate() {
         period_label: btn.dataset.label,
         revenue:      p.revenue,
         amount_due:   p.amountDue,
-        rate:         p.rate,
+        rate:         p.rate_pct,
         due_date:     btn.dataset.due || null,
       };
       const res = await sendInvoiceEmail(seller, commData);
@@ -235,10 +235,34 @@ async function openPayment(commId) {
   document.getElementById('payCommId').value=commId;
   document.getElementById('paymentSub').textContent=`${c.seller_name} · ${c.period_label}`;
   const row=(k,v)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gb1);font-size:.76rem"><span style="color:var(--t2)">${k}</span><span style="font-weight:500">${v}</span></div>`;
-  document.getElementById('paymentInfo').innerHTML=row('CA réalisé',`${c.revenue.toLocaleString()} FCFA`)+row(`Commission (${c.rate}%)`,`${c.amount_due.toLocaleString()} FCFA`)+row('Déjà reçu',`<span style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</span>`)+row('Reste à payer',`<span style="color:var(--red);font-weight:600">${reste.toLocaleString()} FCFA</span>`);
+  document.getElementById('paymentInfo').innerHTML=row('CA réalisé',`${c.revenue.toLocaleString()} FCFA`)+row(`Commission (${c.rate_pct}%)`,`${c.amount_due.toLocaleString()} FCFA`)+row('Déjà reçu',`<span style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</span>`)+row('Reste à payer',`<span style="color:var(--red);font-weight:600">${reste.toLocaleString()} FCFA</span>`);
   document.getElementById('payAmount').value=reste;
   document.getElementById('payNote').value='';
+  // Show/hide "Mark as fully paid" shortcut
+  const fullyPaidBtn = document.getElementById('markFullyPaidBtn');
+  if (fullyPaidBtn) {
+    fullyPaidBtn.style.display = c.status !== 'paid' ? '' : 'none';
+    fullyPaidBtn.onclick = () => markFullyPaid(commId, c.amount_due - c.amount_paid);
+  }
   openModal('paymentModal');
+}
+
+async function markFullyPaid(commId, reste) {
+  /* Marquer comme soldé sans préciser le montant exact (ex: cash remis en main propre) */
+  if (!confirm('Marquer cette commission comme entièrement payée ?')) return;
+  const note = document.getElementById('payNote').value.trim() || 'Soldé manuellement';
+  showLoader(true);
+  await dbUpdateCommission(commId, {
+    amount_paid: (await dbGetCommissions()).find(c => c.id === commId)?.amount_due || 0,
+    status: 'paid',
+    payment_note: note,
+    paid_at: new Date().toISOString(),
+  });
+  showLoader(false);
+  closeModal('paymentModal');
+  showToast('Commission soldée', 'Marqué comme entièrement payé ✓', 'var(--green)');
+  await renderDashboard();
+  if (document.getElementById('page-commissions').classList.contains('active')) await renderCommissions();
 }
 
 async function savePayment() {
@@ -250,7 +274,7 @@ async function savePayment() {
   const newPaid=c.amount_paid+amount, reste=c.amount_due-newPaid;
   const newStatus=reste<=0?'paid':newPaid>0?'partial':'pending';
   showLoader(true);
-  await dbUpdateCommission(id,{ amount_paid:newPaid, status:newStatus, note:note||c.note, paid_at:newStatus==='paid'?new Date().toISOString():null });
+  await dbUpdateCommission(id,{ amount_paid:newPaid, status:newStatus, payment_note:note||c.payment_note||'', paid_at:newStatus==='paid'?new Date().toISOString():null });
   showLoader(false);
   closeModal('paymentModal');
   showToast('Paiement enregistré',`${amount.toLocaleString()} FCFA reçus`,'var(--green)');
@@ -318,7 +342,7 @@ async function viewSellerComm(sellerId) {
   if (!comms.length) { tbody.innerHTML=`<tr><td colspan="9" class="table-empty">Aucune commission pour ce vendeur</td></tr>`; return; }
   tbody.innerHTML=comms.map(c=>{
     const reste=c.amount_due-c.amount_paid;
-    return `<tr><td style="font-weight:500">${c.seller_name}</td><td style="font-size:.72rem;color:var(--t2)">${c.period_label}</td><td>${c.revenue.toLocaleString()} FCFA</td><td>${c.rate}%</td><td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td><td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td><td style="color:${reste>0?'var(--red)':'var(--green)'}; font-weight:500">${reste.toLocaleString()} FCFA</td><td><span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span></td><td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>`:'✓'}</td></tr>`;
+    return `<tr><td style="font-weight:500">${c.seller_name}</td><td style="font-size:.72rem;color:var(--t2)">${c.period_label}</td><td>${c.revenue.toLocaleString()} FCFA</td><td>${c.rate_pct}%</td><td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td><td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td><td style="color:${reste>0?'var(--red)':'var(--green)'}; font-weight:500">${reste.toLocaleString()} FCFA</td><td><span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span></td><td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>`:'✓'}</td></tr>`;
   }).join('');
 }
 
