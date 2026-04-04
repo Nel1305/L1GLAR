@@ -282,22 +282,5 @@
 <script src="js/email.js"></script>
 <script src="js/main.js"></script>
 
-<script>
-/* Mobile user button */
-document.addEventListener('DOMContentLoaded', () => {
-  const mobBtn = document.getElementById('mobUserBtn');
-  if (mobBtn) {
-    mobBtn.addEventListener('click', () => {
-      const s = getSession();
-      if (s) {
-        openModal('authModal');
-      } else {
-        openModal('authModal');
-      }
-    });
-  }
-});
-</script>
-
 </body>
 </html>
