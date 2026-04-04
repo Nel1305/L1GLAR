@@ -4,14 +4,14 @@
 ═══════════════════════════════════════════════ */
 
 /* 1. SUPABASE */
-const SUPABASE_URL = 'https://XXXXXXXXXXXX.supabase.co';
-const SUPABASE_KEY = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+const SUPABASE_URL = 'https://iszoodumwzpovxotisnm.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_RHr1M8JmzB57Eu1fFKicUA_2oHnFVg9';
 
 /* 2. EMAILJS */
-const EMAILJS_PUBLIC_KEY       = 'XXXXXXXXXXXXXXXX';
-const EMAILJS_SERVICE_ID       = 'service_XXXXXXX';
-const EMAILJS_TEMPLATE_WELCOME = 'template_welcome';
-const EMAILJS_TEMPLATE_INVOICE = 'template_invoice';
+const EMAILJS_PUBLIC_KEY       = 'C6F_StHUlgq2eIluh';
+const EMAILJS_SERVICE_ID       = 'service_ba2jyzr';
+const EMAILJS_TEMPLATE_WELCOME = 'template_8xy6ill';
+const EMAILJS_TEMPLATE_INVOICE = 'template_qcc100g';
 
 /* 3. PAIEMENT WAVE */
 const WAVE_NUMBER = '+221 XX XXX XX XX';
