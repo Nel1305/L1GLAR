@@ -27,7 +27,7 @@
       <div class="logo-mark">N</div>
       <div class="logo-text">
         <div class="logo-name">N Market</div>
-        <div class="logo-sub">Université · E-Commerce</div>
+        <div class="logo-sub">Université · L1 GLAR</div>
       </div>
     </div>
     <button class="drawer-close" onclick="closeDrawer()" aria-label="Fermer le menu">✕</button>
@@ -82,7 +82,7 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Se déconnecter
     </button>
-    <a href="pages/superadmin.html" class="credit">By BUABEY Arold Yves Nel'si</a>
+    <a href="pages/superadmin.html" class="credit">codé par Nel'si</a>
   </div>
 </aside>
 
@@ -92,7 +92,7 @@
     <div class="logo-mark">N</div>
     <div class="logo-text">
       <div class="logo-name">N Market</div>
-      <div class="logo-sub">Université · E-Commerce</div>
+      <div class="logo-sub">Université · L1 GLAR</div>
     </div>
   </div>
   <nav class="nav" role="navigation" aria-label="Navigation principale">
@@ -111,7 +111,7 @@
     </div>
     <a href="pages/admin.html" class="admin-btn" id="adminBtn" style="display:none"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>Espace vendeur</a>
     <button class="admin-btn" id="logoutBtn" style="display:none"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>Déconnexion</button>
-    <a href="pages/superadmin.html" class="credit">By BUABEY Arold Yves Nel'si</a>
+    <a href="pages/superadmin.html" class="credit">codé par Nel'si</a>
   </div>
 </aside>
 
@@ -124,6 +124,10 @@
     <div class="mob-logo">N Market</div>
     <button class="mob-search-btn" id="mobSearchToggle" aria-label="Rechercher">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+    <button class="mob-cart-btn" id="mobCartBtn" onclick="openCart()" aria-label="Voir le panier" style="display:none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      <span class="cart-badge" id="cartBadge">0</span>
     </button>
   </header>
 
@@ -176,44 +180,54 @@
       <div class="grid" id="productsGrid" aria-live="polite"></div>
     </div>
 
-    <!-- Commander -->
+    <!-- Commander (checkout) -->
     <div id="page-order" class="page">
       <div class="page-header">
         <div>
-          <div class="page-title">Commander</div>
-          <div class="page-desc">Tu recevras une confirmation par email</div>
+          <div class="page-title">Finaliser la commande</div>
+          <div class="page-desc">Vérifie ton panier puis confirme</div>
         </div>
       </div>
-      <div class="form-wrap">
-        <div class="f-section">
-          <span class="f-label">Tes informations</span>
-          <div class="field"><label for="oName">Nom complet</label><input type="text" id="oName" placeholder="Ex : Amina Diallo" autocomplete="name" maxlength="100"></div>
-          <div class="field-row">
-            <div class="field"><label for="oEmail">Email</label><input type="email" id="oEmail" placeholder="ton@email.com" autocomplete="email" maxlength="150"></div>
-            <div class="field"><label for="oPhone">Téléphone</label><input type="tel" id="oPhone" placeholder="+221 77 …" autocomplete="tel" maxlength="20"></div>
-          </div>
+      <!-- Panier vide -->
+      <div id="checkoutEmpty" class="checkout-empty" style="display:none">
+        <div class="checkout-empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         </div>
-        <div class="divider"></div>
-        <div class="f-section">
-          <span class="f-label">Ta commande</span>
-          <div class="field"><label for="oProduct">Produit</label><select id="oProduct" aria-required="true"><option value="">Choisir un produit…</option></select></div>
-          <div class="field">
-            <label for="oQty">Quantité</label>
-            <div class="qty-row">
-              <button class="qty-btn" id="qtyMinus" aria-label="Diminuer">−</button>
-              <input class="qty-num" id="oQty" type="number" value="1" min="1" max="99" aria-label="Quantité">
-              <button class="qty-btn" id="qtyPlus" aria-label="Augmenter">+</button>
+        <p>Ton panier est vide</p>
+        <button class="btn-ghost" onclick="navTo('products')">Parcourir les produits</button>
+      </div>
+      <!-- Contenu checkout -->
+      <div id="checkoutContent" style="display:none">
+        <div class="checkout-layout">
+          <!-- Colonne gauche : récapitulatif panier -->
+          <div class="checkout-left">
+            <div class="checkout-section-title">Mon panier <span id="cartCount" class="cart-count-label"></span></div>
+            <div id="cartItemsList"></div>
+            <div class="cart-total-row">
+              <span>Total</span>
+              <span id="cartTotalDisplay" class="cart-total-amount"></span>
             </div>
+            <button class="btn-ghost" style="width:100%;margin-top:10px;font-size:.78rem" onclick="clearCart()">Vider le panier</button>
           </div>
-          <div class="field"><label for="oNotes">Modifications / Précisions</label><textarea id="oNotes" placeholder="Ex : sans sucre, taille M, couleur bleue…" maxlength="500"></textarea><div class="hint">Précise tout ce que tu veux changer ou ajouter.</div></div>
+          <!-- Colonne droite : infos acheteur -->
+          <div class="checkout-right">
+            <div class="checkout-section-title">Tes informations</div>
+            <div class="field"><label for="oName">Nom complet</label><input type="text" id="oName" placeholder="Ex : Amina Diallo" autocomplete="name" maxlength="100"></div>
+            <div class="field"><label for="oEmail">Email</label><input type="email" id="oEmail" placeholder="ton@email.com" autocomplete="email" maxlength="150"></div>
+            <div class="field"><label for="oPhone">Téléphone (optionnel)</label><input type="tel" id="oPhone" placeholder="+221 77 …" autocomplete="tel" maxlength="20"></div>
+            <div class="field"><label for="oNotes">Note globale (optionnel)</label><textarea id="oNotes" placeholder="Ex : appelle-moi avant de livrer…" maxlength="500"></textarea></div>
+            <button class="btn-primary" id="submitOrderBtn" style="margin-top:8px">Confirmer la commande</button>
+          </div>
         </div>
-        <button class="btn-primary" id="submitOrderBtn">Confirmer la commande</button>
         <div class="success-box order-success-box" id="orderSuccess" role="alert" aria-live="assertive">
           <div class="ico">✓</div>
           <strong>Commande enregistrée !</strong>
           <div id="orderSuccessText"></div>
         </div>
       </div>
+      <!-- IDs fantômes pour compatibilité (non affichés) -->
+      <select id="oProduct" style="display:none"></select>
+      <input id="oQty" type="hidden" value="1">
     </div>
 
     <!-- Avis -->
@@ -226,6 +240,33 @@
     </div>
 
   </main>
+</div>
+
+<!-- ── Cart Drawer ── -->
+<div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
+<div class="cart-drawer" id="cartDrawer" role="dialog" aria-modal="true" aria-label="Panier">
+  <div class="cart-drawer-header">
+    <div class="cart-drawer-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      Mon panier <span id="cartDrawerCount" class="cart-count-pill"></span>
+    </div>
+    <button class="cart-drawer-close" onclick="closeCart()" aria-label="Fermer">✕</button>
+  </div>
+  <div class="cart-drawer-body" id="cartDrawerBody">
+    <div class="cart-drawer-empty" id="cartDrawerEmpty">
+      <p>Ton panier est vide</p>
+      <button class="btn-ghost" onclick="closeCart()">Continuer mes achats</button>
+    </div>
+    <div id="cartDrawerItems"></div>
+  </div>
+  <div class="cart-drawer-footer" id="cartDrawerFooter" style="display:none">
+    <div class="cart-drawer-total">
+      <span>Total</span>
+      <span id="cartDrawerTotal" class="cart-drawer-total-amount"></span>
+    </div>
+    <button class="btn-primary" onclick="goToCheckout()">Commander</button>
+    <button class="btn-ghost" style="margin-top:8px" onclick="clearCart()">Vider le panier</button>
+  </div>
 </div>
 
 <!-- ── Bottom nav mobile ── -->
