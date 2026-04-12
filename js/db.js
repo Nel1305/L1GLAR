@@ -105,7 +105,8 @@ async function dbInsertOrder(f) {
     buyer_name:f.buyerName, buyer_email:f.buyerEmail,
     buyer_phone:f.buyerPhone||'', qty:f.qty, total:f.total,
     notes:f.notes||'', status:'new',
-    order_code: f.orderCode || ''
+    order_code: f.orderCode || '',
+    items: f.items ? (typeof f.items === 'string' ? f.items : JSON.stringify(f.items)) : null
   }).select().single();
   if (error) return { error: error.message };
   return { order: no(data) };
@@ -121,7 +122,8 @@ function no(r) {
     buyerName:r.buyer_name, buyerEmail:r.buyer_email,
     buyerPhone:r.buyer_phone, qty:r.qty, total:r.total,
     notes:r.notes, status:r.status, createdAt:r.created_at,
-    orderCode:r.order_code||''
+    orderCode:r.order_code||'',
+    items: r.items ? (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) : null
   };
 }
 

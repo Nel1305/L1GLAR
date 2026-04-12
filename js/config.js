@@ -4,8 +4,8 @@
 ═══════════════════════════════════════════════ */
 
 /* 1. SUPABASE */
-const SUPABASE_URL = 'https://iszoodumwzpovxotisnm.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_RHr1M8JmzB57Eu1fFKicUA_2oHnFVg9';
+const SUPABASE_URL = 'https://rsuoabtoofcdyqdtiemr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_fRbZpN5gEuA3YRdAVont1Q_TCLqN8Ka';
 
 /* 2. EMAILJS */
 const EMAILJS_PUBLIC_KEY       = 'C6F_StHUlgq2eIluh';
@@ -14,8 +14,8 @@ const EMAILJS_TEMPLATE_WELCOME = 'template_8xy6ill';
 const EMAILJS_TEMPLATE_INVOICE = 'template_qcc100g';
 
 /* 3. PAIEMENT WAVE */
-const WAVE_NUMBER = '+221 77 597 71 14';
-const WAVE_NAME   = "BUABEY Arold Yves Nel'si";
+const WAVE_NUMBER = '+221 77 597 7114';
+const WAVE_NAME   = "Arold Yves Nel'si BUABEY";
 
 /* 4. PLATEFORME */
 const PLATFORM_NAME       = 'N Market';

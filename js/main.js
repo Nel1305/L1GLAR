@@ -9,6 +9,10 @@ let activeFilter = 'all';
 let searchQ      = '';
 let allProducts  = [];
 
+/* ── PANIER (cart) ─────────────────────────────────────── */
+/* Structure: { [productId]: { product, qty, note } } */
+let cart = {};
+
 /* ── SECURITE : échapper le HTML utilisateur ── */
 const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
@@ -20,20 +24,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   initOrderForm();
   initReviewForm();
   await loadProducts();
+  loadCart();
+  updateCartUI();
   initModals();
   initMobUser();
 });
 
 function initOrderForm() {
-  document.getElementById('qtyMinus').addEventListener('click', () => {
-    const e = document.getElementById('oQty');
-    e.value = Math.max(1, parseInt(e.value || 1) - 1);
+  /* submitOrderBtn is added dynamically by renderCheckout — use delegation */
+  document.addEventListener('click', e => {
+    if (e.target && e.target.id === 'submitOrderBtn') submitOrder();
   });
-  document.getElementById('qtyPlus').addEventListener('click', () => {
-    const e = document.getElementById('oQty');
-    e.value = parseInt(e.value || 1) + 1;
-  });
-  document.getElementById('submitOrderBtn').addEventListener('click', submitOrder);
 }
 
 function initReviewForm() {
@@ -72,7 +73,7 @@ function navTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pg = document.getElementById('page-' + page);
   if (pg) pg.classList.add('active');
-  if (page === 'order') populateOrderSelects();
+  if (page === 'order') renderCheckout();
   if (page === 'reviews') loadReviews();
 }
 function handleDrawerUserClick() {
@@ -147,13 +148,22 @@ function renderProducts() {
             ${p.rating ? `${p.rating}${p.votes ? ` <span class="rating-count">(${p.votes})</span>` : ''}` : '—'}
           </div>
         </div>
-        <button class="btn-order" data-id="${esc(String(p.id))}" data-name="${esc(p.name)}">Commander</button>
+        <div class="card-cart-row">
+          ${cart[p.id] ? `
+            <div class="card-qty-ctrl">
+              <button class="card-qty-btn" onclick="cartDec(${p.id})">−</button>
+              <span class="card-qty-num">${cart[p.id].qty}</span>
+              <button class="card-qty-btn" onclick="cartInc(${p.id})">+</button>
+            </div>
+            <button class="card-remove-btn" onclick="cartRemove(${p.id})" aria-label="Retirer">✕</button>
+          ` : `
+            <button class="btn-order" data-id="${esc(String(p.id))}" onclick="cartAdd(${p.id})">+ Ajouter</button>
+          `}
+        </div>
       </div>
     </div>`).join('');
 
-  grid.querySelectorAll('.btn-order').forEach(btn =>
-    btn.addEventListener('click', () => quickOrder(btn.dataset.id, btn.dataset.name))
-  );
+
 }
 
 function initFilters() {
@@ -179,13 +189,206 @@ function initFilters() {
   });
 }
 
-async function quickOrder(id, name) {
-  document.querySelectorAll('.nav-item[data-page], .mob-nav-item[data-page]').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('[data-page="order"]').forEach(b => b.classList.add('active'));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-order').classList.add('active');
-  await populateOrderSelects();
-  document.getElementById('oProduct').value = id;
+/* ── FONCTIONS PANIER ─────────────────────────────────── */
+function cartAdd(productId) {
+  const p = allProducts.find(x => x.id === parseInt(productId));
+  if (!p) return;
+  if (cart[productId]) {
+    cart[productId].qty += 1;
+  } else {
+    cart[productId] = { product: p, qty: 1, note: '' };
+  }
+  saveCart();
+  renderProducts();
+  updateCartUI();
+  showToast(p.name + ' ajouté', p.price.toLocaleString() + ' FCFA × ' + cart[productId].qty);
+}
+
+function cartInc(productId) {
+  if (!cart[productId]) return;
+  cart[productId].qty += 1;
+  saveCart(); renderProducts(); updateCartUI(); renderCartDrawer();
+}
+
+function cartDec(productId) {
+  if (!cart[productId]) return;
+  cart[productId].qty -= 1;
+  if (cart[productId].qty <= 0) delete cart[productId];
+  saveCart(); renderProducts(); updateCartUI(); renderCartDrawer();
+}
+
+function cartRemove(productId) {
+  delete cart[productId];
+  saveCart(); renderProducts(); updateCartUI(); renderCartDrawer();
+  if (document.getElementById('page-order').classList.contains('active')) renderCheckout();
+}
+
+function clearCart() {
+  cart = {};
+  saveCart(); renderProducts(); updateCartUI(); renderCartDrawer(); renderCheckout();
+}
+
+function cartTotal() {
+  return Object.values(cart).reduce((s, i) => s + i.product.price * i.qty, 0);
+}
+
+function cartItemCount() {
+  return Object.values(cart).reduce((s, i) => s + i.qty, 0);
+}
+
+function saveCart() {
+  try { sessionStorage.setItem('nm_cart', JSON.stringify(cart)); } catch(_) {}
+}
+
+function loadCart() {
+  try {
+    const raw = sessionStorage.getItem('nm_cart');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    /* Reconcile with current products */
+    Object.keys(saved).forEach(id => {
+      const p = allProducts.find(x => String(x.id) === id);
+      if (p) cart[id] = { ...saved[id], product: p };
+    });
+  } catch(_) {}
+}
+
+function updateCartUI() {
+  const count = cartItemCount();
+  const total = cartTotal();
+
+  /* Badge mobile top bar */
+  const mobBtn = document.getElementById('mobCartBtn');
+  const badge  = document.getElementById('cartBadge');
+  if (mobBtn) mobBtn.style.display = count > 0 ? '' : 'none';
+  if (badge)  badge.textContent = count;
+
+  /* Sidebar desktop */
+  const sbBtn   = document.getElementById('cartSidebarBtn');
+  const sbBadge = document.getElementById('cartSidebarBadge');
+  if (sbBtn)   sbBtn.style.display = count > 0 ? '' : 'none';
+  if (sbBadge) sbBadge.textContent = count > 0 ? count + ' · ' + total.toLocaleString() + ' FCFA' : '';
+
+  /* Count labels */
+  ['cartCount', 'cartDrawerCount'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = count > 0 ? count + ' article' + (count > 1 ? 's' : '') : '';
+  });
+
+  /* Drawer total */
+  ['cartTotalDisplay', 'cartDrawerTotal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = total.toLocaleString() + ' FCFA';
+  });
+
+  /* Drawer footer */
+  const footer = document.getElementById('cartDrawerFooter');
+  if (footer) footer.style.display = count > 0 ? '' : 'none';
+}
+
+/* ── DRAWER PANIER ────────────────────────────────────── */
+function openCart() {
+  renderCartDrawer();
+  document.getElementById('cartDrawer')?.classList.add('open');
+  document.getElementById('cartOverlay')?.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCart() {
+  document.getElementById('cartDrawer')?.classList.remove('open');
+  document.getElementById('cartOverlay')?.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function renderCartDrawer() {
+  const items = Object.values(cart);
+  const emptyEl = document.getElementById('cartDrawerEmpty');
+  const itemsEl = document.getElementById('cartDrawerItems');
+  if (!emptyEl || !itemsEl) return;
+
+  if (!items.length) {
+    emptyEl.style.display = '';
+    itemsEl.innerHTML = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  itemsEl.innerHTML = items.map(({ product: p, qty, note }) => `
+    <div class="cart-item">
+      <div class="cart-item-img">${p.photo ? `<img src="${esc(p.photo)}" alt="${esc(p.name)}" loading="lazy">` : esc(p.emoji)}</div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${esc(p.name)}</div>
+        <div class="cart-item-seller">par ${esc(p.sellerName)}</div>
+        <div class="cart-item-price">${(p.price * qty).toLocaleString()} FCFA</div>
+        <div class="cart-item-note-wrap">
+          <input class="cart-item-note" type="text" placeholder="Précision (optionnel)…"
+            value="${esc(note)}" maxlength="200"
+            oninput="cartSetNote(${p.id}, this.value)"
+            aria-label="Note pour ${esc(p.name)}">
+        </div>
+      </div>
+      <div class="cart-item-controls">
+        <button class="cart-qty-btn" onclick="cartDec(${p.id})">−</button>
+        <span class="cart-qty-val">${qty}</span>
+        <button class="cart-qty-btn" onclick="cartInc(${p.id})">+</button>
+        <button class="cart-remove" onclick="cartRemove(${p.id})" aria-label="Supprimer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+  updateCartUI();
+}
+
+function cartSetNote(productId, value) {
+  if (cart[productId]) {
+    cart[productId].note = value;
+    saveCart();
+  }
+}
+
+function goToCheckout() {
+  closeCart();
+  navTo('order');
+}
+
+/* ── CHECKOUT PAGE ────────────────────────────────────── */
+function renderCheckout() {
+  const items = Object.values(cart);
+  const emptyEl   = document.getElementById('checkoutEmpty');
+  const contentEl = document.getElementById('checkoutContent');
+  if (!emptyEl || !contentEl) return;
+
+  if (!items.length) {
+    emptyEl.style.display = '';
+    contentEl.style.display = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  contentEl.style.display = '';
+
+  /* Cart items list in checkout */
+  const listEl = document.getElementById('cartItemsList');
+  if (listEl) {
+    listEl.innerHTML = items.map(({ product: p, qty, note }) => `
+      <div class="checkout-item">
+        <div class="checkout-item-thumb">${p.photo ? `<img src="${esc(p.photo)}" alt="${esc(p.name)}" loading="lazy">` : esc(p.emoji)}</div>
+        <div class="checkout-item-info">
+          <div class="checkout-item-name">${esc(p.name)}</div>
+          <div class="checkout-item-seller">par ${esc(p.sellerName)}</div>
+          ${note ? `<div class="checkout-item-note">"${esc(note)}"</div>` : ''}
+        </div>
+        <div class="checkout-item-right">
+          <div class="checkout-item-qty-ctrl">
+            <button class="card-qty-btn" onclick="cartDec(${p.id})">−</button>
+            <span class="card-qty-num">${qty}</span>
+            <button class="card-qty-btn" onclick="cartInc(${p.id})">+</button>
+          </div>
+          <div class="checkout-item-price">${(p.price * qty).toLocaleString()} <span style="font-size:.7rem;font-weight:400">FCFA</span></div>
+        </div>
+      </div>
+    `).join('');
+  }
+  updateCartUI();
 }
 
 /* ── ORDER ── */
@@ -212,80 +415,95 @@ async function submitOrder() {
   const name  = document.getElementById('oName').value.trim();
   const email = document.getElementById('oEmail').value.trim();
   const phone = document.getElementById('oPhone').value.trim();
-  const pid   = parseInt(document.getElementById('oProduct').value);
-  const qty   = Math.max(1, parseInt(document.getElementById('oQty').value) || 1);
   const notes = document.getElementById('oNotes').value.trim();
+  const items = Object.values(cart);
 
   if (!name)  { showToast('Champ manquant', 'Le nom est requis.', 'var(--red)'); return; }
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     showToast('Email invalide', 'Vérifie ton adresse email.', 'var(--red)'); return;
   }
-  if (!pid) { showToast('Produit manquant', 'Sélectionne un produit.', 'var(--red)'); return; }
-
-  const p = allProducts.find(x => x.id === pid);
-  if (!p) return;
+  if (!items.length) { showToast('Panier vide', 'Ajoute des produits avant de commander.', 'var(--red)'); return; }
 
   const orderCode = generateOrderCode();
-  const total     = p.price * qty;
+  const total     = cartTotal();
   const btn       = document.getElementById('submitOrderBtn');
   btn.disabled    = true; showLoader(true);
 
-  const result = await dbInsertOrder({
-    sellerId: p.sellerId, sellerName: p.sellerName,
-    productId: p.id, productName: p.name,
-    buyerName: name, buyerEmail: email, buyerPhone: phone,
-    qty, total, notes, orderCode
+  /* Grouper par vendeur pour créer une commande par vendeur */
+  const bySeller = {};
+  items.forEach(({ product: p, qty, note }) => {
+    if (!bySeller[p.sellerId]) bySeller[p.sellerId] = { sellerId: p.sellerId, sellerName: p.sellerName, items: [], total: 0 };
+    bySeller[p.sellerId].items.push({ productId: p.id, productName: p.name, qty, price: p.price, note });
+    bySeller[p.sellerId].total += p.price * qty;
   });
 
+  /* Insérer une commande par vendeur */
+  const sellerOrders = Object.values(bySeller);
+  const results = await Promise.all(sellerOrders.map(s =>
+    dbInsertOrder({
+      sellerId: s.sellerId, sellerName: s.sellerName,
+      /* Pour la compatibilité avec l'ancienne colonne product_id: premier produit */
+      productId: s.items[0].productId, productName: s.items.map(i => i.productName).join(', '),
+      buyerName: name, buyerEmail: email, buyerPhone: phone,
+      qty: s.items.reduce((acc, i) => acc + i.qty, 0),
+      total: s.total, notes: notes,
+      orderCode, items: JSON.stringify(s.items)
+    })
+  ));
+
   showLoader(false); btn.disabled = false;
-  if (result.error) { showToast('Erreur', result.error, 'var(--red)'); return; }
 
-  /* Enrichir l'objet order avec les données locales si la BDD ne retourne pas orderCode */
-  const order = { ...result.order, orderCode, buyerName: name, buyerEmail: email, buyerPhone: phone, sellerName: p.sellerName, createdAt: new Date().toISOString() };
+  const failed = results.filter(r => r.error);
+  if (failed.length === results.length) {
+    showToast('Erreur', failed[0].error, 'var(--red)'); return;
+  }
 
-  /* Afficher la success box avec ticket */
-  showOrderSuccess(order, p, qty, total, notes);
+  const order = { orderCode, buyerName: name, buyerEmail: email, buyerPhone: phone, createdAt: new Date().toISOString() };
 
-  /* Emails */
+  showOrderSuccess(order, null, items.reduce((s, i) => s + i.qty, 0), total, notes, items);
+
   if (typeof sendOrderConfirmEmail !== 'undefined') {
-    sendOrderConfirmEmail(order, p).then(r => {
+    /* Envoyer un email avec résumé complet */
+    const fakeProduct = { name: items.map(i => i.qty + '× ' + i.product.name).join(', '), price: total, sellerName: sellerOrders.map(s => s.sellerName).join(', ') };
+    sendOrderConfirmEmail({ ...order, productName: fakeProduct.name, sellerName: fakeProduct.sellerName, qty: items.reduce((s,i)=>s+i.qty,0), total }, fakeProduct).then(r => {
       if (r.ok) showToast('Email envoyé', 'Confirmation envoyée sur ' + email + ' ✉️');
-      else       showToast('Email', 'Commande enregistrée. Email non envoyé.', 'var(--amber)');
     });
   }
 
-  /* Reset form */
+  /* Vider le panier */
+  clearCart();
   ['oName','oEmail','oPhone','oNotes'].forEach(id => { document.getElementById(id).value = ''; });
-  document.getElementById('oProduct').value = '';
-  document.getElementById('oQty').value = 1;
 }
 
-function showOrderSuccess(order, product, qty, total, notes) {
+function showOrderSuccess(order, product, qty, total, notes, cartItems) {
   const box = document.getElementById('orderSuccess');
+  const itemsSummary = cartItems && cartItems.length
+    ? cartItems.map(i => `${i.qty}× ${esc(i.product.name)}`).join('<br>')
+    : (product ? `${qty}× ${esc(product.name)}` : '');
+
   document.getElementById('orderSuccessText').innerHTML =
     `<div class="ticket-inline">
       <div class="ticket-code-label">Code de commande</div>
       <div class="ticket-code-value">${esc(order.orderCode)}</div>
-      <div class="ticket-code-hint">Garde ce code — le vendeur en aura besoin</div>
+      <div class="ticket-code-hint">Montre ce code à chaque vendeur</div>
     </div>
     <div class="ticket-summary">
-      ${qty}× <strong>${esc(product.name)}</strong> — ${total.toLocaleString()} FCFA
-      ${notes ? `<br><span style="color:var(--t3);font-size:.75rem">Note : ${esc(notes)}</span>` : ''}
+      ${itemsSummary}
+      <div class="ticket-summary-total">Total : <strong>${total.toLocaleString()} FCFA</strong></div>
+      ${notes ? `<span style="color:var(--t3);font-size:.75rem">Note : ${esc(notes)}</span>` : ''}
     </div>
     <div class="ticket-actions">
-      <button class="ticket-btn" id="downloadTicketBtn" onclick="downloadTicket(currentTicketData)">
+      <button class="ticket-btn" onclick="downloadTicket(currentTicketData)">
         ⬇ Télécharger le ticket
       </button>
-      <button class="ticket-btn ghost" id="screenshotHintBtn" onclick="showScreenshotHint()">
+      <button class="ticket-btn ghost" onclick="showScreenshotHint()">
         📸 Faire une capture
       </button>
     </div>
     <div id="ticketCanvas" class="ticket-canvas-wrap" style="display:none"></div>`;
   box.classList.add('show');
   box.scrollIntoView({ behavior: 'smooth' });
-
-  /* Stocker les données pour le bouton download */
-  window.currentTicketData = { order, product, qty, total, notes };
+  window.currentTicketData = { order, product, qty, total, notes, cartItems };
 }
 
 /* ── TICKET CANVAS ── */
@@ -356,12 +574,27 @@ function buildTicketCanvas(data) {
     ctx.fillText(v, W - 36, y);
   }
 
-  row('Produit',   product.name,                    198);
-  row('Vendeur',   order.sellerName || '—',          224);
-  row('Quantité',  qty + ' unité' + (qty > 1 ? 's' : ''), 250);
-  row('Prix unit', product.price.toLocaleString('fr-FR') + ' FCFA', 276);
-  dashes(290);
-  row('TOTAL',     total.toLocaleString('fr-FR') + ' FCFA', 316, '#c9a84c');
+  if (data.cartItems && data.cartItems.length > 1) {
+    let y = 198;
+    data.cartItems.slice(0, 5).forEach(i => {
+      row(i.qty + '×  ' + i.product.name, (i.product.price * i.qty).toLocaleString('fr-FR') + ' FCFA', y);
+      y += 26;
+    });
+    if (data.cartItems.length > 5) {
+      ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '10px sans-serif';
+      ctx.fillText('+ ' + (data.cartItems.length - 5) + ' autre(s) article(s)', W/2, y); ctx.textAlign = 'left';
+      y += 22;
+    }
+    dashes(y); y += 14;
+    row('TOTAL', total.toLocaleString('fr-FR') + ' FCFA', y + 16, '#c9a84c');
+  } else {
+    row('Produit',   product ? product.name : '—',      198);
+    row('Vendeur',   order.sellerName || '—',            224);
+    row('Quantité',  qty + ' unité' + (qty > 1 ? 's' : ''), 250);
+    row('Prix unit', product ? product.price.toLocaleString('fr-FR') + ' FCFA' : '—', 276);
+    dashes(290);
+    row('TOTAL',     total.toLocaleString('fr-FR') + ' FCFA', 316, '#c9a84c');
+  }
 
   dashes(330);
 
