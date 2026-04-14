@@ -4,7 +4,7 @@
 ═══════════════════════════════════════════════ */
 
 /* 1. SUPABASE */
-const SUPABASE_URL = 'https://rsuoabtoofcdyqdtiemr.supabase.com';
+const SUPABASE_URL = 'https://rsuoabtoofcdyqdtiemr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_fRbZpN5gEuA3YRdAVont1Q_TCLqN8Ka';
 
 /* 2. EMAILJS */
