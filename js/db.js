@@ -89,6 +89,53 @@ function np(r) {
   return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name, name:r.name, desc:r.description, cat:r.category, price:r.price, emoji:r.emoji, photo:r.photo_url, rating:parseFloat(r.rating)||0, votes:r.votes||0, available:r.available, createdAt:r.created_at };
 }
 
+/* ── CATEGORIES (« classes » du catalogue, gérées par le Super Admin) ── */
+async function dbGetCategories() {
+  const { data, error } = await db.from('categories').select('*').order('sort_order', { ascending: true }).order('id', { ascending: true });
+  if (error) { console.error(error); return []; }
+  return (data || []).map(ncat);
+}
+async function dbInsertCategory(f) {
+  const { data, error } = await db.from('categories').insert({ slug:f.slug, label:f.label, emoji:f.emoji||'🛍️', color:f.color||'#5b8cff', sort_order:f.sortOrder||0 }).select().single();
+  if (error) return { error: error.message };
+  return { category: ncat(data) };
+}
+async function dbUpdateCategory(id, f) {
+  const p = {};
+  if (f.slug      !== undefined) p.slug       = f.slug;
+  if (f.label     !== undefined) p.label      = f.label;
+  if (f.emoji     !== undefined) p.emoji      = f.emoji;
+  if (f.color     !== undefined) p.color      = f.color;
+  if (f.sortOrder !== undefined) p.sort_order = f.sortOrder;
+  const { data, error } = await db.from('categories').update(p).eq('id', id).select().single();
+  if (error) return { error: error.message };
+  return { category: ncat(data) };
+}
+async function dbDeleteCategory(id) {
+  const { error } = await db.from('categories').delete().eq('id', id);
+  return error ? { error: error.message } : { ok: true };
+}
+function ncat(r) {
+  return { id:r.id, slug:r.slug, label:r.label, emoji:r.emoji||'🛍️', color:r.color||'#5b8cff', sortOrder:r.sort_order||0 };
+}
+
+/* Cache local des catégories — chargée au démarrage de chaque page via loadCategories() */
+let _categoriesCache = [];
+async function loadCategories() {
+  _categoriesCache = await dbGetCategories();
+  if (!_categoriesCache.length) {
+    // Fallback si la table est vide / pas encore créée
+    _categoriesCache = [
+      { id:0, slug:'food',  label:'Nourriture', emoji:'🥞', color:'#3de8a0', sortOrder:1 },
+      { id:0, slug:'drink', label:'Boissons',   emoji:'🥤', color:'#5b8cff', sortOrder:2 },
+      { id:0, slug:'other', label:'Autres',     emoji:'✨', color:'#9b6dff', sortOrder:3 },
+    ];
+  }
+  return _categoriesCache;
+}
+function getCategories() { return _categoriesCache; }
+function getCategory(slug) { return _categoriesCache.find(c => c.slug === slug); }
+
 /* ── ORDERS ── */
 async function dbGetOrders(f = {}) {
   let q = db.from('orders').select('*').order('created_at', { ascending: false });
@@ -100,14 +147,12 @@ async function dbGetOrders(f = {}) {
 }
 async function dbInsertOrder(f) {
   const { data, error } = await db.from('orders').insert({
-    seller_id:f.sellerId, seller_name:f.sellerName||'',
-    product_id:f.productId, product_name:f.productName,
-    buyer_name:f.buyerName, buyer_email:f.buyerEmail,
-    buyer_phone:f.buyerPhone||'', qty:f.qty, total:f.total,
-    notes:f.notes||'', status:'new',
-    order_code: f.orderCode || '',
-    items: f.items ? (typeof f.items === 'string' ? f.items : JSON.stringify(f.items)) : null
-  }).select().single ();
+    seller_id:f.sellerId, seller_name:f.sellerName||'', product_id:f.productId, product_name:f.productName,
+    buyer_name:f.buyerName, buyer_email:f.buyerEmail, buyer_phone:f.buyerPhone||'',
+    qty:f.qty, total:f.total, notes:f.notes||'', status:'new',
+    delivery_date:f.deliveryDate||null, delivery_time:f.deliveryTime||null,
+    delivery_type:f.deliveryType||'campus', delivery_address:f.deliveryAddress||null
+  }).select().single();
   if (error) return { error: error.message };
   return { order: no(data) };
 }
@@ -116,15 +161,8 @@ async function dbUpdateOrderStatus(id, status) {
   return error ? { error: error.message } : { ok: true };
 }
 function no(r) {
-  return {
-    id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'',
-    productId:r.product_id, productName:r.product_name,
-    buyerName:r.buyer_name, buyerEmail:r.buyer_email,
-    buyerPhone:r.buyer_phone, qty:r.qty, total:r.total,
-    notes:r.notes, status:r.status, createdAt:r.created_at,
-    orderCode:r.order_code||'',
-    items: r.items ? (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) : null
-  };
+  return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'', productId:r.product_id, productName:r.product_name, buyerName:r.buyer_name, buyerEmail:r.buyer_email, buyerPhone:r.buyer_phone, qty:r.qty, total:r.total, notes:r.notes, status:r.status, createdAt:r.created_at,
+    deliveryDate:r.delivery_date, deliveryTime:r.delivery_time, deliveryType:r.delivery_type||'campus', deliveryAddress:r.delivery_address };
 }
 
 /* ── REVIEWS ── */
@@ -214,31 +252,46 @@ async function dbGetConnections() {
 }
 
 /* ── SHARED UI ── */
-function openModal(id)  { document.getElementById(id)?.classList.add('show'); document.body.style.overflow='hidden'; }
-function closeModal(id) { document.getElementById(id)?.classList.remove('show'); document.body.style.overflow=''; }
+function openModal(id)  { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 function showToast(title, msg, color) {
   const t = document.getElementById('toast');
-  if (!t) return;
   document.getElementById('toastTitle').textContent = title;
   document.getElementById('toastMsg').textContent   = msg || '';
-  t.style.borderLeftColor = color || 'var(--gold)';
+  t.style.borderColor = color ? `var(--line2)` : 'var(--line2)';
+  if (color) t.style.borderLeftColor = color;
   t.classList.add('show');
   clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove('show'), 3800);
+  t._t = setTimeout(() => t.classList.remove('show'), 3600);
 }
 function showLoader(v) { const el = document.getElementById('loader'); if (el) el.style.display = v ? 'flex' : 'none'; }
 function starsHtml(r, sz) {
   sz = sz || '.85rem';
-  return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--gold)':'var(--g3)'};font-size:${sz}">★</span>`).join('');
+  return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--yellow)':'var(--bg4)'};font-size:${sz}">★</span>`).join('');
 }
-function catLabel(c) {
-  const l = { food:'Nourriture', drink:'Boissons', clothing:'Vêtements', accessories:'Accessoires',
-    electronics:'Électronique', books:'Livres & Cours', beauty:'Beauté & Santé', sport:'Sport',
-    services:'Services', art:'Art & Créations', tech:'High-Tech', other:'Divers' };
-  return l[c] || c;
+function catLabel(c)     { const cat = getCategory(c); return cat ? cat.label : (c==='food'?'Nourriture':c==='drink'?'Boisson':'Autre'); }
+function catEmoji(c)     { const cat = getCategory(c); return cat ? cat.emoji : '🛍️'; }
+function catBadge(c, extraStyle) {
+  const cat = getCategory(c);
+  const color = cat ? cat.color : '#9090bb';
+  const label = catLabel(c);
+  return `<div class="badge" style="background:${hexToRgba(color,0.12)};color:${color};border:1px solid ${hexToRgba(color,0.25)};${extraStyle||''}">${label}</div>`;
+}
+function hexToRgba(hex, alpha) {
+  hex = (hex||'#9090bb').replace('#','');
+  if (hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const r = parseInt(hex.substring(0,2),16), g = parseInt(hex.substring(2,4),16), b = parseInt(hex.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 function statusLabel(s)  { return s==='new'?'Nouvelle':s==='done'?'Livrée':'Annulée'; }
+function deliveryTypeLabel(t) { return t==='external' ? 'Hors campus' : 'Sur le campus'; }
 function formatDate(s)   { if (!s) return '—'; return new Date(s).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }); }
+function formatDateTime(s) { if (!s) return '—'; return new Date(s).toLocaleString('fr-FR', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+function formatDeliveryDateTime(o) {
+  if (!o || !o.deliveryDate) return '—';
+  const d = new Date(o.deliveryDate + 'T00:00:00').toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
+  return o.deliveryTime ? `${d} à ${o.deliveryTime}` : d;
+}
 function today()         { return new Date().toISOString().split('T')[0]; }
 
 document.addEventListener('DOMContentLoaded', () => {

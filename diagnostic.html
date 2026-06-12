@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Diagnostic · Market Place L1 GLAR</title>
+  <style>
+    body { font-family: monospace; background: #0a0a0a; color: #eee; padding: 30px; line-height: 1.8; }
+    h1 { font-size: 1rem; color: #888; margin-bottom: 20px; }
+    .test { margin: 8px 0; padding: 10px 14px; border-radius: 6px; font-size: .85rem; }
+    .ok   { background: rgba(61,214,140,.1); border-left: 3px solid #3dd68c; color: #3dd68c; }
+    .fail { background: rgba(240,108,108,.1); border-left: 3px solid #f06c6c; color: #f06c6c; }
+    .info { background: rgba(255,255,255,.04); border-left: 3px solid #555; color: #aaa; }
+    .warn { background: rgba(245,166,35,.1);  border-left: 3px solid #f5a623; color: #f5a623; }
+    button { margin: 6px 4px; padding: 8px 18px; background: #222; border: 1px solid #333; color: #eee; border-radius: 6px; cursor: pointer; font-size: .8rem; font-family: monospace; }
+    button:hover { background: #333; }
+    #log { margin-top: 16px; }
+    input { background: #1a1a1a; border: 1px solid #333; color: #eee; padding: 8px 12px; border-radius: 6px; font-family: monospace; font-size: .82rem; width: 280px; margin: 4px; }
+  </style>
+</head>
+<body>
+<h1>🔧 Diagnostic — Market Place L1 GLAR</h1>
+
+<div>
+  <button onclick="runAll()">▶ Lancer tous les tests</button>
+  <button onclick="testConnection()">Supabase</button>
+  <button onclick="testTables()">Tables</button>
+  <button onclick="testColumns()">Colonnes</button>
+  <button onclick="testRegister()">Inscription test</button>
+  <button onclick="testAdminLogin()">Login admin</button>
+  <button onclick="clearLog()">Effacer</button>
+</div>
+
+<br>
+<div>
+  Email test : <input type="text" id="testEmail" value="test_diag@glar.com">
+  Pass test  : <input type="text" id="testPass"  value="test123456">
+</div>
+
+<div id="log"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script>
+const { createClient } = supabase;
+let db;
+
+function log(msg, type = 'info') {
+  const d = document.getElementById('log');
+  const ts = new Date().toLocaleTimeString('fr-FR');
+  d.innerHTML += `<div class="test ${type}">[${ts}] ${msg}</div>`;
+  d.scrollTop = d.scrollHeight;
+}
+function clearLog() { document.getElementById('log').innerHTML = ''; }
+
+async function runAll() {
+  clearLog();
+  await testConnection();
+  await testTables();
+  await testColumns();
+  await testRegister();
+  await testAdminLogin();
+}
+
+async function testConnection() {
+  log('── Test connexion Supabase ──', 'info');
+  try {
+    if (!SUPABASE_URL || SUPABASE_URL.includes('XXXX')) {
+      log('❌ SUPABASE_URL non configuré dans config.js', 'fail'); return;
+    }
+    if (!SUPABASE_KEY || SUPABASE_KEY.includes('XXXX')) {
+      log('❌ SUPABASE_KEY non configuré dans config.js', 'fail'); return;
+    }
+    db = createClient(SUPABASE_URL, SUPABASE_KEY);
+    log(`✅ Client Supabase créé → ${SUPABASE_URL}`, 'ok');
+
+    // Ping simple
+    const { error } = await db.from('users').select('count').limit(1);
+    if (error) { log(`❌ Ping échoué : ${error.message} (code: ${error.code})`, 'fail'); }
+    else        { log('✅ Connexion OK — table users accessible', 'ok'); }
+  } catch(e) {
+    log(`❌ Erreur : ${e.message}`, 'fail');
+  }
+}
+
+async function testTables() {
+  log('── Test existence des tables ──', 'info');
+  if (!db) { log('⚠ Supabase non initialisé, lance testConnection() d\'abord', 'warn'); return; }
+  const tables = ['users','products','orders','reviews','admins','commissions'];
+  for (const t of tables) {
+    const { error } = await db.from(t).select('count').limit(1);
+    if (error) {
+      if (error.code === '42P01') log(`❌ Table "${t}" MANQUANTE → relance le SQL setup`, 'fail');
+      else log(`⚠ Table "${t}" : ${error.message}`, 'warn');
+    } else {
+      log(`✅ Table "${t}" OK`, 'ok');
+    }
+  }
+  // Tables chat
+  const chatTables = ['messages','seller_connections'];
+  for (const t of chatTables) {
+    const { error } = await db.from(t).select('count').limit(1);
+    if (error) log(`⚠ Table chat "${t}" manquante → lance chat_setup.sql`, 'warn');
+    else log(`✅ Table chat "${t}" OK`, 'ok');
+  }
+}
+
+async function testColumns() {
+  log('── Test colonnes critiques ──', 'info');
+  if (!db) return;
+
+  // Tester colonnes users
+  const { data, error } = await db.from('users').select('id, first_name, last_name, name, email, password, is_blocked, billing_period').limit(1);
+  if (error) {
+    log(`❌ Colonnes users manquantes : ${error.message}`, 'fail');
+    log('→ Exécute ce SQL dans Supabase : ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked boolean DEFAULT false; ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_period text DEFAULT \'monthly\';', 'warn');
+  } else {
+    log('✅ Colonnes users OK (first_name, password, is_blocked, billing_period)', 'ok');
+  }
+
+  // Tester colonnes admins
+  const { error: ae } = await db.from('admins').select('id, email, password, name').limit(1);
+  if (ae) log(`❌ Colonnes admins : ${ae.message}`, 'fail');
+  else    log('✅ Colonnes admins OK', 'ok');
+
+  // Vérifier qu'il y a bien un admin
+  const { data: admins } = await db.from('admins').select('email, name');
+  if (!admins || admins.length === 0) {
+    log('❌ Aucun admin trouvé → le compte admin n\'a pas été inséré', 'fail');
+    log('→ Exécute dans Supabase SQL Editor : INSERT INTO admins (email, password, name) VALUES (\'admin@glar.com\', \'YWRtaW4yMDI0\', \'Nel\'\'si Admin\');', 'warn');
+  } else {
+    admins.forEach(a => log(`✅ Admin trouvé : ${a.email} (${a.name})`, 'ok'));
+  }
+}
+
+async function testRegister() {
+  log('── Test inscription vendeur ──', 'info');
+  if (!db) return;
+
+  const email = document.getElementById('testEmail').value.trim();
+  const pass  = document.getElementById('testPass').value;
+  const hash  = btoa(unescape(encodeURIComponent(pass)));
+
+  log(`Tentative d'inscription : ${email}`, 'info');
+
+  // Nettoyer d'abord
+  await db.from('users').delete().eq('email', email);
+
+  const { data, error } = await db.from('users')
+    .insert({ first_name:'Test', last_name:'Diag', name:'Test D.', email, phone:'+221770000000', password: hash })
+    .select().single();
+
+  if (error) {
+    log(`❌ Inscription échouée : ${error.message} (code: ${error.code})`, 'fail');
+    if (error.code === '23514') log('→ Contrainte violée — vérifier les CHECK sur la table users (numéro de téléphone ?)', 'warn');
+    if (error.code === '23505') log('→ Email déjà utilisé', 'warn');
+  } else {
+    log(`✅ Inscription OK → id: ${data.id}, email: ${data.email}`, 'ok');
+    // Tester la connexion
+    const { data: found } = await db.from('users').select('*').eq('email', email).maybeSingle();
+    if (found && found.password === hash) log('✅ Login test OK (hash match)', 'ok');
+    else log('❌ Hash mismatch — problème de mot de passe', 'fail');
+    // Nettoyer
+    await db.from('users').delete().eq('email', email);
+    log('✅ Nettoyage OK (utilisateur test supprimé)', 'ok');
+  }
+}
+
+async function testAdminLogin() {
+  log('── Test login super admin ──', 'info');
+  if (!db) return;
+
+  const email = 'admin@glar.com';
+  const pass  = 'admin2024';
+  const hash  = btoa(unescape(encodeURIComponent(pass)));
+  log(`Hash attendu pour "admin2024" : ${hash}`, 'info');
+
+  const { data, error } = await db.from('admins').select('*').eq('email', email).maybeSingle();
+  if (error)  { log(`❌ Erreur requête admins : ${error.message}`, 'fail'); return; }
+  if (!data)  { log(`❌ Admin "${email}" non trouvé dans la base`, 'fail'); return; }
+
+  log(`✅ Admin trouvé : ${data.email}`, 'ok');
+  log(`Hash en base    : ${data.password}`, 'info');
+  log(`Hash calculé    : ${hash}`, 'info');
+
+  if (data.password === hash) {
+    log('✅ Mot de passe CORRECT — le login devrait fonctionner', 'ok');
+  } else {
+    log('❌ Mot de passe INCORRECT — hash différent', 'fail');
+    log(`→ Exécute dans Supabase : UPDATE admins SET password = '${hash}' WHERE email = '${email}';`, 'warn');
+  }
+}
+</script>
+</body>
+</html>

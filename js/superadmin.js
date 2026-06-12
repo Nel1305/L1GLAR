@@ -1,11 +1,6 @@
 /* ═══════════════════════════════════════════════════
-   N MARKET — superadmin.js
-   Sécurisé : XSS mitigé via esc()
+   MARKET PLACE L1 GLAR — superadmin.js
 ═══════════════════════════════════════════════════ */
-
-'use strict';
-
-const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
 let adminSession = null;
 
@@ -24,6 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('commStatusFilter').addEventListener('change', renderCommissions);
   document.getElementById('sellerStatusFilter').addEventListener('change', renderSellers);
   document.getElementById('allOrdersFilter').addEventListener('change', renderAllOrders);
+  document.getElementById('addCatBtn').addEventListener('click', () => openCatModal());
+  document.getElementById('saveCatBtn').addEventListener('click', saveCategory);
   document.getElementById('dashDate').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const now=new Date(), fd=new Date(now.getFullYear(),now.getMonth(),1), ld=new Date(now.getFullYear(),now.getMonth()+1,0), dd=new Date(now.getFullYear(),now.getMonth()+1,7);
   document.getElementById('genStart').value=fd.toISOString().split('T')[0];
@@ -49,6 +46,7 @@ function showApp() {
   document.getElementById('adminName').textContent=adminSession.name||'Admin';
   showLoader(false);
   bindNav();
+  loadCategories();
   renderDashboard();
 }
 
@@ -68,6 +66,7 @@ async function goPage(name) {
   if (name==='sellers')     await renderSellers();
   if (name==='network')     await renderNetwork();
   if (name==='products')    await renderAllProducts();
+  if (name==='catalog')     await renderCatalog();
   if (name==='orders')      await renderAllOrders();
   if (name==='chat' && !chatInited) {
     await initChat({ id: adminSession.id, name: adminSession.name||'Admin', firstName: 'Admin' }, true);
@@ -126,7 +125,7 @@ async function renderDashboard() {
     <div class="mini-row">
       <div><div style="font-weight:500;font-size:.78rem">${c.seller_name}</div><div style="font-size:.68rem;color:var(--t3)">${c.period_label}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:.78rem;font-weight:500;color:var(--amber)">${c.amount_due.toLocaleString()} FCFA</span>
+        <span style="font-size:.78rem;font-weight:500;color:var(--orange)">${c.amount_due.toLocaleString()} FCFA</span>
         <button class="icon-btn edit" onclick="openPayment(${c.id})" title="Enregistrer">💳</button>
       </div>
     </div>`).join('') || '<div style="color:var(--t3);font-size:.76rem;padding:12px 0">Aucune commission en attente ✓</div>';
@@ -147,13 +146,13 @@ async function renderCommissions() {
       <td style="font-weight:500">${c.seller_name}</td>
       <td style="font-size:.72rem;color:var(--t2)">${c.period_label}</td>
       <td>${c.revenue.toLocaleString()} FCFA</td>
-      <td>${c.rate_pct}%</td>
+      <td>${c.rate}%</td>
       <td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td>
       <td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td>
       <td style="color:${reste>0?'var(--red)':'var(--green)'};font-weight:500">${reste.toLocaleString()} FCFA</td>
       <td>
         <span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span>
-        ${c.amount_due>0?`<div class="progress-wrap"><div class="progress-bg"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--teal)'}"></div></div><div class="progress-lbl">${pct}%</div></div>`:''}
+        ${c.amount_due>0?`<div class="progress-wrap"><div class="progress-bg"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--blue)'}"></div></div><div class="progress-lbl">${pct}%</div></div>`:''}
       </td>
       <td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>`:`<span style="color:var(--green);font-size:.72rem">Soldé</span>`}</td>
     </tr>`;
@@ -177,7 +176,7 @@ async function previewGen() {
   const pLabel = new Date(start).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   const tbody = document.getElementById('genPreviewBody');
   if (!preview.length) { tbody.innerHTML=`<tr><td colspan="4" class="table-empty">Aucun vendeur avec des ventes sur cette période</td></tr>`; document.getElementById('genPreview').style.display=''; document.getElementById('generateBtn').disabled=true; return; }
-  tbody.innerHTML = preview.map(p=>`<tr><td style="font-weight:500">${p.sellerName}</td><td style="color:var(--t2);font-size:.74rem">${pLabel}</td><td>${p.revenue.toLocaleString()} FCFA</td><td style="font-weight:500;color:var(--amber)">${p.amountDue.toLocaleString()} FCFA</td></tr>`).join('');
+  tbody.innerHTML = preview.map(p=>`<tr><td style="font-weight:500">${p.sellerName}</td><td style="color:var(--t2);font-size:.74rem">${pLabel}</td><td>${p.revenue.toLocaleString()} FCFA</td><td style="font-weight:500;color:var(--orange)">${p.amountDue.toLocaleString()} FCFA</td></tr>`).join('');
   const total=preview.reduce((s,p)=>s+p.amountDue,0);
   document.getElementById('genTotal').innerHTML=`<span>${preview.length} vendeur(s) · <span style="color:var(--t2)">${pLabel}</span></span><strong>${total.toLocaleString()} FCFA</strong>`;
   document.getElementById('genPreview').style.display='';
@@ -196,7 +195,7 @@ async function doGenerate() {
   if (!preview.length) return;
   showLoader(true);
   for (const p of preview) {
-    await dbInsertCommission({ seller_id:p.sellerId, seller_name:p.sellerName, period_label:btn.dataset.label, period_type:btn.dataset.type, period_start:btn.dataset.start, period_end:btn.dataset.end, revenue:p.revenue, rate_pct:p.rate_pct, amount_due:p.amountDue, amount_paid:0, status:'pending', due_date:btn.dataset.due||null });
+    await dbInsertCommission({ seller_id:p.sellerId, seller_name:p.sellerName, period_label:btn.dataset.label, period_type:btn.dataset.type, period_start:btn.dataset.start, period_end:btn.dataset.end, revenue:p.revenue, rate:p.rate, amount_due:p.amountDue, amount_paid:0, status:'pending', due_date:btn.dataset.due||null });
   }
   showLoader(false);
   const total=preview.reduce((s,p)=>s+p.amountDue,0);
@@ -216,7 +215,7 @@ async function doGenerate() {
         period_label: btn.dataset.label,
         revenue:      p.revenue,
         amount_due:   p.amountDue,
-        rate:         p.rate_pct,
+        rate:         p.rate,
         due_date:     btn.dataset.due || null,
       };
       const res = await sendInvoiceEmail(seller, commData);
@@ -234,35 +233,11 @@ async function openPayment(commId) {
   const reste=c.amount_due-c.amount_paid;
   document.getElementById('payCommId').value=commId;
   document.getElementById('paymentSub').textContent=`${c.seller_name} · ${c.period_label}`;
-  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gb1);font-size:.76rem"><span style="color:var(--t2)">${k}</span><span style="font-weight:500">${v}</span></div>`;
-  document.getElementById('paymentInfo').innerHTML=row('CA réalisé',`${c.revenue.toLocaleString()} FCFA`)+row(`Commission (${c.rate_pct}%)`,`${c.amount_due.toLocaleString()} FCFA`)+row('Déjà reçu',`<span style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</span>`)+row('Reste à payer',`<span style="color:var(--red);font-weight:600">${reste.toLocaleString()} FCFA</span>`);
+  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:.76rem"><span style="color:var(--t2)">${k}</span><span style="font-weight:500">${v}</span></div>`;
+  document.getElementById('paymentInfo').innerHTML=row('CA réalisé',`${c.revenue.toLocaleString()} FCFA`)+row(`Commission (${c.rate}%)`,`${c.amount_due.toLocaleString()} FCFA`)+row('Déjà reçu',`<span style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</span>`)+row('Reste à payer',`<span style="color:var(--red);font-weight:600">${reste.toLocaleString()} FCFA</span>`);
   document.getElementById('payAmount').value=reste;
   document.getElementById('payNote').value='';
-  // Show/hide "Mark as fully paid" shortcut
-  const fullyPaidBtn = document.getElementById('markFullyPaidBtn');
-  if (fullyPaidBtn) {
-    fullyPaidBtn.style.display = c.status !== 'paid' ? '' : 'none';
-    fullyPaidBtn.onclick = () => markFullyPaid(commId, c.amount_due - c.amount_paid);
-  }
   openModal('paymentModal');
-}
-
-async function markFullyPaid(commId, reste) {
-  /* Marquer comme soldé sans préciser le montant exact (ex: cash remis en main propre) */
-  if (!confirm('Marquer cette commission comme entièrement payée ?')) return;
-  const note = document.getElementById('payNote').value.trim() || 'Soldé manuellement';
-  showLoader(true);
-  await dbUpdateCommission(commId, {
-    amount_paid: (await dbGetCommissions()).find(c => c.id === commId)?.amount_due || 0,
-    status: 'paid',
-    payment_note: note,
-    paid_at: new Date().toISOString(),
-  });
-  showLoader(false);
-  closeModal('paymentModal');
-  showToast('Commission soldée', 'Marqué comme entièrement payé ✓', 'var(--green)');
-  await renderDashboard();
-  if (document.getElementById('page-commissions').classList.contains('active')) await renderCommissions();
 }
 
 async function savePayment() {
@@ -274,7 +249,7 @@ async function savePayment() {
   const newPaid=c.amount_paid+amount, reste=c.amount_due-newPaid;
   const newStatus=reste<=0?'paid':newPaid>0?'partial':'pending';
   showLoader(true);
-  await dbUpdateCommission(id,{ amount_paid:newPaid, status:newStatus, payment_note:note||c.payment_note||'', paid_at:newStatus==='paid'?new Date().toISOString():null });
+  await dbUpdateCommission(id,{ amount_paid:newPaid, status:newStatus, note:note||c.note, paid_at:newStatus==='paid'?new Date().toISOString():null });
   showLoader(false);
   closeModal('paymentModal');
   showToast('Paiement enregistré',`${amount.toLocaleString()} FCFA reçus`,'var(--green)');
@@ -307,7 +282,7 @@ async function renderSellers() {
         </div>
       </div>
       <div class="seller-stats">
-        <div class="seller-stat"><div class="seller-stat-val" style="color:var(--teal)">${myO.length}</div><div class="seller-stat-label">Commandes</div></div>
+        <div class="seller-stat"><div class="seller-stat-val" style="color:var(--blue)">${myO.length}</div><div class="seller-stat-label">Commandes</div></div>
         <div class="seller-stat"><div class="seller-stat-val" style="color:var(--green)">${revenue.toLocaleString()}</div><div class="seller-stat-label">CA (FCFA)</div></div>
         <div class="seller-stat"><div class="seller-stat-val" style="color:${due>0?'var(--red)':'var(--green)'}">${due.toLocaleString()}</div><div class="seller-stat-label">Dû</div></div>
       </div>
@@ -342,7 +317,7 @@ async function viewSellerComm(sellerId) {
   if (!comms.length) { tbody.innerHTML=`<tr><td colspan="9" class="table-empty">Aucune commission pour ce vendeur</td></tr>`; return; }
   tbody.innerHTML=comms.map(c=>{
     const reste=c.amount_due-c.amount_paid;
-    return `<tr><td style="font-weight:500">${c.seller_name}</td><td style="font-size:.72rem;color:var(--t2)">${c.period_label}</td><td>${c.revenue.toLocaleString()} FCFA</td><td>${c.rate_pct}%</td><td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td><td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td><td style="color:${reste>0?'var(--red)':'var(--green)'}; font-weight:500">${reste.toLocaleString()} FCFA</td><td><span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span></td><td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>`:'✓'}</td></tr>`;
+    return `<tr><td style="font-weight:500">${c.seller_name}</td><td style="font-size:.72rem;color:var(--t2)">${c.period_label}</td><td>${c.revenue.toLocaleString()} FCFA</td><td>${c.rate}%</td><td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td><td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td><td style="color:${reste>0?'var(--red)':'var(--green)'}; font-weight:500">${reste.toLocaleString()} FCFA</td><td><span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span></td><td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>`:'✓'}</td></tr>`;
   }).join('');
 }
 
@@ -436,7 +411,91 @@ async function renderNetwork() {
 async function renderAllProducts() {
   showLoader(true); const products=await dbGetProducts(); showLoader(false);
   const tbody=document.getElementById('allProductsBody');
-  tbody.innerHTML=products.map(p=>`<tr><td><div class="prod-thumb">${p.photo?`<img src="${p.photo}" alt="">`:p.emoji}</div></td><td><div style="font-weight:500">${p.name}</div><div style="font-size:.7rem;color:var(--t2);margin-top:1px">${(p.desc||'').substring(0,50)}${(p.desc||'').length>50?'…':''}</div></td><td style="color:var(--t2)">${p.sellerName}</td><td><span class="badge badge-${p.cat}">${catLabel(p.cat)}</span></td><td style="font-weight:500">${p.price.toLocaleString()} FCFA</td><td>${p.votes?starsHtml(p.rating,'.74rem'):'—'}</td><td><span class="status-badge ${p.available?'status-done':'status-cancel'}" style="font-size:.65rem">${p.available?'Disponible':'Indispo'}</span></td></tr>`).join('')||`<tr><td colspan="7" class="table-empty">Aucun produit</td></tr>`;
+  tbody.innerHTML=products.map(p=>`<tr><td><div class="prod-thumb">${p.photo?`<img src="${p.photo}" alt="">`:p.emoji}</div></td><td><div style="font-weight:500">${p.name}</div><div style="font-size:.7rem;color:var(--t2);margin-top:1px">${(p.desc||'').substring(0,50)}${(p.desc||'').length>50?'…':''}</div></td><td style="color:var(--t2)">${p.sellerName}</td><td>${catBadge(p.cat,'margin-bottom:0')}</td><td style="font-weight:500">${p.price.toLocaleString()} FCFA</td><td>${p.votes?starsHtml(p.rating,'.74rem'):'—'}</td><td><span class="status-badge ${p.available?'status-done':'status-cancel'}" style="font-size:.65rem">${p.available?'Disponible':'Indispo'}</span></td></tr>`).join('')||`<tr><td colspan="7" class="table-empty">Aucun produit</td></tr>`;
+}
+
+/* ── CATALOGUE (CLASSES) ── */
+async function renderCatalog() {
+  showLoader(true);
+  const cats = await dbGetCategories();
+  showLoader(false);
+  _categoriesCache = cats.length ? cats : _categoriesCache; // garde le fallback si table vide
+  const grid = document.getElementById('catalogGrid');
+  if (!cats.length) { grid.innerHTML = '<div class="table-empty">Aucune classe pour le moment. Clique sur « + Ajouter une classe ».</div>'; return; }
+  grid.innerHTML = cats.map(c => `
+    <div class="cat-card">
+      <div class="cat-emoji" style="background:${hexToRgba(c.color,0.15)}">${c.emoji}</div>
+      <div class="cat-info">
+        <div class="cat-name"><span class="cat-color-dot" style="background:${c.color}"></span>${c.label}</div>
+        <div class="cat-slug">${c.slug}</div>
+      </div>
+      <div class="cat-actions">
+        <button class="icon-btn edit" onclick="openCatModal(${c.id})" title="Modifier">✏</button>
+        <button class="icon-btn del" onclick="deleteCategory(${c.id},'${c.label.replace(/'/g,"\\'")}')" title="Supprimer">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function slugify(s) {
+  return (s||'').toString().toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+function openCatModal(id) {
+  document.getElementById('catId').value = id || '';
+  if (id) {
+    const c = getCategories().find(x=>x.id===id);
+    document.getElementById('catModalTitle').textContent = 'Modifier la classe';
+    document.getElementById('catLabel').value = c?.label||'';
+    document.getElementById('catEmojiInput').value = c?.emoji||'';
+    document.getElementById('catColor').value = c?.color||'#5b8cff';
+    document.getElementById('catSlug').value = c?.slug||'';
+  } else {
+    document.getElementById('catModalTitle').textContent = 'Ajouter une classe';
+    document.getElementById('catLabel').value = '';
+    document.getElementById('catEmojiInput').value = '🛍️';
+    document.getElementById('catColor').value = '#5b8cff';
+    document.getElementById('catSlug').value = '';
+  }
+  openModal('catModal');
+}
+
+async function saveCategory() {
+  const id    = document.getElementById('catId').value;
+  const label = document.getElementById('catLabel').value.trim();
+  const emoji = document.getElementById('catEmojiInput').value.trim() || '🛍️';
+  const color = document.getElementById('catColor').value;
+  let   slug  = document.getElementById('catSlug').value.trim();
+  if (!label) { showToast('Nom manquant','Indique un nom pour la classe.','var(--red)'); return; }
+  if (!slug) slug = slugify(label);
+  slug = slugify(slug);
+  if (!slug) { showToast('Identifiant invalide','','var(--red)'); return; }
+
+  showLoader(true);
+  let r;
+  if (id) {
+    r = await dbUpdateCategory(parseInt(id), { label, emoji, color, slug });
+  } else {
+    r = await dbInsertCategory({ label, emoji, color, slug, sortOrder: getCategories().length });
+  }
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error.includes('duplicate')||r.error.includes('unique')?'Cet identifiant existe déjà.':r.error, 'var(--red)'); return; }
+  closeModal('catModal');
+  showToast(id?'Classe modifiée':'Classe ajoutée','','var(--green)');
+  await loadCategories();
+  await renderCatalog();
+}
+
+async function deleteCategory(id, label) {
+  if (!confirm(`Supprimer la classe « ${label} » ? Les produits déjà publiés dans cette classe garderont leur catégorie mais elle ne sera plus proposée.`)) return;
+  showLoader(true);
+  const r = await dbDeleteCategory(id);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  showToast('Classe supprimée','','var(--red)');
+  await loadCategories();
+  await renderCatalog();
 }
 
 /* ── ALL ORDERS ── */
@@ -444,7 +503,7 @@ async function renderAllOrders() {
   showLoader(true); const f=document.getElementById('allOrdersFilter').value; let orders=await dbGetOrders(); showLoader(false);
   if(f!=='all') orders=orders.filter(o=>o.status===f);
   const tbody=document.getElementById('allOrdersBody');
-  tbody.innerHTML=orders.map(o=>`<tr><td style="color:var(--t3);font-size:.7rem">#${o.id}</td><td><span style="font-weight:500">${o.buyerName}</span><div style="font-size:.68rem;color:var(--t3)">${o.buyerEmail}</div></td><td>${o.productName}</td><td style="color:var(--t2)">${o.sellerName||'—'}</td><td style="font-weight:500">${o.total.toLocaleString()} FCFA</td><td><span class="status-badge status-${o.status}" style="font-size:.65rem">${statusLabel(o.status)}</span></td><td style="font-size:.72rem;color:var(--t3)">${formatDate(o.createdAt)}</td></tr>`).join('')||`<tr><td colspan="7" class="table-empty">Aucune commande</td></tr>`;
+  tbody.innerHTML=orders.map(o=>`<tr><td style="color:var(--t3);font-size:.7rem">#${o.id}</td><td><span style="font-weight:500">${o.buyerName}</span><div style="font-size:.68rem;color:var(--t3)">${o.buyerEmail}</div></td><td>${o.productName}</td><td style="color:var(--t2)">${o.sellerName||'—'}</td><td style="font-weight:500">${o.total.toLocaleString()} FCFA</td><td style="font-size:.72rem"><div style="font-weight:500">${formatDeliveryDateTime(o)}</div><div style="color:var(--t3)">${o.deliveryType==='external'?`📍 ${(o.deliveryAddress||'Hors campus').substring(0,30)}${(o.deliveryAddress||'').length>30?'…':''}`:'🏫 Sur le campus'}</div></td><td><span class="status-badge status-${o.status}" style="font-size:.65rem">${statusLabel(o.status)}</span></td><td style="font-size:.72rem;color:var(--t3)">${formatDate(o.createdAt)}</td></tr>`).join('')||`<tr><td colspan="8" class="table-empty">Aucune commande</td></tr>`;
 }
 
 /* ── SETTINGS ── */

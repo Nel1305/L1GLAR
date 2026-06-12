@@ -9,7 +9,17 @@
   3. Colle-le dans l'éditeur HTML du template EmailJS
   4. Règle le champ "To Email" sur : {{to_email}}
   5. Règle le champ "Subject" sur le sujet indiqué
-  6. Sauvegarde et note l'ID du template
+  6. Sauvegarde et note l'ID du template, puis renseigne-le dans js/config.js :
+       - template_welcome      → EMAILJS_TEMPLATE_WELCOME
+       - template_invoice      → EMAILJS_TEMPLATE_INVOICE
+       - template_order        → EMAILJS_TEMPLATE_ORDER
+       - template_seller_notif → EMAILJS_TEMPLATE_SELLER_NOTIF
+
+  4 TEMPLATES AU TOTAL :
+    1. template_welcome      — confirmation de compte (envoyé à l'inscription)
+    2. template_invoice       — facture de commission (envoyé par le Super Admin)
+    3. template_order         — confirmation de commande (envoyé à l'acheteur)
+    4. template_seller_notif  — notification de nouvelle commande (envoyé au vendeur)
 
   ═══════════════════════════════════════════════════════
   TEMPLATE 1 : template_welcome
@@ -169,6 +179,197 @@
       <div class="chat-note">
         <p>⚠️ <strong>Important :</strong> Le paiement ne sera validé qu'après réception de la confirmation dans le chat. Sans capture envoyée, ton compte peut être suspendu.</p>
       </div>
+    </div>
+    <div class="footer">
+      <p>{{platform_name}} · Marketplace L1 GLAR · {{year}}<br>
+      Contact : <a href="mailto:{{platform_email}}" style="color:#555">{{platform_email}}</a></p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+
+
+<!--
+  ═══════════════════════════════════════════════════════
+  TEMPLATE 3 : template_order
+  Sujet : ✅ Commande confirmée — {{product_name}} · {{platform_name}}
+  ═══════════════════════════════════════════════════════
+-->
+
+<!-- TEMPLATE 3 — CONFIRMATION DE COMMANDE (ACHETEUR) -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { margin:0; padding:0; background:#f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .wrapper { max-width:560px; margin:40px auto; }
+  .card { background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+  .header { background:#0a0a0a; padding:32px 40px; }
+  .logo { color:#ffffff; font-size:18px; font-weight:700; letter-spacing:-0.5px; }
+  .logo span { color:#888; font-size:12px; font-weight:400; display:block; margin-top:2px; }
+  .body { padding:36px 40px; }
+  h1 { font-size:22px; font-weight:700; color:#111; margin:0 0 8px; letter-spacing:-0.5px; }
+  p { font-size:14px; color:#555; line-height:1.7; margin:0 0 16px; }
+  .order-box { background:#0a0a0a; border-radius:10px; padding:24px 28px; margin:20px 0; color:#fff; }
+  .order-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:13px; }
+  .order-row:last-child { border-bottom:none; padding-top:14px; }
+  .order-row .label { color:#888; }
+  .order-row .value { font-weight:600; color:#fff; }
+  .order-row.total .value { font-size:20px; font-weight:800; color:#3dd68c; letter-spacing:-0.5px; }
+  .order-row.total .label { color:#ccc; font-weight:500; }
+  .delivery-box { background:#eef4ff; border:1px solid #c9ddff; border-radius:10px; padding:20px 24px; margin:20px 0; }
+  .delivery-box h3 { font-size:14px; font-weight:700; color:#1d4ed8; margin:0 0 10px; }
+  .delivery-box p { font-size:13px; color:#1d4ed8; margin:4px 0; line-height:1.6; }
+  .note-box { background:#f9f9f9; border:1px solid #eee; border-radius:8px; padding:14px 18px; margin:16px 0; }
+  .note-box p { margin:0; font-size:13px; color:#555; }
+  .footer { background:#f9f9f9; padding:20px 40px; border-top:1px solid #eee; }
+  .footer p { font-size:12px; color:#999; margin:0; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="card">
+    <div class="header">
+      <div class="logo">{{platform_name}}<span>Confirmation de commande #{{order_id}}</span></div>
+    </div>
+    <div class="body">
+      <h1>Merci, {{to_name}} ✅</h1>
+      <p>Ta commande a bien été reçue et transmise à <strong>{{seller_name}}</strong>. Voici le récapitulatif :</p>
+
+      <div class="order-box">
+        <div class="order-row">
+          <span class="label">Produit</span>
+          <span class="value">{{product_name}}</span>
+        </div>
+        <div class="order-row">
+          <span class="label">Quantité</span>
+          <span class="value">{{quantity}}</span>
+        </div>
+        <div class="order-row">
+          <span class="label">Vendeur</span>
+          <span class="value">{{seller_name}}</span>
+        </div>
+        <div class="order-row total">
+          <span class="label">Total</span>
+          <span class="value">{{total}}</span>
+        </div>
+      </div>
+
+      <div class="delivery-box">
+        <h3>📅 Livraison souhaitée</h3>
+        <p><strong>Date :</strong> {{delivery_date}}</p>
+        <p><strong>Heure :</strong> {{delivery_time}}</p>
+        <p><strong>Lieu :</strong> {{delivery_type}}</p>
+        <p>{{delivery_address_block}}</p>
+      </div>
+
+      <div class="note-box">
+        <p><strong>Modifications demandées :</strong> {{notes}}</p>
+      </div>
+
+      <p style="font-size:13px;color:#888;">Le vendeur te contactera si besoin pour confirmer l'heure exacte de récupération ou de livraison.</p>
+    </div>
+    <div class="footer">
+      <p>{{platform_name}} · Marketplace L1 GLAR · {{year}}<br>
+      Contact : <a href="mailto:{{platform_email}}" style="color:#555">{{platform_email}}</a></p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+
+
+<!--
+  ═══════════════════════════════════════════════════════
+  TEMPLATE 4 : template_seller_notif
+  Sujet : 🛎️ Nouvelle commande — {{product_name}} · {{platform_name}}
+  ═══════════════════════════════════════════════════════
+-->
+
+<!-- TEMPLATE 4 — NOTIFICATION NOUVELLE COMMANDE (VENDEUR) -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { margin:0; padding:0; background:#f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .wrapper { max-width:560px; margin:40px auto; }
+  .card { background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+  .header { background:#0a0a0a; padding:32px 40px; }
+  .logo { color:#ffffff; font-size:18px; font-weight:700; letter-spacing:-0.5px; }
+  .logo span { color:#888; font-size:12px; font-weight:400; display:block; margin-top:2px; }
+  .body { padding:36px 40px; }
+  h1 { font-size:22px; font-weight:700; color:#111; margin:0 0 8px; letter-spacing:-0.5px; }
+  p { font-size:14px; color:#555; line-height:1.7; margin:0 0 16px; }
+  .order-box { background:#0a0a0a; border-radius:10px; padding:24px 28px; margin:20px 0; color:#fff; }
+  .order-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:13px; }
+  .order-row:last-child { border-bottom:none; padding-top:14px; }
+  .order-row .label { color:#888; }
+  .order-row .value { font-weight:600; color:#fff; }
+  .order-row.total .value { font-size:20px; font-weight:800; color:#3dd68c; letter-spacing:-0.5px; }
+  .order-row.total .label { color:#ccc; font-weight:500; }
+  .buyer-box { background:#f9f9f9; border:1px solid #eee; border-radius:10px; padding:18px 22px; margin:20px 0; }
+  .buyer-box h3 { font-size:14px; font-weight:700; color:#111; margin:0 0 10px; }
+  .buyer-box p { font-size:13px; color:#333; margin:4px 0; }
+  .delivery-box { background:#eef4ff; border:1px solid #c9ddff; border-radius:10px; padding:20px 24px; margin:20px 0; }
+  .delivery-box h3 { font-size:14px; font-weight:700; color:#1d4ed8; margin:0 0 10px; }
+  .delivery-box p { font-size:13px; color:#1d4ed8; margin:4px 0; line-height:1.6; }
+  .note-box { background:#fff8e6; border:1px solid #fde68a; border-radius:8px; padding:14px 18px; margin:16px 0; }
+  .note-box p { margin:0; font-size:13px; color:#92400e; line-height:1.6; }
+  .btn { display:inline-block; background:#0a0a0a; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:8px; font-size:14px; font-weight:600; margin:8px 0 20px; }
+  .footer { background:#f9f9f9; padding:20px 40px; border-top:1px solid #eee; }
+  .footer p { font-size:12px; color:#999; margin:0; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="card">
+    <div class="header">
+      <div class="logo">{{platform_name}}<span>Nouvelle commande #{{order_id}}</span></div>
+    </div>
+    <div class="body">
+      <h1>🛎️ Nouvelle commande, {{to_name}} !</h1>
+      <p>Tu viens de recevoir une nouvelle commande sur <strong>{{platform_name}}</strong>.</p>
+
+      <div class="order-box">
+        <div class="order-row">
+          <span class="label">Produit</span>
+          <span class="value">{{product_name}}</span>
+        </div>
+        <div class="order-row">
+          <span class="label">Quantité</span>
+          <span class="value">{{quantity}}</span>
+        </div>
+        <div class="order-row total">
+          <span class="label">Total</span>
+          <span class="value">{{total}}</span>
+        </div>
+      </div>
+
+      <div class="buyer-box">
+        <h3>👤 Client</h3>
+        <p><strong>Nom :</strong> {{buyer_name}}</p>
+        <p><strong>Email :</strong> {{buyer_email}}</p>
+        <p><strong>Téléphone :</strong> {{buyer_phone}}</p>
+      </div>
+
+      <div class="delivery-box">
+        <h3>📅 Livraison souhaitée</h3>
+        <p><strong>Date :</strong> {{delivery_date}}</p>
+        <p><strong>Heure :</strong> {{delivery_time}}</p>
+        <p><strong>Lieu :</strong> {{delivery_type}}</p>
+        <p>{{delivery_address_block}}</p>
+      </div>
+
+      <div class="note-box">
+        <p>📝 <strong>Modifications demandées :</strong> {{notes}}</p>
+      </div>
+
+      <a href="{{admin_url}}" class="btn">Voir la commande →</a>
     </div>
     <div class="footer">
       <p>{{platform_name}} · Marketplace L1 GLAR · {{year}}<br>

@@ -1,11 +1,6 @@
 /* ═══════════════════════════════════════════════════
-   N MARKET — admin.js (espace vendeur)
-   Sécurisé : XSS mitigé via esc()
+   MARKET PLACE L1 GLAR — admin.js  (espace vendeur)
 ═══════════════════════════════════════════════════ */
-
-'use strict';
-
-const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
 let currentUser  = null;
 let addPhoto     = null;
@@ -21,6 +16,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('shopName').textContent    = currentUser.name;
   document.getElementById('userAvatar').textContent  = currentUser.firstName[0].toUpperCase();
   document.getElementById('userName').textContent    = currentUser.name;
+  await loadCategories();
+  populateCategorySelects();
   bindNav();
   document.getElementById('logoutBtn').addEventListener('click', () => { clearSession(); window.location.href='../index.html'; });
   document.getElementById('apPhoto').addEventListener('change', function() { handlePhoto(this,'apPhotoPreview','apPhotoPlaceholder', d=>{ addPhoto=d; }); });
@@ -33,6 +30,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   await renderDashboard();
   showLoader(false);
 });
+
+/* ── CATEGORIES ── */
+function populateCategorySelects() {
+  const opts = getCategories().map(c => `<option value="${c.slug}">${c.emoji} ${c.label}</option>`).join('');
+  document.getElementById('apCat').innerHTML  = opts;
+  document.getElementById('editCat').innerHTML = opts;
+}
 
 /* ── NAV ── */
 function bindNav() {
@@ -89,7 +93,7 @@ async function renderDashboard() {
 
   document.getElementById('dashProducts').innerHTML = products.length
     ? products.slice(0,6).map(p=>`
-        <div style="background:var(--bg2);border:1px solid var(--gb1);border-radius:var(--r-lg);overflow:hidden">
+        <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r2);overflow:hidden">
           <div style="height:72px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1.8rem;position:relative;overflow:hidden">
             ${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" alt="">`:p.emoji}
             ${!p.available?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--red);font-weight:600;letter-spacing:.04em">INDISPO</div>`:''}
@@ -109,19 +113,20 @@ async function renderOrders() {
   const orders = await dbGetOrders({ sellerId:currentUser.id, status:filter });
   showLoader(false);
   const tbody = document.getElementById('ordersBody');
-  if (!orders.length) { tbody.innerHTML=`<tr><td colspan="9" class="table-empty">Aucune commande</td></tr>`; return; }
+  if (!orders.length) { tbody.innerHTML=`<tr><td colspan="10" class="table-empty">Aucune commande</td></tr>`; return; }
   tbody.innerHTML = orders.map(o=>`
     <tr>
-      <td>
-        <div style="color:var(--t3);font-size:.7rem">#${o.id}</div>
-        ${o.orderCode ? `<span class="order-code-tag">${esc(o.orderCode)}</span>` : ''}
-      </td>
-      <td><span style="font-weight:500">${esc(o.buyerName)}</span><div style="font-size:.68rem;color:var(--t3)">${formatDate(o.createdAt)}</div></td>
-      <td style="font-size:.72rem;color:var(--t2)">${esc(o.buyerEmail)}<br>${esc(o.buyerPhone||'')}</td>
-      <td>${esc(o.productName)}</td>
+      <td style="color:var(--t3);font-size:.7rem">#${o.id}</td>
+      <td><span style="font-weight:500">${o.buyerName}</span><div style="font-size:.68rem;color:var(--t3)">${formatDate(o.createdAt)}</div></td>
+      <td style="font-size:.72rem;color:var(--t2)">${o.buyerEmail}<br>${o.buyerPhone||''}</td>
+      <td>${o.productName}</td>
       <td>${o.qty}</td>
       <td style="font-weight:500">${o.total.toLocaleString()} FCFA</td>
-      <td style="max-width:120px">${o.notes?`<span style="font-size:.72rem;color:var(--t2);font-style:italic">${esc(o.notes).substring(0,45)}${o.notes.length>45?'…':''}</span>`:`<span style="color:var(--t3)">—</span>`}</td>
+      <td style="font-size:.72rem">
+        <div style="font-weight:500">${formatDeliveryDateTime(o)}</div>
+        <div style="color:var(--t3)">${o.deliveryType==='external'?'📍 Hors campus':'🏫 Sur le campus'}</div>
+      </td>
+      <td style="max-width:120px">${o.notes?`<span style="font-size:.72rem;color:var(--t2);font-style:italic">${o.notes.substring(0,45)}${o.notes.length>45?'…':''}</span>`:`<span style="color:var(--t4)">—</span>`}</td>
       <td>
         <select class="select-sm" style="font-size:.72rem" onchange="updateStatus(${o.id},this.value)">
           <option value="new"    ${o.status==='new'   ?'selected':''}>Nouvelle</option>
@@ -143,14 +148,16 @@ async function viewOrder(id) {
   const orders = await dbGetOrders({ sellerId: currentUser.id });
   const o = orders.find(x=>x.id===id); if (!o) return;
   document.getElementById('orderDetailSub').textContent = `Commande #${o.id} · ${formatDate(o.createdAt)}`;
-  const row = (k,v) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--gb1);font-size:.78rem"><span style="color:var(--t2)">${k}</span><span style="font-weight:500">${v}</span></div>`;
+  const row = (k,v) => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:.78rem"><span style="color:var(--t2)">${k}</span><span style="font-weight:500">${v}</span></div>`;
   document.getElementById('orderDetailContent').innerHTML =
-    (o.orderCode ? `<div style="text-align:center;margin-bottom:16px;padding:14px;background:var(--gold-dim);border:1px solid rgba(201,168,76,0.25);border-radius:var(--r-lg)"><div style="font-size:.6rem;color:var(--gold);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px">Code de commande</div><div style="font-family:monospace;font-size:1.3rem;font-weight:800;color:var(--gold-l);letter-spacing:.1em">${esc(o.orderCode)}</div></div>` : '') +
-    row('Client', esc(o.buyerName)) + row('Email', esc(o.buyerEmail||'—')) + row('Téléphone', esc(o.buyerPhone||'—')) +
-    row('Produit', esc(o.productName)) + row('Quantité', o.qty) +
+    row('Client', o.buyerName) + row('Email', o.buyerEmail||'—') + row('Téléphone', o.buyerPhone||'—') +
+    row('Produit', o.productName) + row('Quantité', o.qty) +
     row('Total', `<span style="color:var(--green);font-weight:600">${o.total.toLocaleString()} FCFA</span>`) +
     row('Statut', `<span class="status-badge status-${o.status}">${statusLabel(o.status)}</span>`) +
-    (o.notes?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Modification demandée</div><div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;border:1px solid var(--gb1)">${esc(o.notes)}</div></div>`:'');
+    row('Date/heure souhaitées', formatDeliveryDateTime(o)) +
+    row('Lieu de livraison', deliveryTypeLabel(o.deliveryType)) +
+    (o.deliveryType==='external' && o.deliveryAddress ? row('Adresse', o.deliveryAddress) : '') +
+    (o.notes?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Modification demandée</div><div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;border:1px solid var(--line)">${o.notes}</div></div>`:'');
   openModal('orderDetailModal');
 }
 
@@ -165,9 +172,9 @@ async function renderProductsTable() {
     <tr>
       <td><div class="prod-thumb">${p.photo?`<img src="${p.photo}" alt="">`:p.emoji}</div></td>
       <td><div style="font-weight:500">${p.name}</div><div style="font-size:.7rem;color:var(--t2);margin-top:2px">${(p.desc||'').substring(0,50)}${(p.desc||'').length>50?'…':''}</div></td>
-      <td><span class="badge badge-${p.cat}">${catLabel(p.cat)}</span></td>
+      <td>${catBadge(p.cat)}</td>
       <td style="font-weight:500">${p.price.toLocaleString()} FCFA</td>
-      <td>${p.votes?`<div style="display:flex;align-items:center;gap:3px">${starsHtml(p.rating,'.74rem')}<span style="font-size:.68rem;color:var(--t3);margin-left:2px">(${p.votes})</span></div>`:`<span style="color:var(--t3)">—</span>`}</td>
+      <td>${p.votes?`<div style="display:flex;align-items:center;gap:3px">${starsHtml(p.rating,'.74rem')}<span style="font-size:.68rem;color:var(--t3);margin-left:2px">(${p.votes})</span></div>`:`<span style="color:var(--t4)">—</span>`}</td>
       <td><button class="toggle ${p.available?'on':''}" onclick="toggleAvail(${p.id},${p.available})"></button></td>
       <td><div class="td-actions"><button class="icon-btn edit" onclick="openEditProduct(${p.id})" title="Modifier">✏</button><button class="icon-btn del" onclick="deleteProd(${p.id})" title="Supprimer">✕</button></div></td>
     </tr>`).join('');
@@ -175,7 +182,7 @@ async function renderProductsTable() {
 
 async function toggleAvail(id, current) {
   await dbUpdateProduct(id, { available: !current });
-  showToast(!current?'Produit disponible':'Produit indisponible', !current?'Visible sur la marketplace':'Masqué', !current?'var(--green)':'var(--amber)');
+  showToast(!current?'Produit disponible':'Produit indisponible', !current?'Visible sur la marketplace':'Masqué', !current?'var(--green)':'var(--orange)');
   await renderProductsTable();
 }
 
@@ -207,7 +214,8 @@ async function deleteProd(id) {
 /* ── ADD PRODUCT ── */
 function resetAddForm() {
   ['apName','apDesc','apPrice','apEmoji'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('apCat').value='food';
+  const cats = getCategories();
+  document.getElementById('apCat').value = cats.length ? cats[0].slug : 'food';
   document.getElementById('apPhotoPreview').style.display='none';
   document.getElementById('apPhotoPlaceholder').style.display='';
   document.getElementById('addSuccess').classList.remove('show');

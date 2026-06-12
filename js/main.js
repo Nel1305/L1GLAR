@@ -1,109 +1,32 @@
-/* ═══════════════════════════════════════════════
-   N MARKET — main.js (page publique)
-   Sécurisé : XSS mitigé via escapeHtml()
-═══════════════════════════════════════════════ */
-
-'use strict';
+/* ═══════════════════════════════════════════════════
+   MARKET PLACE L1 GLAR — main.js  (page publique)
+═══════════════════════════════════════════════════ */
 
 let activeFilter = 'all';
 let searchQ      = '';
 let allProducts  = [];
 
-/* ── PANIER (cart) ─────────────────────────────────────── */
-/* Structure: { [productId]: { product, qty, note } } */
-let cart = {};
-
-/* ── SECURITE : échapper le HTML utilisateur ── */
-const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-
 document.addEventListener('DOMContentLoaded', async () => {
   initNav();
+  await loadCategories();
   initFilters();
   initAuth();
   syncSessionUI();
-  initOrderForm();
-  initReviewForm();
   await loadProducts();
-  loadCart();
-  updateCartUI();
-  initModals();
-  initMobUser();
+  initDeliveryFields();
 });
-
-function initOrderForm() {
-  /* submitOrderBtn is added dynamically by renderCheckout — use delegation */
-  document.addEventListener('click', e => {
-    if (e.target && e.target.id === 'submitOrderBtn') submitOrder();
-  });
-}
-
-function initReviewForm() {
-  document.getElementById('openReviewBtn').addEventListener('click', () => openModal('reviewModal'));
-  document.getElementById('submitReviewBtn').addEventListener('click', submitReview);
-}
-
-function initMobUser() {
-  const btn = document.getElementById('mobUserBtn');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    const s = getSession();
-    if (s) {
-      openDrawer();
-    } else {
-      openModal('authModal');
-    }
-  });
-}
-
-/* ── DRAWER ── */
-function openDrawer() {
-  document.getElementById('drawer').classList.add('open');
-  document.getElementById('drawerOverlay').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-function closeDrawer() {
-  document.getElementById('drawer').classList.remove('open');
-  document.getElementById('drawerOverlay').classList.remove('show');
-  document.body.style.overflow = '';
-}
-function navTo(page) {
-  closeDrawer();
-  document.querySelectorAll('.nav-item[data-page], .mob-nav-item[data-page], .drawer-item[data-page]').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('[data-page="' + page + '"]').forEach(b => b.classList.add('active'));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const pg = document.getElementById('page-' + page);
-  if (pg) pg.classList.add('active');
-  if (page === 'order') renderCheckout();
-  if (page === 'reviews') loadReviews();
-}
-function handleDrawerUserClick() {
-  const s = getSession();
-  if (s) {
-    // Already logged in - do nothing (vendor section visible)
-  } else {
-    closeDrawer();
-    openModal('authModal');
-  }
-}
-
-/* ── MOBILE SEARCH ── */
-function closeMobSearch() {
-  document.getElementById('mobSearchBar').classList.remove('open');
-  document.getElementById('searchInput').value = '';
-  const desktop = document.getElementById('searchInputDesktop');
-  if (desktop) desktop.value = '';
-  searchQ = '';
-  renderProducts();
-}
 
 /* ── NAV ── */
 function initNav() {
   document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => navTo(btn.dataset.page));
-  });
-  /* nav mobile bottom */
-  document.querySelectorAll('.mob-nav-item[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => navTo(btn.dataset.page));
+    btn.addEventListener('click', async () => {
+      document.querySelectorAll('.nav-item[data-page]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + btn.dataset.page).classList.add('active');
+      if (btn.dataset.page === 'order')   await populateOrderSelects();
+      if (btn.dataset.page === 'reviews') await loadReviews();
+    });
   });
 }
 
@@ -120,560 +43,143 @@ function renderProducts() {
   const grid = document.getElementById('productsGrid');
   const list = allProducts.filter(p =>
     (activeFilter === 'all' || p.cat === activeFilter) &&
-    (p.name.toLowerCase().includes(searchQ) ||
-     p.sellerName.toLowerCase().includes(searchQ) ||
-     (p.desc || '').toLowerCase().includes(searchQ))
+    (p.name.toLowerCase().includes(searchQ) || p.sellerName.toLowerCase().includes(searchQ) || (p.desc||'').toLowerCase().includes(searchQ))
   );
 
-  if (!list.length) {
-    grid.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>Aucun produit disponible</p></div>';
-    return;
-  }
+  if (!list.length) { grid.innerHTML = '<div class="empty">Aucun produit disponible.</div>'; return; }
 
   grid.innerHTML = list.map(p => `
-    <div class="card" role="article" aria-label="${esc(p.name)}">
-      <div class="card-img cat-${esc(p.cat)}">
-        ${p.photo ? `<img src="${esc(p.photo)}" alt="${esc(p.name)}" loading="lazy">` : `<span class="card-emoji">${esc(p.emoji)}</span>`}
-        <div class="card-img-grad"></div>
-      </div>
+    <div class="card">
+      <div class="card-img cat-${p.cat}">${p.photo ? `<img src="${p.photo}" alt="${p.name}">` : (p.emoji || catEmoji(p.cat))}</div>
       <div class="card-body">
-        <span class="badge badge-${esc(p.cat)}">${catLabel(p.cat)}</span>
-        <div class="card-name">${esc(p.name)}</div>
-        ${p.desc ? `<div class="card-desc">${esc(p.desc)}</div>` : ''}
-        <div class="card-seller">par ${esc(p.sellerName)}</div>
+        ${catBadge(p.cat)}
+        <div class="card-name">${p.name}</div>
+        ${p.desc ? `<div class="card-desc">${p.desc}</div>` : ''}
+        <div class="card-seller">Par ${p.sellerName}</div>
         <div class="card-row">
-          <div class="card-price">${p.price.toLocaleString()} <span class="card-currency">FCFA</span></div>
-          <div class="card-rating">
-            <span class="star-icon">★</span>
-            ${p.rating ? `${p.rating}${p.votes ? ` <span class="rating-count">(${p.votes})</span>` : ''}` : '—'}
-          </div>
+          <div class="card-price">${p.price.toLocaleString()} FCFA</div>
+          <div class="card-rating"><span style="color:var(--yellow)">★</span> ${p.rating||'—'} ${p.votes?`<span style="color:var(--t3)">(${p.votes})</span>`:''}</div>
         </div>
-        <div class="card-cart-row">
-          ${cart[p.id] ? `
-            <div class="card-qty-ctrl">
-              <button class="card-qty-btn" onclick="cartDec(${p.id})">−</button>
-              <span class="card-qty-num">${cart[p.id].qty}</span>
-              <button class="card-qty-btn" onclick="cartInc(${p.id})">+</button>
-            </div>
-            <button class="card-remove-btn" onclick="cartRemove(${p.id})" aria-label="Retirer">✕</button>
-          ` : `
-            <button class="btn-order" data-id="${esc(String(p.id))}" onclick="cartAdd(${p.id})">+ Ajouter</button>
-          `}
-        </div>
+        <button class="btn-order" data-id="${p.id}" data-name="${p.name}">Commander</button>
       </div>
-    </div>`).join('');
+    </div>
+  `).join('');
 
-
+  grid.querySelectorAll('.btn-order').forEach(btn =>
+    btn.addEventListener('click', () => quickOrder(btn.dataset.id, btn.dataset.name))
+  );
 }
 
 function initFilters() {
-  document.querySelectorAll('.cat-pill[data-filter]').forEach(btn => {
+  const wrap = document.getElementById('filterButtons');
+  const cats = getCategories();
+  wrap.innerHTML = '<button class="filter-btn active" data-filter="all">Tout</button>' +
+    cats.map(c => `<button class="filter-btn" data-filter="${c.slug}">${c.emoji} ${c.label}</button>`).join('');
+  wrap.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
+      wrap.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeFilter = btn.dataset.filter;
       renderProducts();
     });
   });
-  // Handle both mobile and desktop search inputs
-  ['searchInput', 'searchInputDesktop'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('input', e => {
-      searchQ = e.target.value.toLowerCase().trim();
-      // Sync the other input
-      const otherId = id === 'searchInput' ? 'searchInputDesktop' : 'searchInput';
-      const other = document.getElementById(otherId);
-      if (other) other.value = e.target.value;
-      renderProducts();
-    });
+  document.getElementById('searchInput').addEventListener('input', e => {
+    searchQ = e.target.value.toLowerCase().trim();
+    renderProducts();
   });
 }
 
-/* ── FONCTIONS PANIER ─────────────────────────────────── */
-function cartAdd(productId) {
-  const p = allProducts.find(x => x.id === parseInt(productId));
-  if (!p) return;
-  if (cart[productId]) {
-    cart[productId].qty += 1;
-  } else {
-    cart[productId] = { product: p, qty: 1, note: '' };
-  }
-  saveCart();
-  renderProducts();
-  updateCartUI();
-  showToast(p.name + ' ajouté', p.price.toLocaleString() + ' FCFA × ' + cart[productId].qty);
-}
-
-function cartInc(productId) {
-  if (!cart[productId]) return;
-  cart[productId].qty += 1;
-  saveCart(); renderProducts(); updateCartUI(); renderCartDrawer();
-}
-
-function cartDec(productId) {
-  if (!cart[productId]) return;
-  cart[productId].qty -= 1;
-  if (cart[productId].qty <= 0) delete cart[productId];
-  saveCart(); renderProducts(); updateCartUI(); renderCartDrawer();
-}
-
-function cartRemove(productId) {
-  delete cart[productId];
-  saveCart(); renderProducts(); updateCartUI(); renderCartDrawer();
-  if (document.getElementById('page-order').classList.contains('active')) renderCheckout();
-}
-
-function clearCart() {
-  cart = {};
-  saveCart(); renderProducts(); updateCartUI(); renderCartDrawer(); renderCheckout();
-}
-
-function cartTotal() {
-  return Object.values(cart).reduce((s, i) => s + i.product.price * i.qty, 0);
-}
-
-function cartItemCount() {
-  return Object.values(cart).reduce((s, i) => s + i.qty, 0);
-}
-
-function saveCart() {
-  try { sessionStorage.setItem('nm_cart', JSON.stringify(cart)); } catch(_) {}
-}
-
-function loadCart() {
-  try {
-    const raw = sessionStorage.getItem('nm_cart');
-    if (!raw) return;
-    const saved = JSON.parse(raw);
-    /* Reconcile with current products */
-    Object.keys(saved).forEach(id => {
-      const p = allProducts.find(x => String(x.id) === id);
-      if (p) cart[id] = { ...saved[id], product: p };
-    });
-  } catch(_) {}
-}
-
-function updateCartUI() {
-  const count = cartItemCount();
-  const total = cartTotal();
-
-  /* Badge mobile top bar */
-  const mobBtn = document.getElementById('mobCartBtn');
-  const badge  = document.getElementById('cartBadge');
-  if (mobBtn) mobBtn.style.display = count > 0 ? '' : 'none';
-  if (badge)  badge.textContent = count;
-
-  /* Sidebar desktop */
-  const sbBtn   = document.getElementById('cartSidebarBtn');
-  const sbBadge = document.getElementById('cartSidebarBadge');
-  if (sbBtn)   sbBtn.style.display = count > 0 ? '' : 'none';
-  if (sbBadge) sbBadge.textContent = count > 0 ? count + ' · ' + total.toLocaleString() + ' FCFA' : '';
-
-  /* Count labels */
-  ['cartCount', 'cartDrawerCount'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = count > 0 ? count + ' article' + (count > 1 ? 's' : '') : '';
-  });
-
-  /* Drawer total */
-  ['cartTotalDisplay', 'cartDrawerTotal'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = total.toLocaleString() + ' FCFA';
-  });
-
-  /* Drawer footer */
-  const footer = document.getElementById('cartDrawerFooter');
-  if (footer) footer.style.display = count > 0 ? '' : 'none';
-}
-
-/* ── DRAWER PANIER ────────────────────────────────────── */
-function openCart() {
-  renderCartDrawer();
-  document.getElementById('cartDrawer')?.classList.add('open');
-  document.getElementById('cartOverlay')?.classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeCart() {
-  document.getElementById('cartDrawer')?.classList.remove('open');
-  document.getElementById('cartOverlay')?.classList.remove('show');
-  document.body.style.overflow = '';
-}
-
-function renderCartDrawer() {
-  const items = Object.values(cart);
-  const emptyEl = document.getElementById('cartDrawerEmpty');
-  const itemsEl = document.getElementById('cartDrawerItems');
-  if (!emptyEl || !itemsEl) return;
-
-  if (!items.length) {
-    emptyEl.style.display = '';
-    itemsEl.innerHTML = '';
-    return;
-  }
-  emptyEl.style.display = 'none';
-  itemsEl.innerHTML = items.map(({ product: p, qty, note }) => `
-    <div class="cart-item">
-      <div class="cart-item-img">${p.photo ? `<img src="${esc(p.photo)}" alt="${esc(p.name)}" loading="lazy">` : esc(p.emoji)}</div>
-      <div class="cart-item-info">
-        <div class="cart-item-name">${esc(p.name)}</div>
-        <div class="cart-item-seller">par ${esc(p.sellerName)}</div>
-        <div class="cart-item-price">${(p.price * qty).toLocaleString()} FCFA</div>
-        <div class="cart-item-note-wrap">
-          <input class="cart-item-note" type="text" placeholder="Précision (optionnel)…"
-            value="${esc(note)}" maxlength="200"
-            oninput="cartSetNote(${p.id}, this.value)"
-            aria-label="Note pour ${esc(p.name)}">
-        </div>
-      </div>
-      <div class="cart-item-controls">
-        <button class="cart-qty-btn" onclick="cartDec(${p.id})">−</button>
-        <span class="cart-qty-val">${qty}</span>
-        <button class="cart-qty-btn" onclick="cartInc(${p.id})">+</button>
-        <button class="cart-remove" onclick="cartRemove(${p.id})" aria-label="Supprimer">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/></svg>
-        </button>
-      </div>
-    </div>
-  `).join('');
-  updateCartUI();
-}
-
-function cartSetNote(productId, value) {
-  if (cart[productId]) {
-    cart[productId].note = value;
-    saveCart();
-  }
-}
-
-function goToCheckout() {
-  closeCart();
-  navTo('order');
-}
-
-/* ── CHECKOUT PAGE ────────────────────────────────────── */
-function renderCheckout() {
-  const items = Object.values(cart);
-  const emptyEl   = document.getElementById('checkoutEmpty');
-  const contentEl = document.getElementById('checkoutContent');
-  if (!emptyEl || !contentEl) return;
-
-  if (!items.length) {
-    emptyEl.style.display = '';
-    contentEl.style.display = 'none';
-    return;
-  }
-  emptyEl.style.display = 'none';
-  contentEl.style.display = '';
-
-  /* Cart items list in checkout */
-  const listEl = document.getElementById('cartItemsList');
-  if (listEl) {
-    listEl.innerHTML = items.map(({ product: p, qty, note }) => `
-      <div class="checkout-item">
-        <div class="checkout-item-thumb">${p.photo ? `<img src="${esc(p.photo)}" alt="${esc(p.name)}" loading="lazy">` : esc(p.emoji)}</div>
-        <div class="checkout-item-info">
-          <div class="checkout-item-name">${esc(p.name)}</div>
-          <div class="checkout-item-seller">par ${esc(p.sellerName)}</div>
-          ${note ? `<div class="checkout-item-note">"${esc(note)}"</div>` : ''}
-        </div>
-        <div class="checkout-item-right">
-          <div class="checkout-item-qty-ctrl">
-            <button class="card-qty-btn" onclick="cartDec(${p.id})">−</button>
-            <span class="card-qty-num">${qty}</span>
-            <button class="card-qty-btn" onclick="cartInc(${p.id})">+</button>
-          </div>
-          <div class="checkout-item-price">${(p.price * qty).toLocaleString()} <span style="font-size:.7rem;font-weight:400">FCFA</span></div>
-        </div>
-      </div>
-    `).join('');
-  }
-  updateCartUI();
+async function quickOrder(id, name) {
+  document.querySelectorAll('.nav-item[data-page]').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-page="order"]').classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-order').classList.add('active');
+  await populateOrderSelects();
+  document.getElementById('oProduct').value = id;
 }
 
 /* ── ORDER ── */
 async function populateOrderSelects() {
   const p = allProducts.length ? allProducts : await dbGetProducts({ available: true });
-  const opts = '<option value="">Choisir un produit…</option>' +
-    p.map(x => `<option value="${esc(String(x.id))}">${esc(x.emoji)} ${esc(x.name)} — ${x.price.toLocaleString()} FCFA (${esc(x.sellerName)})</option>`).join('');
-  document.getElementById('oProduct').innerHTML = opts;
-  document.getElementById('rvProduct').innerHTML = p.map(x =>
-    `<option value="${esc(String(x.id))}">${esc(x.name)} — ${esc(x.sellerName)}</option>`).join('');
+  document.getElementById('oProduct').innerHTML =
+    '<option value="">Choisir un produit…</option>' +
+    p.map(x => `<option value="${x.id}">${x.emoji} ${x.name} — ${x.price.toLocaleString()} FCFA (${x.sellerName})</option>`).join('');
+  document.getElementById('rvProduct').innerHTML =
+    p.map(x => `<option value="${x.id}">${x.name} — ${x.sellerName}</option>`).join('');
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('qtyMinus').addEventListener('click', () => { const e=document.getElementById('oQty'); e.value=Math.max(1,parseInt(e.value||1)-1); });
+  document.getElementById('qtyPlus').addEventListener('click',  () => { const e=document.getElementById('oQty'); e.value=parseInt(e.value||1)+1; });
+  document.getElementById('submitOrderBtn').addEventListener('click', submitOrder);
+});
 
-
-/* Génère un code de commande unique : NM-YYMM-XXXX */
-function generateOrderCode() {
-  const now  = new Date();
-  const yymm = String(now.getFullYear()).slice(2) + String(now.getMonth() + 1).padStart(2, '0');
-  const rand = Math.random().toString(36).toUpperCase().slice(2, 6);
-  return 'NM-' + yymm + '-' + rand;
+/* ── DELIVERY FIELDS ── */
+function initDeliveryFields() {
+  const dateEl = document.getElementById('oDate');
+  if (dateEl) dateEl.min = today();
+  document.querySelectorAll('input[name="deliveryType"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.delivery-type-opt').forEach(o => o.classList.remove('active'));
+      radio.closest('.delivery-type-opt').classList.add('active');
+      document.getElementById('oAddressField').style.display = radio.value === 'external' ? '' : 'none';
+    });
+  });
 }
 
 async function submitOrder() {
   const name  = document.getElementById('oName').value.trim();
   const email = document.getElementById('oEmail').value.trim();
   const phone = document.getElementById('oPhone').value.trim();
+  const pid   = parseInt(document.getElementById('oProduct').value);
+  const qty   = parseInt(document.getElementById('oQty').value)||1;
   const notes = document.getElementById('oNotes').value.trim();
-  const items = Object.values(cart);
+  const deliveryDate = document.getElementById('oDate').value;
+  const deliveryTime = document.getElementById('oTime').value;
+  const deliveryType = document.querySelector('input[name="deliveryType"]:checked').value;
+  const deliveryAddress = document.getElementById('oAddress').value.trim();
 
-  if (!name)  { showToast('Champ manquant', 'Le nom est requis.', 'var(--red)'); return; }
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showToast('Email invalide', 'Vérifie ton adresse email.', 'var(--red)'); return;
-  }
-  if (!items.length) { showToast('Panier vide', 'Ajoute des produits avant de commander.', 'var(--red)'); return; }
+  if (!name || !email || !pid) { showToast('Champs manquants', 'Nom, email et produit requis.', 'var(--red)'); return; }
+  if (!deliveryDate || !deliveryTime) { showToast('Date/heure manquantes', 'Choisis une date et une heure de livraison.', 'var(--red)'); return; }
+  if (deliveryType === 'external' && !deliveryAddress) { showToast('Adresse manquante', 'Indique l\'adresse de livraison hors campus.', 'var(--red)'); return; }
 
-  const orderCode = generateOrderCode();
-  const total     = cartTotal();
-  const btn       = document.getElementById('submitOrderBtn');
-  btn.disabled    = true; showLoader(true);
+  const p = allProducts.find(x => x.id === pid);
+  if (!p) return;
 
-  /* Grouper par vendeur pour créer une commande par vendeur */
-  const bySeller = {};
-  items.forEach(({ product: p, qty, note }) => {
-    if (!bySeller[p.sellerId]) bySeller[p.sellerId] = { sellerId: p.sellerId, sellerName: p.sellerName, items: [], total: 0 };
-    bySeller[p.sellerId].items.push({ productId: p.id, productName: p.name, qty, price: p.price, note });
-    bySeller[p.sellerId].total += p.price * qty;
+  const btn = document.getElementById('submitOrderBtn');
+  btn.disabled = true; showLoader(true);
+
+  const result = await dbInsertOrder({
+    sellerId:p.sellerId, sellerName:p.sellerName, productId:p.id, productName:p.name,
+    buyerName:name, buyerEmail:email, buyerPhone:phone, qty, total:p.price*qty, notes,
+    deliveryDate, deliveryTime, deliveryType, deliveryAddress: deliveryType==='external' ? deliveryAddress : ''
   });
-
-  /* Insérer une commande par vendeur */
-  const sellerOrders = Object.values(bySeller);
-  const results = await Promise.all(sellerOrders.map(s =>
-    dbInsertOrder({
-      sellerId: s.sellerId, sellerName: s.sellerName,
-      /* Pour la compatibilité avec l'ancienne colonne product_id: premier produit */
-      productId: s.items[0].productId, productName: s.items.map(i => i.productName).join(', '),
-      buyerName: name, buyerEmail: email, buyerPhone: phone,
-      qty: s.items.reduce((acc, i) => acc + i.qty, 0),
-      total: s.total, notes: notes,
-      orderCode, items: JSON.stringify(s.items)
-    })
-  ));
-
   showLoader(false); btn.disabled = false;
 
-  const failed = results.filter(r => r.error);
-  if (failed.length === results.length) {
-    showToast('Erreur', failed[0].error, 'var(--red)'); return;
-  }
+  if (result.error) { showToast('Erreur', result.error, 'var(--red)'); return; }
 
-  const order = { orderCode, buyerName: name, buyerEmail: email, buyerPhone: phone, createdAt: new Date().toISOString() };
-
-  showOrderSuccess(order, null, items.reduce((s, i) => s + i.qty, 0), total, notes, items);
-
-  if (typeof sendOrderConfirmEmail !== 'undefined') {
-    /* Envoyer un email avec résumé complet */
-    const fakeProduct = { name: items.map(i => i.qty + '× ' + i.product.name).join(', '), price: total, sellerName: sellerOrders.map(s => s.sellerName).join(', ') };
-    sendOrderConfirmEmail({ ...order, productName: fakeProduct.name, sellerName: fakeProduct.sellerName, qty: items.reduce((s,i)=>s+i.qty,0), total }, fakeProduct).then(r => {
-      if (r.ok) showToast('Email envoyé', 'Confirmation envoyée sur ' + email + ' ✉️');
-    });
-  }
-
-  /* Vider le panier */
-  clearCart();
-  ['oName','oEmail','oPhone','oNotes'].forEach(id => { document.getElementById(id).value = ''; });
-}
-
-function showOrderSuccess(order, product, qty, total, notes, cartItems) {
-  const box = document.getElementById('orderSuccess');
-  const itemsSummary = cartItems && cartItems.length
-    ? cartItems.map(i => `${i.qty}× ${esc(i.product.name)}`).join('<br>')
-    : (product ? `${qty}× ${esc(product.name)}` : '');
-
+  const deliveryLine = `${new Date(deliveryDate+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})} à ${deliveryTime}`;
+  const placeLine = deliveryType==='external' ? `Livraison hors campus : ${deliveryAddress}` : 'Livraison sur le campus';
   document.getElementById('orderSuccessText').innerHTML =
-    `<div class="ticket-inline">
-      <div class="ticket-code-label">Code de commande</div>
-      <div class="ticket-code-value">${esc(order.orderCode)}</div>
-      <div class="ticket-code-hint">Montre ce code à chaque vendeur</div>
-    </div>
-    <div class="ticket-summary">
-      ${itemsSummary}
-      <div class="ticket-summary-total">Total : <strong>${total.toLocaleString()} FCFA</strong></div>
-      ${notes ? `<span style="color:var(--t3);font-size:.75rem">Note : ${esc(notes)}</span>` : ''}
-    </div>
-    <div class="ticket-actions">
-      <button class="ticket-btn" onclick="downloadTicket(currentTicketData)">
-        ⬇ Télécharger le ticket
-      </button>
-      <button class="ticket-btn ghost" onclick="showScreenshotHint()">
-        📸 Faire une capture
-      </button>
-    </div>
-    <div id="ticketCanvas" class="ticket-canvas-wrap" style="display:none"></div>`;
-  box.classList.add('show');
-  box.scrollIntoView({ behavior: 'smooth' });
-  window.currentTicketData = { order, product, qty, total, notes, cartItems };
-}
+    `${qty}× <strong>${p.name}</strong> — ${(p.price*qty).toLocaleString()} FCFA<br>` +
+    `<span style="color:var(--t3)">📅 ${deliveryLine}<br>📍 ${placeLine}</span>` +
+    (notes?`<br><span style="color:var(--t3)">Note : ${notes}</span>`:'');
+  document.getElementById('orderSuccess').classList.add('show');
+  document.getElementById('orderSuccess').scrollIntoView({ behavior:'smooth' });
+  ['oName','oEmail','oPhone','oNotes','oAddress','oDate','oTime'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('oProduct').value=''; document.getElementById('oQty').value=1;
+  document.querySelector('input[name="deliveryType"][value="campus"]').checked = true;
+  document.querySelectorAll('.delivery-type-opt').forEach(o => o.classList.remove('active'));
+  document.querySelector('.delivery-type-opt[data-val="campus"]').classList.add('active');
+  document.getElementById('oAddressField').style.display = 'none';
 
-/* ── TICKET CANVAS ── */
-function buildTicketCanvas(data) {
-  const { order, product, qty, total, notes } = data;
-  const W = 480, H = 640;
-  const canvas  = document.createElement('canvas');
-  canvas.width  = W * 2; // retina
-  canvas.height = H * 2;
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(2, 2);
-
-  /* Fond */
-  ctx.fillStyle = '#080c10';
-  ctx.fillRect(0, 0, W, H);
-
-  /* Bordure dorée */
-  ctx.strokeStyle = '#c9a84c';
-  ctx.lineWidth   = 1.5;
-  ctx.strokeRect(14, 14, W - 28, H - 28);
-
-  /* Trait pointillé séparateur */
-  function dashes(y) {
-    ctx.setLineDash([6, 5]);
-    ctx.strokeStyle = 'rgba(201,168,76,0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(28, y); ctx.lineTo(W - 28, y); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  /* Header — logo */
-  ctx.fillStyle = '#c9a84c';
-  ctx.font      = 'bold 22px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('N MARKET', W / 2, 54);
-  ctx.fillStyle = 'rgba(201,168,76,0.55)';
-  ctx.font      = '11px sans-serif';
-  ctx.fillText('TICKET DE COMMANDE', W / 2, 72);
-
-  dashes(88);
-
-  /* Code de commande */
-  ctx.fillStyle = '#e8c97a';
-  ctx.font      = 'bold 32px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(order.orderCode || '--', W / 2, 132);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.font      = '10px sans-serif';
-  ctx.fillText('CODE DE COMMANDE', W / 2, 150);
-
-  dashes(164);
-
-  /* Infos commande */
-  function row(label, value, y, valColor) {
-    ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.font      = '10px sans-serif';
-    ctx.fillText(label.toUpperCase(), 36, y);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = valColor || '#f4f0e8';
-    ctx.font      = '13px sans-serif';
-    // Truncate long values
-    let v = String(value);
-    if (v.length > 32) v = v.slice(0, 30) + '…';
-    ctx.fillText(v, W - 36, y);
-  }
-
-  if (data.cartItems && data.cartItems.length > 1) {
-    let y = 198;
-    data.cartItems.slice(0, 5).forEach(i => {
-      row(i.qty + '×  ' + i.product.name, (i.product.price * i.qty).toLocaleString('fr-FR') + ' FCFA', y);
-      y += 26;
-    });
-    if (data.cartItems.length > 5) {
-      ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '10px sans-serif';
-      ctx.fillText('+ ' + (data.cartItems.length - 5) + ' autre(s) article(s)', W/2, y); ctx.textAlign = 'left';
-      y += 22;
-    }
-    dashes(y); y += 14;
-    row('TOTAL', total.toLocaleString('fr-FR') + ' FCFA', y + 16, '#c9a84c');
-  } else {
-    row('Produit',   product ? product.name : '—',      198);
-    row('Vendeur',   order.sellerName || '—',            224);
-    row('Quantité',  qty + ' unité' + (qty > 1 ? 's' : ''), 250);
-    row('Prix unit', product ? product.price.toLocaleString('fr-FR') + ' FCFA' : '—', 276);
-    dashes(290);
-    row('TOTAL',     total.toLocaleString('fr-FR') + ' FCFA', 316, '#c9a84c');
-  }
-
-  dashes(330);
-
-  row('Client',    order.buyerName,                  358);
-  if (order.buyerPhone) row('Téléphone', order.buyerPhone, 382);
-
-  if (notes) {
-    dashes(396);
-    ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.font      = '10px sans-serif';
-    ctx.fillText('MODIFICATIONS DEMANDÉES', 36, 416);
-    ctx.fillStyle = 'rgba(244,240,232,0.7)';
-    ctx.font      = '11px sans-serif';
-    const words = notes.split(' ');
-    let line = ''; let ly = 432;
-    words.forEach(w => {
-      const test = line + (line ? ' ' : '') + w;
-      if (ctx.measureText(test).width > W - 72 && line) {
-        ctx.fillText(line, 36, ly); line = w; ly += 16;
-      } else line = test;
-    });
-    if (line) ctx.fillText(line, 36, ly);
-  }
-
-  /* Date */
-  const dateStr = new Date(order.createdAt || Date.now())
-    .toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  dashes(H - 100);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  ctx.font      = '10px sans-serif';
-  ctx.fillText(dateStr, W / 2, H - 78);
-  ctx.fillText("Conserve ce ticket comme preuve d'achat", W / 2, H - 62);
-
-  /* Pied de page */
-  ctx.fillStyle = 'rgba(201,168,76,0.4)';
-  ctx.font      = '9px sans-serif';
-  ctx.fillText("codé par Nel'si · N Market", W / 2, H - 26);
-
-  return canvas;
-}
-
-function downloadTicket(data) {
-  if (!data) return;
-  const canvas = buildTicketCanvas(data);
-  const link   = document.createElement('a');
-  link.download = 'ticket-' + (data.order.orderCode || 'commande') + '.png';
-  link.href     = canvas.toDataURL('image/png');
-  link.click();
-  showToast('Ticket téléchargé', 'Enregistré en PNG ✓');
-
-  /* Afficher aussi dans la page */
-  const wrap = document.getElementById('ticketCanvas');
-  if (wrap) {
-    canvas.style.maxWidth  = '100%';
-    canvas.style.borderRadius = '12px';
-    canvas.style.border    = '1px solid rgba(201,168,76,0.3)';
-    wrap.innerHTML = '';
-    wrap.appendChild(canvas);
-    wrap.style.display = 'block';
-    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-}
-
-function showScreenshotHint() {
-  /* Afficher le ticket dans la page pour faciliter la capture */
-  if (!window.currentTicketData) return;
-  const canvas = buildTicketCanvas(window.currentTicketData);
-  canvas.style.maxWidth    = '100%';
-  canvas.style.borderRadius = '12px';
-  canvas.style.border      = '1px solid rgba(201,168,76,0.3)';
-  const wrap = document.getElementById('ticketCanvas');
-  if (wrap) {
-    wrap.innerHTML = '';
-    wrap.appendChild(canvas);
-    wrap.style.display = 'block';
-    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    showToast('Ticket affiché', "Fais une capture d'écran maintenant 📸");
+  // Emails de confirmation / notification
+  const order = result.order;
+  if (typeof sendOrderConfirmEmail !== 'undefined') sendOrderConfirmEmail(order, p);
+  if (typeof sendSellerOrderNotifEmail !== 'undefined') {
+    const sellers = await dbGetAllUsers();
+    const seller = sellers.find(u => u.id === p.sellerId);
+    if (seller) sendSellerOrderNotifEmail(seller, order, p);
   }
 }
 
@@ -681,91 +187,66 @@ function showScreenshotHint() {
 async function loadReviews() {
   const reviews = await dbGetReviews();
   const el = document.getElementById('reviewsList');
-  if (!reviews.length) {
-    el.innerHTML = '<div class="empty-reviews">Aucun avis pour l\'instant. Sois le premier !</div>';
-    return;
-  }
+  if (!reviews.length) { el.innerHTML='<div style="color:var(--t3);font-size:.78rem">Aucun avis pour l\'instant.</div>'; return; }
   el.innerHTML = reviews.map(r => `
     <div class="review-card">
       <div class="review-top">
-        <div class="review-avatar">${esc(r.reviewerName[0].toUpperCase())}</div>
-        <div class="review-meta">
-          <div class="review-name">${esc(r.reviewerName)}</div>
-          <div class="review-product">${esc(r.productName)}${r.sellerName ? ` · ${esc(r.sellerName)}` : ''}</div>
-        </div>
+        <div><div class="review-name">${r.reviewerName}</div><div class="review-product">${r.productName} · ${r.sellerName||''}</div></div>
         <div class="review-stars">${starsHtml(r.rating)}</div>
       </div>
-      ${r.text ? `<div class="review-text">${esc(r.text)}</div>` : ''}
+      <div class="review-text">${r.text}</div>
     </div>`).join('');
 }
 
-
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('openReviewBtn').addEventListener('click', () => openModal('reviewModal'));
+  document.getElementById('submitReviewBtn').addEventListener('click', submitReview);
+});
 
 async function submitReview() {
   const name = document.getElementById('rvName').value.trim();
   const pid  = parseInt(document.getElementById('rvProduct').value);
   const text = document.getElementById('rvText').value.trim();
   const star = document.querySelector('input[name="rv"]:checked');
-
-  if (!name || !text || !star) {
-    showToast('Champs manquants', 'Remplis tous les champs.', 'var(--red)'); return;
-  }
-  if (name.length > 100) { showToast('Nom trop long', 'Maximum 100 caractères.', 'var(--red)'); return; }
-  if (text.length > 500) { showToast('Commentaire trop long', 'Maximum 500 caractères.', 'var(--red)'); return; }
+  if (!name||!text||!star) { showToast('Champs manquants','Remplis tous les champs.','var(--red)'); return; }
 
   const p = allProducts.find(x => x.id === pid);
   showLoader(true);
-  await dbInsertReview({
-    sellerId: p?.sellerId, productId: pid,
-    productName: p?.name || '—', sellerName: p?.sellerName || '—',
-    reviewerName: name, rating: parseInt(star.value), text
-  });
-
+  await dbInsertReview({ sellerId:p?.sellerId, productId:pid, productName:p?.name||'—', sellerName:p?.sellerName||'—', reviewerName:name, rating:parseInt(star.value), text });
   if (p) {
-    const rv  = await dbGetReviews({ productId: pid });
-    const avg = rv.reduce((s, r) => s + r.rating, 0) / rv.length;
-    await dbUpdateProduct(pid, { rating: Math.round(avg * 10) / 10, votes: rv.length });
-    allProducts = await dbGetProducts({ available: true });
+    const rv = await dbGetReviews({ productId:pid });
+    const avg = rv.reduce((s,r)=>s+r.rating,0)/rv.length;
+    await dbUpdateProduct(pid, { rating:Math.round(avg*10)/10, votes:rv.length });
+    allProducts = await dbGetProducts({ available:true });
     renderProducts();
   }
-
   showLoader(false);
   closeModal('reviewModal');
-  showToast('Avis publié', 'Merci pour ton retour ! 🙏');
+  showToast('Avis publié','Merci pour ton retour ! 🙏');
   await loadReviews();
-  document.getElementById('rvName').value = '';
-  document.getElementById('rvText').value = '';
-  document.querySelectorAll('input[name="rv"]').forEach(r => r.checked = false);
+  document.getElementById('rvName').value='';document.getElementById('rvText').value='';
+  document.querySelectorAll('input[name="rv"]').forEach(r=>r.checked=false);
 }
 
 /* ── AUTH ── */
 function initAuth() {
-  document.getElementById('goRegister').addEventListener('click', () => {
-    document.getElementById('viewLogin').style.display = 'none';
-    document.getElementById('viewRegister').style.display = '';
-  });
-  document.getElementById('goLogin').addEventListener('click', () => {
-    document.getElementById('viewRegister').style.display = 'none';
-    document.getElementById('viewLogin').style.display = '';
-  });
-  document.getElementById('userPill').addEventListener('click', () => {
-    if (!getSession()) openModal('authModal');
-  });
+  document.getElementById('goRegister').addEventListener('click', () => { document.getElementById('viewLogin').style.display='none'; document.getElementById('viewRegister').style.display=''; });
+  document.getElementById('goLogin').addEventListener('click', () => { document.getElementById('viewRegister').style.display='none'; document.getElementById('viewLogin').style.display=''; });
+  document.getElementById('userPill').addEventListener('click', () => { if (!getSession()) openModal('authModal'); });
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
   document.getElementById('registerBtn').addEventListener('click', handleRegister);
-  document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
 }
 
 async function handleLogin() {
   const email = document.getElementById('lEmail').value.trim();
   const pass  = document.getElementById('lPass').value;
-  if (!email || !pass) { showToast('Champs manquants', 'Email et mot de passe requis.', 'var(--red)'); return; }
+  if (!email||!pass) { showToast('Champs manquants','Email et mot de passe requis.','var(--red)'); return; }
   showLoader(true);
   const r = await dbLoginUser(email, pass);
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
   setSession(r.user); closeModal('authModal'); syncSessionUI();
-  showToast('Connecté !', `Bienvenue ${esc(r.user.firstName)} 👋`);
+  showToast('Connecté', `Bienvenue ${r.user.firstName} !`);
 }
 
 async function handleRegister() {
@@ -774,17 +255,15 @@ async function handleRegister() {
   const email = document.getElementById('rEmail').value.trim();
   const phone = document.getElementById('rPhone').value.trim();
   const pass  = document.getElementById('rPass').value;
-
-  if (!first || !email || !pass) { showToast('Champs manquants', 'Prénom, email et mot de passe requis.', 'var(--red)'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Email invalide', 'Vérifie ton adresse email.', 'var(--red)'); return; }
-  if (pass.length < 6) { showToast('Mot de passe trop court', 'Minimum 6 caractères.', 'var(--red)'); return; }
-
+  if (!first||!email||!pass) { showToast('Champs manquants','Prénom, email et mot de passe requis.','var(--red)'); return; }
+  if (pass.length<6) { showToast('Mot de passe trop court','Minimum 6 caractères.','var(--red)'); return; }
   showLoader(true);
   const r = await dbCreateUser(first, last, email, phone, pass);
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
   setSession(r.user); closeModal('authModal'); syncSessionUI();
-  showToast('Compte créé !', `Bienvenue ${esc(first)} 🎉`);
+  showToast('Compte créé !', `Bienvenue ${first} 🎉`);
+  // Email de bienvenue
   if (typeof sendWelcomeEmail !== 'undefined') {
     sendWelcomeEmail(r.user).then(res => {
       if (res.ok) showToast('Email envoyé', 'Vérifie ta boîte mail 📧');
@@ -792,108 +271,19 @@ async function handleRegister() {
   }
 }
 
-function handleLogout() {
-  clearSession(); syncSessionUI();
-  showToast('Déconnecté', 'À bientôt !');
-}
-
 function syncSessionUI() {
   const u = getSession();
-  const pill = document.getElementById('userPill');
   if (u) {
-    const init = u.firstName[0].toUpperCase();
-    // Sidebar desktop
-    if (pill) {
-      document.getElementById('userAvatar').textContent = init;
-      document.getElementById('userName').textContent   = u.name;
-      document.getElementById('userRole').textContent   = 'Vendeur';
-      pill.style.cursor = 'default';
-    }
+    document.getElementById('userAvatar').textContent = u.firstName[0].toUpperCase();
+    document.getElementById('userName').textContent   = u.name;
+    document.getElementById('userRole').textContent   = 'Vendeur';
+    document.getElementById('userPill').style.cursor  = 'default';
     document.getElementById('adminBtn').style.display = '';
-    document.getElementById('logoutBtn') && (document.getElementById('logoutBtn').style.display = '');
-    // Drawer mobile
-    document.getElementById('drawerAvatar').textContent       = init;
-    document.getElementById('drawerUserName').textContent     = u.name;
-    document.getElementById('drawerUserRole').textContent     = 'Vendeur · ' + u.email;
-    document.getElementById('drawerUserArrow').textContent    = '';
-    document.getElementById('drawerVendorSection').style.display = '';
-    document.getElementById('drawerLogout').style.display     = '';
-    // Bottom nav user tab
-    const mobLabel = document.getElementById('mobUserLabel');
-    if (mobLabel) mobLabel.textContent = u.firstName;
   } else {
-    if (pill) {
-      document.getElementById('userAvatar').textContent = '?';
-      document.getElementById('userName').textContent   = 'Se connecter';
-      document.getElementById('userRole').textContent   = 'Visiteur';
-      pill.style.cursor = 'pointer';
-    }
+    document.getElementById('userAvatar').textContent = '?';
+    document.getElementById('userName').textContent   = 'Se connecter';
+    document.getElementById('userRole').textContent   = 'Visiteur';
+    document.getElementById('userPill').style.cursor  = 'pointer';
     document.getElementById('adminBtn').style.display = 'none';
-    document.getElementById('logoutBtn') && (document.getElementById('logoutBtn').style.display = 'none');
-    // Drawer mobile
-    document.getElementById('drawerAvatar').textContent       = '?';
-    document.getElementById('drawerUserName').textContent     = 'Se connecter';
-    document.getElementById('drawerUserRole').textContent     = 'Appuie pour te connecter';
-    document.getElementById('drawerUserArrow').textContent    = '›';
-    document.getElementById('drawerVendorSection').style.display = 'none';
-    document.getElementById('drawerLogout').style.display     = 'none';
-    const mobLabel = document.getElementById('mobUserLabel');
-    if (mobLabel) mobLabel.textContent = 'Compte';
   }
-}
-
-/* ── MODALS ── */
-function initModals() {
-  document.querySelectorAll('[data-close]').forEach(btn => {
-    btn.addEventListener('click', () => closeModal(btn.dataset.close));
-  });
-  document.querySelectorAll('.overlay').forEach(ov => {
-    ov.addEventListener('click', e => { if (e.target === ov) closeModal(ov.id); });
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      document.querySelectorAll('.overlay.show').forEach(ov => closeModal(ov.id));
-      closeDrawer();
-    }
-  });
-  // Mobile search toggle
-  const searchToggle = document.getElementById('mobSearchToggle');
-  if (searchToggle) {
-    searchToggle.addEventListener('click', () => {
-      document.getElementById('mobSearchBar').classList.toggle('open');
-      if (document.getElementById('mobSearchBar').classList.contains('open')) {
-        setTimeout(() => document.getElementById('searchInput').focus(), 150);
-      }
-    });
-  }
-  // Hamburger also via JS (backup)
-  const ham = document.getElementById('hamburgerBtn');
-  if (ham && !ham._bound) { ham.addEventListener('click', openDrawer); ham._bound = true; }
-}
-
-function openModal(id)  { document.getElementById(id)?.classList.add('show'); document.body.style.overflow = 'hidden'; }
-function closeModal(id) { document.getElementById(id)?.classList.remove('show'); document.body.style.overflow = ''; }
-
-/* ── HELPERS ── */
-function showLoader(v) { document.getElementById('loader').style.display = v ? 'flex' : 'none'; }
-function catLabel(c) {
-  const labels = {
-    food: 'Nourriture', drink: 'Boissons', clothing: 'Vêtements',
-    accessories: 'Accessoires', electronics: 'Électronique', books: 'Livres & Cours',
-    beauty: 'Beauté & Santé', sport: 'Sport', services: 'Services',
-    art: 'Art & Créations', tech: 'High-Tech', other: 'Divers'
-  };
-  return labels[c] || c;
-}
-function starsHtml(n)  { return Array.from({length:5}, (_,i) => `<span class="${i < n ? 'star-on' : 'star-off'}">★</span>`).join(''); }
-
-let _toastTimer;
-function showToast(title, msg, color = 'var(--gold)') {
-  const t = document.getElementById('toast');
-  document.getElementById('toastTitle').textContent = title;
-  document.getElementById('toastMsg').textContent   = msg;
-  t.style.borderLeftColor = color;
-  t.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('show'), 3800);
 }
