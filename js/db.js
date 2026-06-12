@@ -107,7 +107,7 @@ async function dbInsertOrder(f) {
     notes:f.notes||'', status:'new',
     order_code: f.orderCode || '',
     items: f.items ? (typeof f.items === 'string' ? f.items : JSON.stringify(f.items)) : null
-  }).select().single();
+  }).select().single ();
   if (error) return { error: error.message };
   return { order: no(data) };
 }
