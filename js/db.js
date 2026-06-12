@@ -61,7 +61,7 @@ async function dbGetProducts(f = {}) {
   return (data || []).map(np);
 }
 async function dbInsertProduct(sellerId, sellerName, f) {
-  const { data, error } = await db.from('products').insert({ seller_id:sellerId, seller_name:sellerName, name:f.name, description:f.desc||'', category:f.cat, price:f.price, emoji:f.emoji||'🛍️', photo_url:f.photo||null, available:true }).select().single();
+  const { data, error } = await db.from('products').insert({ seller_id:sellerId, seller_name:sellerName, name:f.name, description:f.desc||'', category:f.cat, price:f.price, emoji:f.emoji||'🛍️', photo_url:f.photo||null, available:true, track_stock:f.trackStock||false, stock:f.trackStock?(f.stock||0):0, show_stock:f.showStock!==false }).select().single();
   if (error) return { error: error.message };
   return { product: np(data) };
 }
@@ -77,6 +77,9 @@ async function dbUpdateProduct(id, f) {
   if (f.rating    !== undefined) p.rating      = f.rating;
   if (f.votes     !== undefined) p.votes       = f.votes;
   if (f.sellerName!== undefined) p.seller_name = f.sellerName;
+  if (f.trackStock!== undefined) p.track_stock = f.trackStock;
+  if (f.stock     !== undefined) p.stock       = f.stock;
+  if (f.showStock !== undefined) p.show_stock  = f.showStock;
   const { data, error } = await db.from('products').update(p).eq('id', id).select().single();
   if (error) return { error: error.message };
   return { product: np(data) };
@@ -86,7 +89,15 @@ async function dbDeleteProduct(id) {
   return error ? { error: error.message } : { ok: true };
 }
 function np(r) {
-  return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name, name:r.name, desc:r.description, cat:r.category, price:r.price, emoji:r.emoji, photo:r.photo_url, rating:parseFloat(r.rating)||0, votes:r.votes||0, available:r.available, createdAt:r.created_at };
+  return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name, name:r.name, desc:r.description, cat:r.category, price:r.price, emoji:r.emoji, photo:r.photo_url, rating:parseFloat(r.rating)||0, votes:r.votes||0, available:r.available, createdAt:r.created_at,
+    trackStock:r.track_stock||false, stock:r.stock||0, showStock:r.show_stock!==false };
+}
+function isOutOfStock(p)  { return !!(p.trackStock && p.stock <= 0); }
+function stockBadgeHtml(p) {
+  if (!p.trackStock) return '';
+  if (p.stock <= 0) return `<div class="stock-badge out">Rupture de stock</div>`;
+  if (p.showStock)  return `<div class="stock-badge ok">En stock · ${p.stock} restant${p.stock>1?'s':''}</div>`;
+  return `<div class="stock-badge ok">En stock</div>`;
 }
 
 /* ── CATEGORIES (« classes » du catalogue, gérées par le Super Admin) ── */

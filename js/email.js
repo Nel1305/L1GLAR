@@ -91,53 +91,10 @@ async function sendInvoiceEmail(seller, commission) {
 }
 
 /* ════════════════════════════════════════
-   3. EMAIL DE CONFIRMATION DE COMMANDE
-   Envoyé à l'acheteur quand il commande
-════════════════════════════════════════ */
-async function sendOrderConfirmEmail(order, product) {
-  if (typeof emailjs === 'undefined') return { ok: false };
-
-  const deliveryDateLabel = order.deliveryDate
-    ? new Date(order.deliveryDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })
-    : '—';
-  const deliveryTypeLbl = order.deliveryType === 'external' ? 'Livraison hors campus' : 'Livraison sur le campus';
-
-  try {
-    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ORDER, {
-      to_email:        order.buyerEmail,
-      to_name:         order.buyerName,
-      full_name:       order.buyerName,
-      platform_name:   PLATFORM_NAME,
-      platform_email:  PLATFORM_EMAIL,
-
-      order_id:        order.id,
-      product_name:    order.productName,
-      quantity:        order.qty,
-      total:           (order.total || 0).toLocaleString('fr-FR') + ' FCFA',
-      notes:           order.notes || 'Aucune modification',
-      seller_name:     product ? product.sellerName : (order.sellerName || '—'),
-
-      // Date et heure de livraison souhaitées
-      delivery_date:        deliveryDateLabel,
-      delivery_time:        order.deliveryTime || '—',
-      delivery_type:        deliveryTypeLbl,
-      delivery_address:     order.deliveryType === 'external' ? (order.deliveryAddress || '—') : 'Sur le campus de l\'école',
-      delivery_address_block: order.deliveryType === 'external'
-        ? `Adresse de livraison : ${order.deliveryAddress || '—'}`
-        : 'Récupération / livraison sur le campus de l\'école.',
-
-      year: new Date().getFullYear(),
-    });
-    return { ok: true };
-  } catch (err) {
-    console.error('sendOrderConfirmEmail error:', err);
-    return { ok: false, error: err.text || err.message };
-  }
-}
-
-/* ════════════════════════════════════════
-   4. EMAIL DE NOTIFICATION NOUVELLE COMMANDE
+   3. EMAIL DE NOTIFICATION NOUVELLE COMMANDE
    Envoyé au vendeur quand il reçoit une commande
+   (le client ne fournit plus d'email — seul le vendeur
+    reçoit des emails, pour ses factures et notifications)
 ════════════════════════════════════════ */
 async function sendSellerOrderNotifEmail(seller, order, product) {
   if (typeof emailjs === 'undefined') return { ok: false };
@@ -162,7 +119,6 @@ async function sendSellerOrderNotifEmail(seller, order, product) {
       notes:          order.notes || 'Aucune modification',
 
       buyer_name:     order.buyerName,
-      buyer_email:    order.buyerEmail,
       buyer_phone:    order.buyerPhone || '—',
 
       delivery_date:    deliveryDateLabel,

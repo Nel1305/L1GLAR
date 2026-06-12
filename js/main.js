@@ -52,7 +52,7 @@ function renderProducts() {
     <div class="card">
       <div class="card-img cat-${p.cat}">${p.photo ? `<img src="${p.photo}" alt="${p.name}">` : (p.emoji || catEmoji(p.cat))}</div>
       <div class="card-body">
-        ${catBadge(p.cat)}
+        ${catBadge(p.cat)}${stockBadgeHtml(p)}
         <div class="card-name">${p.name}</div>
         ${p.desc ? `<div class="card-desc">${p.desc}</div>` : ''}
         <div class="card-seller">Par ${p.sellerName}</div>
@@ -60,12 +60,12 @@ function renderProducts() {
           <div class="card-price">${p.price.toLocaleString()} FCFA</div>
           <div class="card-rating"><span style="color:var(--yellow)">★</span> ${p.rating||'—'} ${p.votes?`<span style="color:var(--t3)">(${p.votes})</span>`:''}</div>
         </div>
-        <button class="btn-order" data-id="${p.id}" data-name="${p.name}">Commander</button>
+        <button class="btn-order" data-id="${p.id}" data-name="${p.name}" ${isOutOfStock(p)?'disabled':''}>${isOutOfStock(p)?'Rupture de stock':'Commander'}</button>
       </div>
     </div>
   `).join('');
 
-  grid.querySelectorAll('.btn-order').forEach(btn =>
+  grid.querySelectorAll('.btn-order:not(:disabled)').forEach(btn =>
     btn.addEventListener('click', () => quickOrder(btn.dataset.id, btn.dataset.name))
   );
 }
@@ -100,12 +100,27 @@ async function quickOrder(id, name) {
 
 /* ── ORDER ── */
 async function populateOrderSelects() {
-  const p = allProducts.length ? allProducts : await dbGetProducts({ available: true });
+  const all = allProducts.length ? allProducts : await dbGetProducts({ available: true });
+  const p = all.filter(x => !isOutOfStock(x));
   document.getElementById('oProduct').innerHTML =
     '<option value="">Choisir un produit…</option>' +
     p.map(x => `<option value="${x.id}">${x.emoji} ${x.name} — ${x.price.toLocaleString()} FCFA (${x.sellerName})</option>`).join('');
   document.getElementById('rvProduct').innerHTML =
-    p.map(x => `<option value="${x.id}">${x.name} — ${x.sellerName}</option>`).join('');
+    all.map(x => `<option value="${x.id}">${x.name} — ${x.sellerName}</option>`).join('');
+  document.getElementById('oProduct').onchange = updateQtyLimit;
+  updateQtyLimit();
+}
+
+function updateQtyLimit() {
+  const pid = parseInt(document.getElementById('oProduct').value);
+  const qtyEl = document.getElementById('oQty');
+  const p = allProducts.find(x => x.id === pid);
+  if (p && p.trackStock) {
+    qtyEl.max = p.stock;
+    if (parseInt(qtyEl.value || 1) > p.stock) qtyEl.value = Math.max(1, p.stock);
+  } else {
+    qtyEl.removeAttribute('max');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -129,7 +144,6 @@ function initDeliveryFields() {
 
 async function submitOrder() {
   const name  = document.getElementById('oName').value.trim();
-  const email = document.getElementById('oEmail').value.trim();
   const phone = document.getElementById('oPhone').value.trim();
   const pid   = parseInt(document.getElementById('oProduct').value);
   const qty   = parseInt(document.getElementById('oQty').value)||1;
@@ -139,25 +153,34 @@ async function submitOrder() {
   const deliveryType = document.querySelector('input[name="deliveryType"]:checked').value;
   const deliveryAddress = document.getElementById('oAddress').value.trim();
 
-  if (!name || !email || !pid) { showToast('Champs manquants', 'Nom, email et produit requis.', 'var(--red)'); return; }
+  if (!name || !phone || !pid) { showToast('Champs manquants', 'Nom, téléphone et produit requis.', 'var(--red)'); return; }
   if (!deliveryDate || !deliveryTime) { showToast('Date/heure manquantes', 'Choisis une date et une heure de livraison.', 'var(--red)'); return; }
   if (deliveryType === 'external' && !deliveryAddress) { showToast('Adresse manquante', 'Indique l\'adresse de livraison hors campus.', 'var(--red)'); return; }
 
   const p = allProducts.find(x => x.id === pid);
   if (!p) return;
+  if (p.trackStock && qty > p.stock) { showToast('Stock insuffisant', `Il ne reste que ${p.stock} unité(s) de ce produit.`, 'var(--red)'); return; }
 
   const btn = document.getElementById('submitOrderBtn');
   btn.disabled = true; showLoader(true);
 
   const result = await dbInsertOrder({
     sellerId:p.sellerId, sellerName:p.sellerName, productId:p.id, productName:p.name,
-    buyerName:name, buyerEmail:email, buyerPhone:phone, qty, total:p.price*qty, notes,
+    buyerName:name, buyerPhone:phone, qty, total:p.price*qty, notes,
     deliveryDate, deliveryTime, deliveryType, deliveryAddress: deliveryType==='external' ? deliveryAddress : ''
   });
+
+  // Décrémente le stock si géré
+  if (!result.error && p.trackStock) {
+    const newStock = Math.max(0, p.stock - qty);
+    await dbUpdateProduct(p.id, { stock: newStock });
+  }
+
   showLoader(false); btn.disabled = false;
 
   if (result.error) { showToast('Erreur', result.error, 'var(--red)'); return; }
 
+  const order = result.order;
   const deliveryLine = `${new Date(deliveryDate+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})} à ${deliveryTime}`;
   const placeLine = deliveryType==='external' ? `Livraison hors campus : ${deliveryAddress}` : 'Livraison sur le campus';
   document.getElementById('orderSuccessText').innerHTML =
@@ -165,22 +188,69 @@ async function submitOrder() {
     `<span style="color:var(--t3)">📅 ${deliveryLine}<br>📍 ${placeLine}</span>` +
     (notes?`<br><span style="color:var(--t3)">Note : ${notes}</span>`:'');
   document.getElementById('orderSuccess').classList.add('show');
+
+  // Remplit et affiche le ticket de preuve de commande
+  fillTicket(order, p, { name, phone, qty, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress });
+  document.getElementById('ticketWrap').style.display = '';
   document.getElementById('orderSuccess').scrollIntoView({ behavior:'smooth' });
-  ['oName','oEmail','oPhone','oNotes','oAddress','oDate','oTime'].forEach(id => document.getElementById(id).value='');
+
+  ['oName','oPhone','oNotes','oAddress','oDate','oTime'].forEach(id => document.getElementById(id).value='');
   document.getElementById('oProduct').value=''; document.getElementById('oQty').value=1;
   document.querySelector('input[name="deliveryType"][value="campus"]').checked = true;
   document.querySelectorAll('.delivery-type-opt').forEach(o => o.classList.remove('active'));
   document.querySelector('.delivery-type-opt[data-val="campus"]').classList.add('active');
   document.getElementById('oAddressField').style.display = 'none';
 
-  // Emails de confirmation / notification
-  const order = result.order;
-  if (typeof sendOrderConfirmEmail !== 'undefined') sendOrderConfirmEmail(order, p);
+  // Rafraîchit le catalogue (stock mis à jour)
+  await loadProducts();
+
+  // Notifie le vendeur par email (il a fourni son email à l'inscription pour recevoir factures & notifications)
   if (typeof sendSellerOrderNotifEmail !== 'undefined') {
     const sellers = await dbGetAllUsers();
     const seller = sellers.find(u => u.id === p.sellerId);
     if (seller) sendSellerOrderNotifEmail(seller, order, p);
   }
+}
+
+/* ── TICKET / PREUVE DE COMMANDE ── */
+function fillTicket(order, p, f) {
+  document.getElementById('tkPlatform').textContent = typeof PLATFORM_NAME !== 'undefined' ? PLATFORM_NAME : 'Market Place';
+  document.getElementById('tkId').textContent       = `#${order.id}`;
+  document.getElementById('tkDate').textContent     = formatDateTime(order.createdAt || new Date().toISOString());
+  document.getElementById('tkName').textContent     = f.name;
+  document.getElementById('tkPhone').textContent    = f.phone;
+  document.getElementById('tkProduct').textContent  = p.name;
+  document.getElementById('tkQty').textContent      = f.qty;
+  document.getElementById('tkSeller').textContent   = p.sellerName;
+  document.getElementById('tkTotal').textContent    = `${(p.price*f.qty).toLocaleString()} FCFA`;
+  document.getElementById('tkDelivery').textContent = `${new Date(f.deliveryDate+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})} à ${f.deliveryTime}`;
+  document.getElementById('tkPlace').textContent    = deliveryTypeLabel(f.deliveryType);
+  const notesRow = document.getElementById('tkNotesRow');
+  if (f.notes) { notesRow.style.display=''; document.getElementById('tkNotes').textContent = f.notes; }
+  else notesRow.style.display = 'none';
+  const addrRow = document.getElementById('tkAddressRow');
+  if (f.deliveryType === 'external' && f.deliveryAddress) { addrRow.style.display=''; document.getElementById('tkAddress').textContent = f.deliveryAddress; }
+  else addrRow.style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('downloadTicketBtn').addEventListener('click', downloadTicket);
+});
+
+function downloadTicket() {
+  const el = document.getElementById('ticketCard');
+  if (typeof html2canvas === 'undefined') {
+    showToast('Indisponible', 'Fais une capture d\'écran de ce ticket comme preuve.', 'var(--orange)');
+    return;
+  }
+  html2canvas(el, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `ticket-commande-${document.getElementById('tkId').textContent.replace('#','')}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(() => {
+    showToast('Erreur', 'Téléchargement impossible. Fais une capture d\'écran.', 'var(--red)');
+  });
 }
 
 /* ── REVIEWS ── */

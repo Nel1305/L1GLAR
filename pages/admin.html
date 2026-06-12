@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mon espace · Market Place</title>
+  <title>Mon espace · Market Place L1 GLAR</title>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
@@ -37,7 +37,7 @@
       </div>
       <button class="admin-btn" id="logoutBtn"><span class="icon">←</span>Se déconnecter</button>
       <a href="../index.html" class="admin-btn"><span class="icon">←</span>Retour au site</a>
-      <a href="superadmin.html" class="credit">codé par B.Nel'si</a>
+      <a href="superadmin.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
   <main class="main">
@@ -71,7 +71,7 @@
 
     <div id="page-products" class="page">
       <div class="page-header"><div><div class="page-title">Mes produits</div><div class="page-desc">Gérer ta boutique</div></div><button class="btn-primary sm" onclick="goPage('addproduct')">+ Ajouter</button></div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>Photo</th><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Note</th><th>Dispo</th><th>Actions</th></tr></thead><tbody id="productsBody"></tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Photo</th><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>Note</th><th>Dispo</th><th>Actions</th></tr></thead><tbody id="productsBody"></tbody></table></div>
     </div>
 
     <div id="page-addproduct" class="page">
@@ -87,6 +87,15 @@
           <div class="field"><label>Prix (FCFA)</label><input type="number" id="apPrice" placeholder="500" min="1"></div>
         </div>
         <div class="field"><label>Emoji (si pas de photo)</label><input type="text" id="apEmoji" placeholder="🥞" style="max-width:100px"></div>
+        <div class="divider"></div>
+        <div class="f-section">
+          <span class="f-label">Stock</span>
+          <div class="toggle-row"><div class="toggle-info"><strong>Gérer le stock</strong><span>Active pour suivre les quantités disponibles</span></div><button class="toggle" id="apTrackStock"></button></div>
+          <div id="apStockFields" style="display:none">
+            <div class="field"><label>Quantité disponible</label><input type="number" id="apStock" placeholder="10" min="0"></div>
+            <div class="toggle-row"><div class="toggle-info"><strong>Afficher la quantité</strong><span>Sinon les clients verront juste « En stock » / « Rupture de stock »</span></div><button class="toggle on" id="apShowStock"></button></div>
+          </div>
+        </div>
         <div class="divider"></div>
         <button class="btn-primary" id="saveProductBtn">Publier le produit</button>
         <div class="success-box" id="addSuccess"><div class="ico">✓</div><strong>Produit publié !</strong><p>Il est maintenant visible par toute la promo.</p></div>
@@ -156,6 +165,15 @@
         <div class="field"><label>Prix (FCFA)</label><input type="number" id="editPrice"></div>
       </div>
       <div class="field"><label>Emoji</label><input type="text" id="editEmoji" style="max-width:90px"></div>
+      <div class="divider"></div>
+      <div class="f-section">
+        <span class="f-label">Stock</span>
+        <div class="toggle-row"><div class="toggle-info"><strong>Gérer le stock</strong><span>Active pour suivre les quantités disponibles</span></div><button class="toggle" id="editTrackStock"></button></div>
+        <div id="editStockFields" style="display:none">
+          <div class="field"><label>Quantité disponible</label><input type="number" id="editStock" min="0"></div>
+          <div class="toggle-row"><div class="toggle-info"><strong>Afficher la quantité</strong><span>Sinon les clients verront juste « En stock » / « Rupture de stock »</span></div><button class="toggle on" id="editShowStock"></button></div>
+        </div>
+      </div>
       <button class="btn-primary" id="saveEditBtn">Sauvegarder</button>
     </div>
   </div>

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Market Place · N Market</title>
+  <title>Market Place · L1 GLAR</title>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
 <div class="app">
   <aside class="sidebar">
-    <div class="logo"><div class="logo-name">Market Place</div><div class="logo-sub">Université</div></div>
+    <div class="logo"><div class="logo-name">Market Place</div><div class="logo-sub">L1 GLAR · Université</div></div>
     <nav class="nav">
       <span class="nav-label">Catalogue</span>
       <button class="nav-item active" data-page="products"><span class="icon">🛍</span>Produits</button>
@@ -24,7 +24,7 @@
         <div class="user-info"><div class="user-name" id="userName">Se connecter</div><div class="user-role" id="userRole">Visiteur</div></div>
       </div>
       <a href="pages/admin.html" class="admin-btn highlight" id="adminBtn" style="display:none"><span class="icon">⚙</span>Mon espace vendeur</a>
-      <a href="pages/superadmin.html" class="credit">codé par B.Nel'si</a>
+      <a href="pages/superadmin.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
   <main class="main">
@@ -44,10 +44,7 @@
         <div class="f-section">
           <span class="f-label">Tes informations</span>
           <div class="field"><label>Nom complet</label><input type="text" id="oName" placeholder="Ex : Amina Diallo"></div>
-          <div class="field-row">
-            <div class="field"><label>Email</label><input type="email" id="oEmail" placeholder="ton@email.com"></div>
-            <div class="field"><label>Téléphone</label><input type="tel" id="oPhone" placeholder="+221 77 …"></div>
-          </div>
+          <div class="field"><label>Téléphone</label><input type="tel" id="oPhone" placeholder="+221 77 …"></div>
         </div>
         <div class="divider"></div>
         <div class="f-section">
@@ -89,6 +86,35 @@
         </div>
         <button class="btn-primary" id="submitOrderBtn">Confirmer la commande</button>
         <div class="success-box" id="orderSuccess"><div class="ico">✓</div><strong>Commande envoyée !</strong><p id="orderSuccessText"></p></div>
+        <div class="ticket-wrap" id="ticketWrap" style="display:none">
+          <div class="ticket" id="ticketCard">
+            <div class="ticket-head">
+              <div class="t-platform" id="tkPlatform">Market Place L1 GLAR</div>
+              <div class="t-sub">Ticket de commande</div>
+            </div>
+            <div class="ticket-row"><span class="k">N° commande</span><span class="v" id="tkId">—</span></div>
+            <div class="ticket-row"><span class="k">Date</span><span class="v" id="tkDate">—</span></div>
+            <div class="ticket-sep"></div>
+            <div class="ticket-row"><span class="k">Client</span><span class="v" id="tkName">—</span></div>
+            <div class="ticket-row"><span class="k">Téléphone</span><span class="v" id="tkPhone">—</span></div>
+            <div class="ticket-sep"></div>
+            <div class="ticket-row"><span class="k">Produit</span><span class="v" id="tkProduct">—</span></div>
+            <div class="ticket-row"><span class="k">Quantité</span><span class="v" id="tkQty">—</span></div>
+            <div class="ticket-row"><span class="k">Vendeur</span><span class="v" id="tkSeller">—</span></div>
+            <div class="ticket-row" id="tkNotesRow" style="display:none"><span class="k">Modifications</span><span class="v" id="tkNotes">—</span></div>
+            <div class="ticket-sep"></div>
+            <div class="ticket-row"><span class="k">Livraison</span><span class="v" id="tkDelivery">—</span></div>
+            <div class="ticket-row"><span class="k">Lieu</span><span class="v" id="tkPlace">—</span></div>
+            <div class="ticket-row" id="tkAddressRow" style="display:none"><span class="k">Adresse</span><span class="v" id="tkAddress">—</span></div>
+            <div class="ticket-sep"></div>
+            <div class="ticket-total"><span>Total</span><span id="tkTotal">—</span></div>
+            <div style="text-align:center"><span class="ticket-status">⏳ En attente de confirmation</span></div>
+            <div class="ticket-foot">Conserve ce ticket (téléchargement ou capture d'écran) comme preuve de ta commande.</div>
+          </div>
+          <div class="ticket-actions">
+            <button class="btn-ghost" id="downloadTicketBtn">⬇ Télécharger le ticket</button>
+          </div>
+        </div>
       </div>
     </div>
     <div id="page-reviews" class="page">
@@ -155,5 +181,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script><script src="js/db.js"></script><script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="js/email.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="js/main.js"></script>
 </body></html>

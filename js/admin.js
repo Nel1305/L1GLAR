@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('saveEditBtn').addEventListener('click', saveEditProduct);
   document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
   document.getElementById('pfToggle').addEventListener('click', function(){ this.classList.toggle('on'); });
+  document.getElementById('apTrackStock').addEventListener('click', function(){ this.classList.toggle('on'); document.getElementById('apStockFields').style.display = this.classList.contains('on') ? '' : 'none'; });
+  document.getElementById('editTrackStock').addEventListener('click', function(){ this.classList.toggle('on'); document.getElementById('editStockFields').style.display = this.classList.contains('on') ? '' : 'none'; });
+  document.getElementById('apShowStock').addEventListener('click', function(){ this.classList.toggle('on'); });
+  document.getElementById('editShowStock').addEventListener('click', function(){ this.classList.toggle('on'); });
   document.getElementById('orderStatusFilter').addEventListener('change', renderOrders);
   await renderDashboard();
   showLoader(false);
@@ -118,7 +122,7 @@ async function renderOrders() {
     <tr>
       <td style="color:var(--t3);font-size:.7rem">#${o.id}</td>
       <td><span style="font-weight:500">${o.buyerName}</span><div style="font-size:.68rem;color:var(--t3)">${formatDate(o.createdAt)}</div></td>
-      <td style="font-size:.72rem;color:var(--t2)">${o.buyerEmail}<br>${o.buyerPhone||''}</td>
+      <td style="font-size:.72rem;color:var(--t2)">📞 ${o.buyerPhone||'—'}</td>
       <td>${o.productName}</td>
       <td>${o.qty}</td>
       <td style="font-weight:500">${o.total.toLocaleString()} FCFA</td>
@@ -150,7 +154,7 @@ async function viewOrder(id) {
   document.getElementById('orderDetailSub').textContent = `Commande #${o.id} · ${formatDate(o.createdAt)}`;
   const row = (k,v) => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:.78rem"><span style="color:var(--t2)">${k}</span><span style="font-weight:500">${v}</span></div>`;
   document.getElementById('orderDetailContent').innerHTML =
-    row('Client', o.buyerName) + row('Email', o.buyerEmail||'—') + row('Téléphone', o.buyerPhone||'—') +
+    row('Client', o.buyerName) + row('Téléphone', o.buyerPhone||'—') +
     row('Produit', o.productName) + row('Quantité', o.qty) +
     row('Total', `<span style="color:var(--green);font-weight:600">${o.total.toLocaleString()} FCFA</span>`) +
     row('Statut', `<span class="status-badge status-${o.status}">${statusLabel(o.status)}</span>`) +
@@ -167,13 +171,14 @@ async function renderProductsTable() {
   const products = await dbGetProducts({ sellerId: currentUser.id });
   showLoader(false);
   const tbody = document.getElementById('productsBody');
-  if (!products.length) { tbody.innerHTML=`<tr><td colspan="7" class="table-empty">Aucun produit. <a style="color:var(--t1);cursor:pointer;text-decoration:underline" onclick="goPage('addproduct')">Ajouter →</a></td></tr>`; return; }
+  if (!products.length) { tbody.innerHTML=`<tr><td colspan="8" class="table-empty">Aucun produit. <a style="color:var(--t1);cursor:pointer;text-decoration:underline" onclick="goPage('addproduct')">Ajouter →</a></td></tr>`; return; }
   tbody.innerHTML = products.map(p=>`
     <tr>
       <td><div class="prod-thumb">${p.photo?`<img src="${p.photo}" alt="">`:p.emoji}</div></td>
       <td><div style="font-weight:500">${p.name}</div><div style="font-size:.7rem;color:var(--t2);margin-top:2px">${(p.desc||'').substring(0,50)}${(p.desc||'').length>50?'…':''}</div></td>
       <td>${catBadge(p.cat)}</td>
       <td style="font-weight:500">${p.price.toLocaleString()} FCFA</td>
+      <td>${p.trackStock ? (p.stock<=0?`<span class="stock-badge out" style="margin:0">Rupture</span>`:`<span style="font-weight:500">${p.stock}</span>`) : `<span style="color:var(--t4)">Illimité</span>`}</td>
       <td>${p.votes?`<div style="display:flex;align-items:center;gap:3px">${starsHtml(p.rating,'.74rem')}<span style="font-size:.68rem;color:var(--t3);margin-left:2px">(${p.votes})</span></div>`:`<span style="color:var(--t4)">—</span>`}</td>
       <td><button class="toggle ${p.available?'on':''}" onclick="toggleAvail(${p.id},${p.available})"></button></td>
       <td><div class="td-actions"><button class="icon-btn edit" onclick="openEditProduct(${p.id})" title="Modifier">✏</button><button class="icon-btn del" onclick="deleteProd(${p.id})" title="Supprimer">✕</button></div></td>
@@ -197,6 +202,10 @@ async function openEditProduct(id) {
   document.getElementById('editCat').value   = p.cat;
   document.getElementById('editPrice').value = p.price;
   document.getElementById('editEmoji').value = p.emoji||'';
+  document.getElementById('editStock').value = p.stock||0;
+  if (p.trackStock) { document.getElementById('editTrackStock').classList.add('on'); document.getElementById('editStockFields').style.display=''; }
+  else { document.getElementById('editTrackStock').classList.remove('on'); document.getElementById('editStockFields').style.display='none'; }
+  p.showStock ? document.getElementById('editShowStock').classList.add('on') : document.getElementById('editShowStock').classList.remove('on');
   editPhoto = null;
   const prev = document.getElementById('editPhotoPreview');
   if (p.photo) { prev.src=p.photo; prev.style.display='block'; document.getElementById('editPhotoPlaceholder').style.display='none'; }
@@ -213,12 +222,15 @@ async function deleteProd(id) {
 
 /* ── ADD PRODUCT ── */
 function resetAddForm() {
-  ['apName','apDesc','apPrice','apEmoji'].forEach(id=>document.getElementById(id).value='');
+  ['apName','apDesc','apPrice','apEmoji','apStock'].forEach(id=>document.getElementById(id).value='');
   const cats = getCategories();
   document.getElementById('apCat').value = cats.length ? cats[0].slug : 'food';
   document.getElementById('apPhotoPreview').style.display='none';
   document.getElementById('apPhotoPlaceholder').style.display='';
   document.getElementById('addSuccess').classList.remove('show');
+  document.getElementById('apTrackStock').classList.remove('on');
+  document.getElementById('apShowStock').classList.add('on');
+  document.getElementById('apStockFields').style.display='none';
   addPhoto=null;
 }
 
@@ -228,10 +240,14 @@ async function saveNewProduct() {
   const cat   = document.getElementById('apCat').value;
   const price = parseInt(document.getElementById('apPrice').value);
   const emoji = document.getElementById('apEmoji').value.trim()||'🛍️';
+  const trackStock = document.getElementById('apTrackStock').classList.contains('on');
+  const stock      = parseInt(document.getElementById('apStock').value)||0;
+  const showStock  = document.getElementById('apShowStock').classList.contains('on');
   if (!name) { showToast('Nom manquant','','var(--red)'); return; }
   if (!price||price<1) { showToast('Prix invalide','Le prix doit être supérieur à 0.','var(--red)'); return; }
+  if (trackStock && stock<0) { showToast('Stock invalide','','var(--red)'); return; }
   showLoader(true);
-  const r = await dbInsertProduct(currentUser.id, currentUser.name, { name, desc, cat, price, emoji, photo:addPhoto });
+  const r = await dbInsertProduct(currentUser.id, currentUser.name, { name, desc, cat, price, emoji, photo:addPhoto, trackStock, stock, showStock });
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
   document.getElementById('addSuccess').classList.add('show');
@@ -246,8 +262,12 @@ async function saveEditProduct() {
   const cat   = document.getElementById('editCat').value;
   const price = parseInt(document.getElementById('editPrice').value);
   const emoji = document.getElementById('editEmoji').value.trim();
+  const trackStock = document.getElementById('editTrackStock').classList.contains('on');
+  const stock      = parseInt(document.getElementById('editStock').value)||0;
+  const showStock  = document.getElementById('editShowStock').classList.contains('on');
   if (!name||!price) { showToast('Champs manquants','Nom et prix requis.','var(--red)'); return; }
-  const fields = { name, desc, cat, price, emoji };
+  if (trackStock && stock<0) { showToast('Stock invalide','','var(--red)'); return; }
+  const fields = { name, desc, cat, price, emoji, trackStock, stock, showStock };
   if (editPhoto) fields.photo = editPhoto;
   showLoader(true);
   const r = await dbUpdateProduct(id, fields);
