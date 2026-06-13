@@ -2,9 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mon espace · Market Place</title>
+  <title>Mon espace · N Market</title>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/theme.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -17,12 +18,13 @@
 </div>
 <div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
-    <div class="logo"><div class="logo-name" id="shopName">Mon commerce</div><div class="logo-sub">Market Place</div></div>
+    <div class="logo-row"><div class="logo"><div class="logo-name" id="shopName">Mon commerce</div><div class="logo-sub">N Market</div></div><button class="theme-toggle" title="Changer de thème">🌙</button></div>
     <nav class="nav">
       <span class="nav-label">Tableau de bord</span>
       <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Vue globale</button>
       <span class="nav-label">Ventes</span>
       <button class="nav-item" data-page="orders"><span class="icon">📦</span>Commandes</button>
+      <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours <span class="dot" id="returnsDot" style="display:none"></span></button>
       <button class="nav-item" data-page="products"><span class="icon">🛍</span>Mes produits</button>
       <button class="nav-item" data-page="addproduct"><span class="icon">+</span>Ajouter un produit</button>
       <span class="nav-label">Communication</span>
@@ -37,7 +39,7 @@
       </div>
       <button class="admin-btn" id="logoutBtn"><span class="icon">←</span>Se déconnecter</button>
       <a href="../index.html" class="admin-btn"><span class="icon">←</span>Retour au site</a>
-      <a href="superadmin.html" class="credit">codé par B.Nel'si</a>
+      <a href="superadmin.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
   <main class="main">
@@ -67,6 +69,11 @@
         <select class="select-sm" id="orderStatusFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select>
       </div>
       <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Client</th><th>Contact</th><th>Produit</th><th>Qté</th><th>Total</th><th>Livraison</th><th>Modification</th><th>Statut</th><th></th></tr></thead><tbody id="ordersBody"></tbody></table></div>
+    </div>
+
+    <div id="page-returns" class="page">
+      <div class="page-header"><div><div class="page-title">Retours</div><div class="page-desc">Demandes de retour signalées par tes clients</div></div></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Commande</th><th>Client</th><th>Produit</th><th>Motif</th><th>Statut</th><th>Date</th><th></th></tr></thead><tbody id="returnsBody"></tbody></table></div>
     </div>
 
     <div id="page-products" class="page">
@@ -134,6 +141,7 @@
           <div class="field-row"><div class="field"><label>Prénom</label><input type="text" id="pfFirst"></div><div class="field"><label>Nom</label><input type="text" id="pfLast"></div></div>
           <div class="field"><label>Email</label><input type="email" id="pfEmail"></div>
           <div class="field"><label>Téléphone</label><input type="tel" id="pfPhone"></div>
+          <div class="field"><label>Filière</label><select id="pfFiliere"></select></div>
         </div>
         <div class="divider"></div>
         <div class="f-section">
@@ -183,6 +191,21 @@
   <div class="modal"><button class="modal-x" data-close="orderDetailModal">✕</button>
     <div class="modal-title">Détail commande</div><div class="modal-sub" id="orderDetailSub"></div>
     <div id="orderDetailContent"></div>
+  </div>
+</div>
+
+<div class="overlay" id="returnModal">
+  <div class="modal"><button class="modal-x" data-close="returnModal">✕</button>
+    <div class="modal-title">Demande de retour</div><div class="modal-sub" id="returnModalSub"></div>
+    <div id="returnModalContent" style="margin-bottom:14px"></div>
+    <div class="modal-form">
+      <input type="hidden" id="returnId">
+      <div class="field"><label>Ta réponse au client</label><textarea id="returnResponse" placeholder="Ex : Pas de souci, ramène le produit et on te rembourse / on te l'échange."></textarea></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" id="acceptReturnBtn" style="flex:1">Accepter le retour</button>
+        <button class="btn-danger" id="rejectReturnBtn" style="flex:1">Refuser</button>
+      </div>
+    </div>
   </div>
 </div>
 

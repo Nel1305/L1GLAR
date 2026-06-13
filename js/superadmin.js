@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   MARKET PLACE L1 GLAR — superadmin.js
+   N MARKET — superadmin.js
 ═══════════════════════════════════════════════════ */
 
 let adminSession = null;
@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('allOrdersFilter').addEventListener('change', renderAllOrders);
   document.getElementById('addCatBtn').addEventListener('click', () => openCatModal());
   document.getElementById('saveCatBtn').addEventListener('click', saveCategory);
+  document.getElementById('addFiliereBtn').addEventListener('click', () => openFiliereModal());
+  document.getElementById('saveFiliereBtn').addEventListener('click', saveFiliere);
   document.getElementById('dashDate').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const now=new Date(), fd=new Date(now.getFullYear(),now.getMonth(),1), ld=new Date(now.getFullYear(),now.getMonth()+1,0), dd=new Date(now.getFullYear(),now.getMonth()+1,7);
   document.getElementById('genStart').value=fd.toISOString().split('T')[0];
@@ -47,6 +49,10 @@ function showApp() {
   showLoader(false);
   bindNav();
   loadCategories();
+  loadFilieres();
+  loadSettings().then(() => {
+    document.getElementById('genRate').value = getCommissionRate();
+  });
   renderDashboard();
 }
 
@@ -67,7 +73,10 @@ async function goPage(name) {
   if (name==='network')     await renderNetwork();
   if (name==='products')    await renderAllProducts();
   if (name==='catalog')     await renderCatalog();
+  if (name==='filieres')    await renderFilieres();
   if (name==='orders')      await renderAllOrders();
+  if (name==='returns')     await renderReturns();
+  if (name==='settings')    document.getElementById('globalRate').value = getCommissionRate();
   if (name==='chat' && !chatInited) {
     await initChat({ id: adminSession.id, name: adminSession.name||'Admin', firstName: 'Admin' }, true);
   }
@@ -498,6 +507,95 @@ async function deleteCategory(id, label) {
   await renderCatalog();
 }
 
+/* ── FILIÈRES ── */
+async function renderFilieres() {
+  showLoader(true);
+  const filieres = await dbGetFilieres();
+  showLoader(false);
+  _filieresCache = filieres.length ? filieres : _filieresCache;
+  const grid = document.getElementById('filieresGrid');
+  if (!filieres.length) { grid.innerHTML = '<div class="table-empty">Aucune filière pour le moment. Clique sur « + Ajouter une filière ».</div>'; return; }
+  grid.innerHTML = filieres.map(f => `
+    <div class="cat-card">
+      <div class="cat-emoji" style="background:var(--violet-dim)">🎓</div>
+      <div class="cat-info">
+        <div class="cat-name">${f.label}</div>
+        <div class="cat-slug">${f.slug}</div>
+      </div>
+      <div class="cat-actions">
+        <button class="icon-btn edit" onclick="openFiliereModal(${f.id})" title="Modifier">✏</button>
+        <button class="icon-btn del" onclick="deleteFiliere(${f.id},'${f.label.replace(/'/g,"\\'")}')" title="Supprimer">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function openFiliereModal(id) {
+  document.getElementById('filiereId').value = id || '';
+  if (id) {
+    const f = getFilieres().find(x=>x.id===id);
+    document.getElementById('filiereModalTitle').textContent = 'Modifier la filière';
+    document.getElementById('filiereLabel').value = f?.label||'';
+    document.getElementById('filiereSlug').value = f?.slug||'';
+  } else {
+    document.getElementById('filiereModalTitle').textContent = 'Ajouter une filière';
+    document.getElementById('filiereLabel').value = '';
+    document.getElementById('filiereSlug').value = '';
+  }
+  openModal('filiereModal');
+}
+
+async function saveFiliere() {
+  const id    = document.getElementById('filiereId').value;
+  const label = document.getElementById('filiereLabel').value.trim();
+  let   slug  = document.getElementById('filiereSlug').value.trim();
+  if (!label) { showToast('Nom manquant','Indique un nom pour la filière.','var(--red)'); return; }
+  if (!slug) slug = slugify(label);
+  slug = slugify(slug);
+  if (!slug) { showToast('Identifiant invalide','','var(--red)'); return; }
+
+  showLoader(true);
+  let r;
+  if (id) r = await dbUpdateFiliere(parseInt(id), { label, slug });
+  else    r = await dbInsertFiliere({ label, slug, sortOrder: getFilieres().length });
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error.includes('duplicate')||r.error.includes('unique')?'Cet identifiant existe déjà.':r.error, 'var(--red)'); return; }
+  closeModal('filiereModal');
+  showToast(id?'Filière modifiée':'Filière ajoutée','','var(--green)');
+  await loadFilieres();
+  await renderFilieres();
+}
+
+async function deleteFiliere(id, label) {
+  if (!confirm(`Supprimer la filière « ${label} » ?`)) return;
+  showLoader(true);
+  const r = await dbDeleteFiliere(id);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  showToast('Filière supprimée','','var(--red)');
+  await loadFilieres();
+  await renderFilieres();
+}
+
+/* ── RETOURS / LITIGES ── */
+async function renderReturns() {
+  showLoader(true);
+  const [returns, users] = await Promise.all([dbGetReturns(), dbGetAllUsers()]);
+  showLoader(false);
+  const tbody = document.getElementById('returnsBody');
+  if (!returns.length) { tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Aucune demande de retour</td></tr>`; return; }
+  const sellerName = id => { const u = users.find(x=>x.id===id); return u ? u.name : '—'; };
+  tbody.innerHTML = returns.map(r => `
+    <tr>
+      <td style="color:var(--t3);font-size:.7rem">#${r.orderId}</td>
+      <td><span style="font-weight:500">${r.buyerName||'—'}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${r.buyerPhone||'—'}</div></td>
+      <td style="color:var(--t2)">${sellerName(r.sellerId)}</td>
+      <td>${r.productName||'—'}</td>
+      <td style="max-width:200px;font-size:.78rem">${r.reason}</td>
+      <td><span class="status-badge ${r.status==='accepted'?'status-done':r.status==='rejected'?'status-cancel':'status-new'}" style="font-size:.65rem">${r.status==='accepted'?'Acceptée':r.status==='rejected'?'Rejetée':'En attente'}</span></td>
+      <td style="font-size:.72rem;color:var(--t3)">${formatDate(r.createdAt)}</td>
+    </tr>`).join('');
+}
+
 /* ── ALL ORDERS ── */
 async function renderAllOrders() {
   showLoader(true); const f=document.getElementById('allOrdersFilter').value; let orders=await dbGetOrders(); showLoader(false);
@@ -508,10 +606,16 @@ async function renderAllOrders() {
 
 /* ── SETTINGS ── */
 async function saveSettings() {
+  const rate=parseFloat(document.getElementById('globalRate').value);
+  if (isNaN(rate)||rate<0||rate>100) { showToast('Taux invalide','Entre 0 et 100.','var(--red)'); return; }
+  const r1 = await setSetting('commission_rate', rate);
+  if (r1.error) { showToast('Erreur', r1.error, 'var(--red)'); return; }
+  document.getElementById('genRate').value = rate;
+
   const pass=document.getElementById('newAdminPass').value;
   if(pass&&pass.length<6){showToast('Trop court','Min. 6 caractères.','var(--red)');return;}
   if(pass){const hash=btoa(unescape(encodeURIComponent(pass)));await db.from('admins').update({password:hash}).eq('id',adminSession.id);document.getElementById('newAdminPass').value='';}
-  showToast('Sauvegardé','','var(--green)');
+  showToast('Sauvegardé','Taux de commission : '+rate+'%','var(--green)');
 }
 
 /* ── HELPERS ── */

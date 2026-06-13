@@ -2,9 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Super Admin · Market Place</title>
+  <title>Super Admin · N Market</title>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/theme.js"></script>
   <link rel="stylesheet" href="../css/superadmin.css">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 </head>
@@ -13,7 +14,7 @@
 
 <div id="loginScreen" style="display:none">
   <div class="login-box">
-    <div class="login-logo"><div style="font-size:1.5rem;margin-bottom:8px">◆</div><div style="font-size:.98rem;font-weight:600">Super Admin</div><div style="font-size:.7rem;color:var(--t3);margin-top:3px">Market Place L1 GLAR</div></div>
+    <div class="login-logo"><div style="font-size:1.5rem;margin-bottom:8px">◆</div><div style="font-size:.98rem;font-weight:600">Super Admin</div><div style="font-size:.7rem;color:var(--t3);margin-top:3px">N Market</div></div>
     <div class="field"><label>Email admin</label><input type="email" id="aEmail" placeholder="admin@glar.com"></div>
     <div class="field"><label>Mot de passe</label><input type="password" id="aPass" placeholder="••••••••"></div>
     <button class="btn-primary" id="adminLoginBtn">Se connecter</button>
@@ -23,7 +24,7 @@
 
 <div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
-    <div class="logo"><div class="logo-name">Super Admin</div><div class="logo-sub">Market Place</div></div>
+    <div class="logo-row"><div class="logo"><div class="logo-name">Super Admin</div><div class="logo-sub">N Market</div></div><button class="theme-toggle" title="Changer de thème">🌙</button></div>
     <nav class="nav">
       <span class="nav-label">Vue globale</span>
       <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Tableau de bord</button>
@@ -35,7 +36,9 @@
       <button class="nav-item" data-page="network"><span class="icon">🔗</span>Réseau vendeurs</button>
       <button class="nav-item" data-page="products"><span class="icon">🛍</span>Tous les produits</button>
       <button class="nav-item" data-page="catalog"><span class="icon">🏷️</span>Classes du catalogue</button>
+      <button class="nav-item" data-page="filieres"><span class="icon">🎓</span>Filières</button>
       <button class="nav-item" data-page="orders"><span class="icon">📦</span>Toutes les commandes</button>
+      <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours / Litiges</button>
       <span class="nav-label">Communication</span>
       <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="adminChatDot" style="display:none"></span></button>
       <span class="nav-label">Paramètres</span>
@@ -110,6 +113,16 @@
       <div class="cat-grid" id="catalogGrid"></div>
     </div>
 
+    <div id="page-filieres" class="page">
+      <div class="page-header"><div><div class="page-title">Filières</div><div class="page-desc">Gère la liste des filières affichées aux vendeurs lors de l'inscription</div></div><button class="btn-primary sm" id="addFiliereBtn">+ Ajouter une filière</button></div>
+      <div class="cat-grid" id="filieresGrid"></div>
+    </div>
+
+    <div id="page-returns" class="page">
+      <div class="page-header"><div><div class="page-title">Retours / Litiges</div><div class="page-desc">Demandes de retour signalées par les clients</div></div></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Commande</th><th>Client</th><th>Vendeur</th><th>Produit</th><th>Motif</th><th>Statut</th><th>Date</th></tr></thead><tbody id="returnsBody"></tbody></table></div>
+    </div>
+
     <div id="page-orders" class="page">
       <div class="page-header"><div><div class="page-title">Toutes les commandes</div><div class="page-desc">Vue globale</div></div><select class="select-sm" id="allOrdersFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select></div>
       <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Client</th><th>Produit</th><th>Vendeur</th><th>Total</th><th>Livraison</th><th>Statut</th><th>Date</th></tr></thead><tbody id="allOrdersBody"></tbody></table></div>
@@ -152,6 +165,18 @@
       </div>
       <div class="field"><label>Identifiant technique (slug)</label><input type="text" id="catSlug" placeholder="ex : fournitures"><div class="hint">Lettres minuscules, chiffres et tirets uniquement. Généré automatiquement si laissé vide.</div></div>
       <button class="btn-primary" id="saveCatBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="filiereModal">
+  <div class="modal"><button class="modal-x" data-close="filiereModal">✕</button>
+    <div class="modal-title" id="filiereModalTitle">Ajouter une filière</div><div class="modal-sub">Affichée lors de l'inscription des vendeurs</div>
+    <div class="modal-form">
+      <input type="hidden" id="filiereId">
+      <div class="field"><label>Nom affiché</label><input type="text" id="filiereLabel" placeholder="Ex : L1 GLAR"></div>
+      <div class="field"><label>Identifiant technique (slug)</label><input type="text" id="filiereSlug" placeholder="ex : l1-glar"><div class="hint">Lettres minuscules, chiffres et tirets uniquement. Généré automatiquement si laissé vide.</div></div>
+      <button class="btn-primary" id="saveFiliereBtn">Enregistrer</button>
     </div>
   </div>
 </div>

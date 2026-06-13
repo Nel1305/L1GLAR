@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   MARKET PLACE L1 GLAR — admin.js  (espace vendeur)
+   N MARKET — admin.js  (espace vendeur)
 ═══════════════════════════════════════════════════ */
 
 let currentUser  = null;
@@ -17,7 +17,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('userAvatar').textContent  = currentUser.firstName[0].toUpperCase();
   document.getElementById('userName').textContent    = currentUser.name;
   await loadCategories();
+  await loadFilieres();
   populateCategorySelects();
+  populateFiliereSelect();
   bindNav();
   document.getElementById('logoutBtn').addEventListener('click', () => { clearSession(); window.location.href='../index.html'; });
   document.getElementById('apPhoto').addEventListener('change', function() { handlePhoto(this,'apPhotoPreview','apPhotoPlaceholder', d=>{ addPhoto=d; }); });
@@ -25,6 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('saveProductBtn').addEventListener('click', saveNewProduct);
   document.getElementById('saveEditBtn').addEventListener('click', saveEditProduct);
   document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+  document.getElementById('acceptReturnBtn').addEventListener('click', () => respondReturn('accepted'));
+  document.getElementById('rejectReturnBtn').addEventListener('click', () => respondReturn('rejected'));
   document.getElementById('pfToggle').addEventListener('click', function(){ this.classList.toggle('on'); });
   document.getElementById('apTrackStock').addEventListener('click', function(){ this.classList.toggle('on'); document.getElementById('apStockFields').style.display = this.classList.contains('on') ? '' : 'none'; });
   document.getElementById('editTrackStock').addEventListener('click', function(){ this.classList.toggle('on'); document.getElementById('editStockFields').style.display = this.classList.contains('on') ? '' : 'none'; });
@@ -32,14 +36,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('editShowStock').addEventListener('click', function(){ this.classList.toggle('on'); });
   document.getElementById('orderStatusFilter').addEventListener('change', renderOrders);
   await renderDashboard();
+  checkPendingReturns();
   showLoader(false);
 });
+
+/* ── RETOURS (notification globale) ── */
+async function checkPendingReturns() {
+  const returns = await dbGetReturns({ sellerId: currentUser.id });
+  document.getElementById('returnsDot').style.display = returns.some(r=>r.status==='pending') ? '' : 'none';
+}
 
 /* ── CATEGORIES ── */
 function populateCategorySelects() {
   const opts = getCategories().map(c => `<option value="${c.slug}">${c.emoji} ${c.label}</option>`).join('');
   document.getElementById('apCat').innerHTML  = opts;
   document.getElementById('editCat').innerHTML = opts;
+}
+
+/* ── FILIÈRES ── */
+function populateFiliereSelect() {
+  const opts = '<option value="">— Sélectionner —</option>' + getFilieres().map(f => `<option value="${f.slug}">${f.label}</option>`).join('');
+  document.getElementById('pfFiliere').innerHTML = opts;
+  document.getElementById('pfFiliere').value = currentUser.filiere || '';
 }
 
 /* ── NAV ── */
@@ -55,6 +73,7 @@ async function goPage(name) {
   document.getElementById('page-'+name).classList.add('active');
   if (name==='dashboard')  await renderDashboard();
   if (name==='orders')     await renderOrders();
+  if (name==='returns')    await renderReturnsPage();
   if (name==='products')   await renderProductsTable();
   if (name==='addproduct') resetAddForm();
   if (name==='profile')    loadProfile();
@@ -143,9 +162,61 @@ async function renderOrders() {
 }
 
 async function updateStatus(id, status) {
+  const orders = await dbGetOrders({ sellerId: currentUser.id });
+  const o = orders.find(x => x.id === id);
   await dbUpdateOrderStatus(id, status);
-  showToast('Statut mis à jour', status==='done'?'Commande livrée ✓':status==='cancel'?'Commande annulée':'En attente', status==='done'?'var(--green)':status==='cancel'?'var(--red)':null);
+  // Si la commande est annulée (et ne l'était pas déjà), on recrédite le stock du produit
+  if (o && status === 'cancel' && o.status !== 'cancel' && o.productId) {
+    await restockProduct(o.productId, o.qty);
+  }
+  showToast('Statut mis à jour', status==='done'?'Commande livrée ✓':status==='cancel'?'Commande annulée — stock recrédité':'En attente', status==='done'?'var(--green)':status==='cancel'?'var(--red)':null);
   await renderDashboard();
+}
+
+/* ── RETOURS / LITIGES ── */
+async function renderReturnsPage() {
+  showLoader(true);
+  const returns = await dbGetReturns({ sellerId: currentUser.id });
+  showLoader(false);
+  const tbody = document.getElementById('returnsBody');
+  if (!returns.length) { tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Aucune demande de retour pour le moment</td></tr>`; return; }
+  tbody.innerHTML = returns.map(r => `
+    <tr>
+      <td style="color:var(--t3);font-size:.7rem">#${r.orderId}</td>
+      <td><span style="font-weight:500">${r.buyerName||'—'}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${r.buyerPhone||'—'}</div></td>
+      <td>${r.productName||'—'}</td>
+      <td style="max-width:220px;font-size:.78rem">${r.reason}</td>
+      <td><span class="status-badge ${r.status==='accepted'?'status-done':r.status==='rejected'?'status-cancel':'status-new'}" style="font-size:.65rem">${r.status==='accepted'?'Acceptée':r.status==='rejected'?'Refusée':'En attente'}</span></td>
+      <td style="font-size:.72rem;color:var(--t3)">${formatDate(r.createdAt)}</td>
+      <td>${r.status==='pending'?`<button class="icon-btn edit" onclick="openReturnModal(${r.id})" title="Répondre">↩</button>`:`<span style="font-size:.7rem;color:var(--t3)">Traitée</span>`}</td>
+    </tr>`).join('');
+  const pendingCount = returns.filter(r=>r.status==='pending').length;
+  document.getElementById('returnsDot').style.display = pendingCount ? '' : 'none';
+}
+
+async function openReturnModal(id) {
+  const returns = await dbGetReturns({ sellerId: currentUser.id });
+  const r = returns.find(x=>x.id===id); if (!r) return;
+  document.getElementById('returnId').value = r.id;
+  document.getElementById('returnModalSub').textContent = `Commande #${r.orderId} · ${formatDate(r.createdAt)}`;
+  document.getElementById('returnModalContent').innerHTML = `
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Client :</strong> ${r.buyerName||'—'} · 📞 ${r.buyerPhone||'—'}</div>
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Produit :</strong> ${r.productName||'—'}</div>
+    <div style="background:var(--g1);border:1px solid var(--gb1);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;margin-top:8px">${r.reason}</div>`;
+  document.getElementById('returnResponse').value = '';
+  openModal('returnModal');
+}
+
+async function respondReturn(status) {
+  const id = parseInt(document.getElementById('returnId').value);
+  const response = document.getElementById('returnResponse').value.trim();
+  showLoader(true);
+  const r = await dbUpdateReturn(id, { status, sellerResponse: response });
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  closeModal('returnModal');
+  showToast(status==='accepted'?'Retour accepté':'Retour refusé','', status==='accepted'?'var(--green)':'var(--red)');
+  await renderReturnsPage();
 }
 
 async function viewOrder(id) {
@@ -161,6 +232,7 @@ async function viewOrder(id) {
     row('Date/heure souhaitées', formatDeliveryDateTime(o)) +
     row('Lieu de livraison', deliveryTypeLabel(o.deliveryType)) +
     (o.deliveryType==='external' && o.deliveryAddress ? row('Adresse', o.deliveryAddress) : '') +
+    (o.deliveryType==='campus' && (o.buyerClasse||o.buyerFiliere) ? row('Classe / Filière', `${o.buyerClasse||'—'} · ${getFiliereLabel(o.buyerFiliere)||'—'}`) : '') +
     (o.notes?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Modification demandée</div><div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;border:1px solid var(--line)">${o.notes}</div></div>`:'');
   openModal('orderDetailModal');
 }
@@ -286,6 +358,7 @@ function loadProfile() {
   document.getElementById('pfPhone').value    = currentUser.phone||'';
   document.getElementById('pfShopName').value = currentUser.name||'';
   document.getElementById('pfBio').value      = currentUser.bio||'';
+  populateFiliereSelect();
   currentUser.shopOpen!==false ? document.getElementById('pfToggle').classList.add('on') : document.getElementById('pfToggle').classList.remove('on');
 }
 
@@ -298,10 +371,11 @@ async function saveProfile() {
   const bio      = document.getElementById('pfBio').value.trim();
   const pass     = document.getElementById('pfPass').value;
   const shopOpen = document.getElementById('pfToggle').classList.contains('on');
+  const filiere  = document.getElementById('pfFiliere').value;
   if (!first||!email) { showToast('Champs manquants','Prénom et email requis.','var(--red)'); return; }
   if (pass&&pass.length<6) { showToast('Mot de passe trop court','Min. 6 caractères.','var(--red)'); return; }
   const name   = shopName||(first+(last?' '+last[0]+'.':''));
-  const fields = { firstName:first, lastName:last, name, email, phone, bio, shopOpen };
+  const fields = { firstName:first, lastName:last, name, email, phone, bio, shopOpen, filiere };
   if (pass) fields.password = pass;
   showLoader(true);
   const r = await dbUpdateUser(currentUser.id, fields);

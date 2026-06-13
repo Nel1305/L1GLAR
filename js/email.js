@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   MARKET PLACE L1 GLAR — email.js
+   N MARKET — email.js
    Envoi d'emails via EmailJS
    → Confirmation de compte
    → Facture de commission avec numéro Wave

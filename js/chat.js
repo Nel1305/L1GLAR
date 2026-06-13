@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   MARKET PLACE L1 GLAR — chat.js
+   N MARKET — chat.js
    Canal général + conversations privées — AES-256 E2E
 ═══════════════════════════════════════════════════ */
 

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   MARKET PLACE L1 GLAR — config.js
+   N MARKET — config.js
    ► Remplis TOUTES les valeurs ci-dessous avant de déployer
 ═══════════════════════════════════════════════════════ */
 
@@ -19,6 +19,6 @@ const WAVE_NUMBER = '+221 77 597 71 14'; // ← Ton numéro Wave pour recevoir l
 const WAVE_NAME   = 'Nel\'si';           // ← Ton prénom affiché dans le mail
 
 /* ── 4. PLATEFORME ── */
-const PLATFORM_NAME       = 'Market Place L1 GLAR';
+const PLATFORM_NAME       = 'N Market';
 const PLATFORM_EMAIL      = 'ppbuabey@gmail.com';      // ← Email affiché dans les mails
-const COMMISSION_RATE_PCT = 2;                     // ← Taux de commission (%)
+const COMMISSION_RATE_PCT = 5;                     // ← Taux de commission (%)

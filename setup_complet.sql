@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
   is_blocked      boolean DEFAULT false,
   blocked_reason  text,
   billing_period  text DEFAULT 'monthly',
+  filiere         text,
   created_at      timestamptz DEFAULT now()
 );
 
@@ -51,6 +52,34 @@ VALUES
   ('drink', 'Boissons',   '🥤', '#5b8cff', 2),
   ('other', 'Autres',     '✨', '#9b6dff', 3)
 ON CONFLICT (slug) DO NOTHING;
+
+
+-- ════════════════════════════════════
+-- 2bis. FILIÈRES (gérées par le Super Admin)
+-- ════════════════════════════════════
+CREATE TABLE IF NOT EXISTS filieres (
+  id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  slug       text UNIQUE NOT NULL,
+  label      text NOT NULL,
+  sort_order integer DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+INSERT INTO filieres (slug, label, sort_order) VALUES
+  ('l1-glar', 'L1 GLAR', 1),
+  ('l2-glar', 'L2 GLAR', 2),
+  ('l3-glar', 'L3 GLAR', 3)
+ON CONFLICT (slug) DO NOTHING;
+
+
+-- ════════════════════════════════════
+-- 2ter. RÉGLAGES PLATEFORME (clé/valeur)
+-- ════════════════════════════════════
+CREATE TABLE IF NOT EXISTS settings (
+  key   text PRIMARY KEY,
+  value text
+);
+INSERT INTO settings (key, value) VALUES ('commission_rate', '5')
+ON CONFLICT (key) DO NOTHING;
 
 
 -- ════════════════════════════════════
@@ -100,6 +129,9 @@ CREATE TABLE IF NOT EXISTS orders (
   -- Lieu de livraison
   delivery_type    text DEFAULT 'campus',        -- 'campus' | 'external'
   delivery_address text,                         -- adresse fournie par le client si 'external'
+  buyer_classe     text,                         -- classe du destinataire (livraison campus)
+  buyer_filiere    text,                         -- filière du destinataire (livraison campus)
+  order_group      text,                         -- regroupe les commandes issues d'un même panier
 
   created_at       timestamptz DEFAULT now()
 );
@@ -194,6 +226,24 @@ CREATE TABLE IF NOT EXISTS seller_connections (
 
 
 -- ════════════════════════════════════
+-- 8bis. RETOURS / LITIGES
+-- ════════════════════════════════════
+CREATE TABLE IF NOT EXISTS returns (
+  id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  order_id        bigint REFERENCES orders(id) ON DELETE CASCADE,
+  seller_id       bigint REFERENCES users(id) ON DELETE CASCADE,
+  buyer_name      text,
+  buyer_phone     text,
+  product_name    text,
+  reason          text NOT NULL,
+  status          text DEFAULT 'pending',
+  seller_response text,
+  created_at      timestamptz DEFAULT now(),
+  responded_at    timestamptz
+);
+
+
+-- ════════════════════════════════════
 -- 9. SÉCURITÉ (RLS) — accès ouvert via la clé "anon"
 --    (l'app gère l'authentification elle-même côté JS)
 -- ════════════════════════════════════
@@ -201,7 +251,7 @@ DO $$
 DECLARE
   tbl text;
 BEGIN
-  FOREACH tbl IN ARRAY ARRAY['users','products','orders','reviews','admins','commissions','messages','seller_connections','categories']
+  FOREACH tbl IN ARRAY ARRAY['users','products','orders','reviews','admins','commissions','messages','seller_connections','categories','filieres','settings','returns']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
     EXECUTE format('DROP POLICY IF EXISTS "public_all" ON %I', tbl);
@@ -221,4 +271,7 @@ SELECT 'reviews',     count(*) FROM reviews     UNION ALL
 SELECT 'commissions', count(*) FROM commissions UNION ALL
 SELECT 'admins',      count(*) FROM admins      UNION ALL
 SELECT 'messages',    count(*) FROM messages    UNION ALL
-SELECT 'seller_connections', count(*) FROM seller_connections;
+SELECT 'seller_connections', count(*) FROM seller_connections UNION ALL
+SELECT 'filieres', count(*) FROM filieres UNION ALL
+SELECT 'settings', count(*) FROM settings UNION ALL
+SELECT 'returns', count(*) FROM returns;

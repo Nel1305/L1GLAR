@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   MARKET PLACE L1 GLAR — crypto.js
+   N MARKET — crypto.js
    Chiffrement AES-256-GCM bout-en-bout (Web Crypto)
    Messages chiffrés AVANT envoi à Supabase
 ═══════════════════════════════════════════════════ */

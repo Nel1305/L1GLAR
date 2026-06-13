@@ -2,21 +2,26 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Market Place</title>
+  <title>N Market</title>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<script src="js/theme.js"></script>
 </head>
 <body>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
 <div class="app">
   <aside class="sidebar">
-    <div class="logo"><div class="logo-name">Market Place</div><div class="logo-sub">N Market · Université</div></div>
+    <div class="logo-row">
+      <div class="logo"><div class="logo-name">N Market</div><div class="logo-sub">Université</div></div>
+      <button class="theme-toggle" title="Changer de thème">🌙</button>
+    </div>
     <nav class="nav">
       <span class="nav-label">Catalogue</span>
       <button class="nav-item active" data-page="products"><span class="icon">🛍</span>Produits</button>
-      <button class="nav-item" data-page="order"><span class="icon">📦</span>Commander</button>
+      <button class="nav-item" data-page="cart"><span class="icon">🛒</span>Panier <span class="cart-count" id="cartCount" style="display:none">0</span></button>
       <button class="nav-item" data-page="reviews"><span class="icon">⭐</span>Avis</button>
+      <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours</button>
     </nav>
     <div class="sidebar-footer">
       <div id="userPill" class="user-pill">
@@ -24,7 +29,7 @@
         <div class="user-info"><div class="user-name" id="userName">Se connecter</div><div class="user-role" id="userRole">Visiteur</div></div>
       </div>
       <a href="pages/admin.html" class="admin-btn highlight" id="adminBtn" style="display:none"><span class="icon">⚙</span>Mon espace vendeur</a>
-      <a href="pages/superadmin.html" class="credit">codé par B.Nel'si</a>
+      <a href="pages/superadmin.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
   <main class="main">
@@ -38,81 +43,87 @@
       </div>
       <div class="grid" id="productsGrid"></div>
     </div>
-    <div id="page-order" class="page">
-      <div class="page-header"><div><div class="page-title">Commander</div><div class="page-desc">Tu recevras une confirmation par email</div></div></div>
-      <div class="form-wrap">
-        <div class="f-section">
-          <span class="f-label">Tes informations</span>
-          <div class="field"><label>Nom complet</label><input type="text" id="oName" placeholder="Ex : Amina Diallo"></div>
-          <div class="field"><label>Téléphone</label><input type="tel" id="oPhone" placeholder="+221 77 …"></div>
-        </div>
-        <div class="divider"></div>
-        <div class="f-section">
-          <span class="f-label">Ta commande</span>
-          <div class="field"><label>Produit</label><select id="oProduct"><option value="">Choisir…</option></select></div>
-          <div class="field"><label>Quantité</label>
-            <div class="qty-row">
-              <button class="qty-btn" id="qtyMinus">−</button>
-              <input class="qty-num" id="oQty" type="number" value="1" min="1">
-              <button class="qty-btn" id="qtyPlus">+</button>
+    <div id="page-cart" class="page">
+      <div class="page-header"><div><div class="page-title">Panier</div><div class="page-desc">Vérifie ta commande avant de valider</div></div></div>
+
+      <div id="cartEmpty" class="empty" style="display:none">Ton panier est vide. Ajoute des produits depuis le catalogue 🛍</div>
+
+      <div id="cartContent">
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-summary"><span>Total</span><span id="cartTotal">0 FCFA</span></div>
+
+        <div class="form-wrap">
+          <div class="f-section">
+            <span class="f-label">Tes informations</span>
+            <div class="field"><label>Nom complet</label><input type="text" id="oName" placeholder="Ex : Amina Diallo"></div>
+            <div class="field"><label>Téléphone</label><input type="tel" id="oPhone" placeholder="+221 77 …"></div>
+          </div>
+          <div class="divider"></div>
+          <div class="f-section">
+            <span class="f-label">Modifications / Ajouts (optionnel)</span>
+            <div class="field"><textarea id="oNotes" placeholder="Ex : sans sucre pour la crêpe, sauce à part…"></textarea><div class="hint">Précise tout ce que tu veux changer ou ajouter, pour n'importe quel article du panier.</div></div>
+          </div>
+          <div class="divider"></div>
+          <div class="f-section">
+            <span class="f-label">Livraison</span>
+            <div class="field-row">
+              <div class="field"><label>Date souhaitée</label><input type="date" id="oDate"></div>
+              <div class="field"><label>Heure souhaitée</label><input type="time" id="oTime"></div>
+            </div>
+            <div class="field"><label>Lieu de livraison</label>
+              <div class="delivery-type-row">
+                <label class="delivery-type-opt active" data-val="campus">
+                  <input type="radio" name="deliveryType" value="campus" checked>
+                  <span class="dt-icon">🏫</span><span>Sur le campus</span>
+                </label>
+                <label class="delivery-type-opt" data-val="external">
+                  <input type="radio" name="deliveryType" value="external">
+                  <span class="dt-icon">📍</span><span>Hors campus</span>
+                </label>
+              </div>
+            </div>
+            <div class="field" id="oAddressField" style="display:none">
+              <label>Adresse de livraison</label>
+              <textarea id="oAddress" placeholder="Ex : Cité Keur Gorgui, villa 12, derrière la pharmacie…"></textarea>
+              <div class="hint">Indique une adresse précise pour faciliter la livraison.</div>
+            </div>
+            <div id="oCampusFields">
+              <div class="field-row">
+                <div class="field"><label>Classe</label><input type="text" id="oClasse" placeholder="Ex : L1, Terminale S2…"></div>
+                <div class="field"><label>Filière</label><select id="oFiliere"><option value="">— Sélectionner —</option></select></div>
+              </div>
+              <div class="hint" style="margin-top:-8px;margin-bottom:14px">Pour que le vendeur sache où te livrer sur le campus.</div>
             </div>
           </div>
-          <div class="field"><label>Modifications / Ajouts</label><textarea id="oNotes" placeholder="Ex : sans sucre, sauce à part…"></textarea><div class="hint">Précise tout ce que tu veux changer ou ajouter.</div></div>
-        </div>
-        <div class="divider"></div>
-        <div class="f-section">
-          <span class="f-label">Livraison</span>
-          <div class="field-row">
-            <div class="field"><label>Date souhaitée</label><input type="date" id="oDate"></div>
-            <div class="field"><label>Heure souhaitée</label><input type="time" id="oTime"></div>
-          </div>
-          <div class="field"><label>Lieu de livraison</label>
-            <div class="delivery-type-row">
-              <label class="delivery-type-opt active" data-val="campus">
-                <input type="radio" name="deliveryType" value="campus" checked>
-                <span class="dt-icon">🏫</span><span>Sur le campus</span>
-              </label>
-              <label class="delivery-type-opt" data-val="external">
-                <input type="radio" name="deliveryType" value="external">
-                <span class="dt-icon">📍</span><span>Hors campus</span>
-              </label>
+          <button class="btn-primary" id="submitOrderBtn">Valider la commande</button>
+          <div class="success-box" id="orderSuccess"><div class="ico">✓</div><strong>Commande envoyée !</strong><p id="orderSuccessText"></p></div>
+          <div class="ticket-wrap" id="ticketWrap" style="display:none">
+            <div class="ticket" id="ticketCard">
+              <div class="ticket-head">
+                <div class="t-platform" id="tkPlatform">N Market</div>
+                <div class="t-sub">Ticket de commande</div>
+              </div>
+              <div class="ticket-row"><span class="k">N° commande</span><span class="v" id="tkId">—</span></div>
+              <div class="ticket-row"><span class="k">Date</span><span class="v" id="tkDate">—</span></div>
+              <div class="ticket-sep"></div>
+              <div class="ticket-row"><span class="k">Client</span><span class="v" id="tkName">—</span></div>
+              <div class="ticket-row"><span class="k">Téléphone</span><span class="v" id="tkPhone">—</span></div>
+              <div class="ticket-row" id="tkClasseRow" style="display:none"><span class="k">Classe / Filière</span><span class="v" id="tkClasse">—</span></div>
+              <div class="ticket-sep"></div>
+              <div id="tkItems"></div>
+              <div class="ticket-row" id="tkNotesRow" style="display:none"><span class="k">Modifications</span><span class="v" id="tkNotes">—</span></div>
+              <div class="ticket-sep"></div>
+              <div class="ticket-row"><span class="k">Livraison</span><span class="v" id="tkDelivery">—</span></div>
+              <div class="ticket-row"><span class="k">Lieu</span><span class="v" id="tkPlace">—</span></div>
+              <div class="ticket-row" id="tkAddressRow" style="display:none"><span class="k">Adresse</span><span class="v" id="tkAddress">—</span></div>
+              <div class="ticket-sep"></div>
+              <div class="ticket-total"><span>Total</span><span id="tkTotal">—</span></div>
+              <div style="text-align:center"><span class="ticket-status">⏳ En attente de confirmation</span></div>
+              <div class="ticket-foot">Conserve ce ticket (téléchargement ou capture d'écran) comme preuve de ta commande. Le numéro de commande te permettra de signaler un retour si besoin.</div>
             </div>
-          </div>
-          <div class="field" id="oAddressField" style="display:none">
-            <label>Adresse de livraison</label>
-            <textarea id="oAddress" placeholder="Ex : Cité Keur Gorgui, villa 12, derrière la pharmacie…"></textarea>
-            <div class="hint">Indique une adresse précise pour faciliter la livraison.</div>
-          </div>
-        </div>
-        <button class="btn-primary" id="submitOrderBtn">Confirmer la commande</button>
-        <div class="success-box" id="orderSuccess"><div class="ico">✓</div><strong>Commande envoyée !</strong><p id="orderSuccessText"></p></div>
-        <div class="ticket-wrap" id="ticketWrap" style="display:none">
-          <div class="ticket" id="ticketCard">
-            <div class="ticket-head">
-              <div class="t-platform" id="tkPlatform">Market Place L1 GLAR</div>
-              <div class="t-sub">Ticket de commande</div>
+            <div class="ticket-actions">
+              <button class="btn-ghost" id="downloadTicketBtn">⬇ Télécharger le ticket</button>
             </div>
-            <div class="ticket-row"><span class="k">N° commande</span><span class="v" id="tkId">—</span></div>
-            <div class="ticket-row"><span class="k">Date</span><span class="v" id="tkDate">—</span></div>
-            <div class="ticket-sep"></div>
-            <div class="ticket-row"><span class="k">Client</span><span class="v" id="tkName">—</span></div>
-            <div class="ticket-row"><span class="k">Téléphone</span><span class="v" id="tkPhone">—</span></div>
-            <div class="ticket-sep"></div>
-            <div class="ticket-row"><span class="k">Produit</span><span class="v" id="tkProduct">—</span></div>
-            <div class="ticket-row"><span class="k">Quantité</span><span class="v" id="tkQty">—</span></div>
-            <div class="ticket-row"><span class="k">Vendeur</span><span class="v" id="tkSeller">—</span></div>
-            <div class="ticket-row" id="tkNotesRow" style="display:none"><span class="k">Modifications</span><span class="v" id="tkNotes">—</span></div>
-            <div class="ticket-sep"></div>
-            <div class="ticket-row"><span class="k">Livraison</span><span class="v" id="tkDelivery">—</span></div>
-            <div class="ticket-row"><span class="k">Lieu</span><span class="v" id="tkPlace">—</span></div>
-            <div class="ticket-row" id="tkAddressRow" style="display:none"><span class="k">Adresse</span><span class="v" id="tkAddress">—</span></div>
-            <div class="ticket-sep"></div>
-            <div class="ticket-total"><span>Total</span><span id="tkTotal">—</span></div>
-            <div style="text-align:center"><span class="ticket-status">⏳ En attente de confirmation</span></div>
-            <div class="ticket-foot">Conserve ce ticket (téléchargement ou capture d'écran) comme preuve de ta commande.</div>
-          </div>
-          <div class="ticket-actions">
-            <button class="btn-ghost" id="downloadTicketBtn">⬇ Télécharger le ticket</button>
           </div>
         </div>
       </div>
@@ -121,6 +132,25 @@
       <div class="page-header"><div><div class="page-title">Avis</div><div class="page-desc">Notes et retours de la promo</div></div></div>
       <button class="add-btn" id="openReviewBtn">+ Laisser un avis</button>
       <div class="reviews-list" id="reviewsList"></div>
+    </div>
+    <div id="page-returns" class="page">
+      <div class="page-header"><div><div class="page-title">Retours</div><div class="page-desc">Un article reçu n'est pas conforme ? Signale-le au vendeur</div></div></div>
+      <div class="form-wrap">
+        <div class="f-section">
+          <span class="f-label">Identification de la commande</span>
+          <div class="field"><label>Numéro de commande</label><input type="text" id="rtOrderId" placeholder="Ex : 42 (visible sur ton ticket)"></div>
+          <div class="field"><label>Ton nom</label><input type="text" id="rtName" placeholder="Comme indiqué lors de la commande"></div>
+          <div class="field"><label>Ton téléphone</label><input type="tel" id="rtPhone" placeholder="+221 77 …"></div>
+          <div class="hint">Ces informations doivent correspondre à celles de la commande pour vérifier que c'est bien toi.</div>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section">
+          <span class="f-label">Motif du retour</span>
+          <div class="field"><textarea id="rtReason" placeholder="Ex : le produit reçu ne correspond pas à la description, l'article était abîmé…"></textarea></div>
+        </div>
+        <button class="btn-primary" id="submitReturnBtn">Envoyer la demande</button>
+        <div class="success-box" id="returnSuccess"><div class="ico">✓</div><strong>Demande envoyée !</strong><p>Le vendeur a reçu ton message et te recontactera.</p></div>
+      </div>
     </div>
   </main>
 </div>
@@ -139,7 +169,7 @@
       </div>
     </div>
     <div id="viewRegister" style="display:none">
-      <div class="modal-title">Créer un compte</div><div class="modal-sub">Rejoins Market Place L1 GLAR</div>
+      <div class="modal-title">Créer un compte</div><div class="modal-sub">Rejoins N Market</div>
       <div class="modal-form">
         <div class="modal-grid">
           <div class="field"><label>Prénom</label><input type="text" id="rFirst" placeholder="Amina"></div>
@@ -147,6 +177,7 @@
         </div>
         <div class="field"><label>Email</label><input type="email" id="rEmail" placeholder="ton@email.com"></div>
         <div class="field"><label>Téléphone</label><input type="tel" id="rPhone" placeholder="+221 77 …"></div>
+        <div class="field"><label>Filière</label><select id="rFiliere"><option value="">— Sélectionner —</option></select></div>
         <div class="field"><label>Mot de passe</label><input type="password" id="rPass" placeholder="Min. 6 caractères"></div>
         <button class="btn-primary" id="registerBtn">Créer mon compte</button>
         <div class="modal-link">Déjà inscrit ? <a id="goLogin">Se connecter</a></div>
@@ -174,6 +205,13 @@
       <div class="field"><label>Commentaire</label><textarea id="rvText" placeholder="C'était délicieux…"></textarea></div>
       <button class="btn-primary" id="submitReviewBtn">Publier l'avis</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="productDetailModal">
+  <div class="modal modal-lg">
+    <button class="modal-x" data-close="productDetailModal">✕</button>
+    <div id="pdContent"></div>
   </div>
 </div>
 

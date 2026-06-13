@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   MARKET PLACE L1 GLAR — db.js  (Supabase)
+   N MARKET — db.js  (Supabase)
 ═══════════════════════════════════════════════════ */
 
 const { createClient } = supabase;
@@ -11,12 +11,12 @@ function setSession(u)    { localStorage.setItem('glar_session', JSON.stringify(
 function clearSession()   { localStorage.removeItem('glar_session'); }
 
 /* ── USERS ── */
-async function dbCreateUser(first, last, email, phone, pass) {
+async function dbCreateUser(first, last, email, phone, pass, filiere) {
   const { data: ex } = await db.from('users').select('id').eq('email', email).maybeSingle();
   if (ex) return { error: 'Cet email est déjà utilisé.' };
   const name = first + (last ? ' ' + last[0].toUpperCase() + '.' : '');
   const hash = btoa(unescape(encodeURIComponent(pass)));
-  const { data, error } = await db.from('users').insert({ first_name:first, last_name:last, name, email, phone, password:hash }).select().single();
+  const { data, error } = await db.from('users').insert({ first_name:first, last_name:last, name, email, phone, password:hash, filiere:filiere||null }).select().single();
   if (error) return { error: error.message };
   return { user: nu(data) };
 }
@@ -37,6 +37,7 @@ async function dbUpdateUser(id, f) {
   if (f.phone     !== undefined) p.phone       = f.phone;
   if (f.bio       !== undefined) p.bio         = f.bio;
   if (f.shopOpen  !== undefined) p.shop_open   = f.shopOpen;
+  if (f.filiere   !== undefined) p.filiere     = f.filiere;
   if (f.password)                p.password    = btoa(unescape(encodeURIComponent(f.password)));
   const { data, error } = await db.from('users').update(p).eq('id', id).select().single();
   if (error) return { error: error.message };
@@ -48,7 +49,7 @@ async function dbGetAllUsers() {
   return (data || []).map(nu);
 }
 function nu(r) {
-  return { id:r.id, firstName:r.first_name, lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, isBlocked:r.is_blocked||false, blockedReason:r.blocked_reason||'', billingPeriod:r.billing_period||'monthly', createdAt:r.created_at };
+  return { id:r.id, firstName:r.first_name, lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, isBlocked:r.is_blocked||false, blockedReason:r.blocked_reason||'', billingPeriod:r.billing_period||'monthly', filiere:r.filiere||'', createdAt:r.created_at };
 }
 
 /* ── PRODUCTS ── */
@@ -147,6 +148,63 @@ async function loadCategories() {
 function getCategories() { return _categoriesCache; }
 function getCategory(slug) { return _categoriesCache.find(c => c.slug === slug); }
 
+/* ── FILIÈRES (gérées par le Super Admin) ── */
+async function dbGetFilieres() {
+  const { data, error } = await db.from('filieres').select('*').order('sort_order', { ascending: true }).order('id', { ascending: true });
+  if (error) { console.error(error); return []; }
+  return (data || []).map(nf);
+}
+async function dbInsertFiliere(f) {
+  const { data, error } = await db.from('filieres').insert({ slug:f.slug, label:f.label, sort_order:f.sortOrder||0 }).select().single();
+  if (error) return { error: error.message };
+  return { filiere: nf(data) };
+}
+async function dbUpdateFiliere(id, f) {
+  const p = {};
+  if (f.slug      !== undefined) p.slug       = f.slug;
+  if (f.label     !== undefined) p.label      = f.label;
+  if (f.sortOrder !== undefined) p.sort_order = f.sortOrder;
+  const { data, error } = await db.from('filieres').update(p).eq('id', id).select().single();
+  if (error) return { error: error.message };
+  return { filiere: nf(data) };
+}
+async function dbDeleteFiliere(id) {
+  const { error } = await db.from('filieres').delete().eq('id', id);
+  return error ? { error: error.message } : { ok: true };
+}
+function nf(r) { return { id:r.id, slug:r.slug, label:r.label, sortOrder:r.sort_order||0 }; }
+
+let _filieresCache = [];
+async function loadFilieres() {
+  _filieresCache = await dbGetFilieres();
+  if (!_filieresCache.length) {
+    _filieresCache = [
+      { id:0, slug:'l1-glar', label:'L1 GLAR', sortOrder:1 },
+      { id:0, slug:'l2-glar', label:'L2 GLAR', sortOrder:2 },
+      { id:0, slug:'l3-glar', label:'L3 GLAR', sortOrder:3 },
+    ];
+  }
+  return _filieresCache;
+}
+function getFilieres() { return _filieresCache; }
+function getFiliereLabel(slug) { const f = _filieresCache.find(x=>x.slug===slug); return f ? f.label : (slug||''); }
+
+/* ── RÉGLAGES PLATEFORME ── */
+let _settingsCache = {};
+async function loadSettings() {
+  const { data, error } = await db.from('settings').select('*');
+  _settingsCache = {};
+  if (!error) (data||[]).forEach(r => _settingsCache[r.key] = r.value);
+  return _settingsCache;
+}
+function getSetting(key, fallback) { return _settingsCache[key] !== undefined ? _settingsCache[key] : fallback; }
+async function setSetting(key, value) {
+  const { error } = await db.from('settings').upsert({ key, value: String(value) }, { onConflict: 'key' });
+  if (!error) _settingsCache[key] = String(value);
+  return error ? { error: error.message } : { ok: true };
+}
+function getCommissionRate() { return parseFloat(getSetting('commission_rate', COMMISSION_RATE_PCT)) || COMMISSION_RATE_PCT; }
+
 /* ── ORDERS ── */
 async function dbGetOrders(f = {}) {
   let q = db.from('orders').select('*').order('created_at', { ascending: false });
@@ -159,21 +217,65 @@ async function dbGetOrders(f = {}) {
 async function dbInsertOrder(f) {
   const { data, error } = await db.from('orders').insert({
     seller_id:f.sellerId, seller_name:f.sellerName||'', product_id:f.productId, product_name:f.productName,
-    buyer_name:f.buyerName, buyer_email:f.buyerEmail, buyer_phone:f.buyerPhone||'',
+    buyer_name:f.buyerName, buyer_email:f.buyerEmail||null, buyer_phone:f.buyerPhone||'',
     qty:f.qty, total:f.total, notes:f.notes||'', status:'new',
     delivery_date:f.deliveryDate||null, delivery_time:f.deliveryTime||null,
-    delivery_type:f.deliveryType||'campus', delivery_address:f.deliveryAddress||null
+    delivery_type:f.deliveryType||'campus', delivery_address:f.deliveryAddress||null,
+    buyer_classe:f.buyerClasse||null, buyer_filiere:f.buyerFiliere||null, order_group:f.orderGroup||null
   }).select().single();
   if (error) return { error: error.message };
   return { order: no(data) };
+}
+async function dbGetOrderById(id) {
+  const { data, error } = await db.from('orders').select('*').eq('id', id).maybeSingle();
+  if (error || !data) return null;
+  return no(data);
 }
 async function dbUpdateOrderStatus(id, status) {
   const { error } = await db.from('orders').update({ status }).eq('id', id);
   return error ? { error: error.message } : { ok: true };
 }
+/* Recrédite le stock d'un produit (ex: lors de l'annulation d'une commande) */
+async function restockProduct(productId, qty) {
+  const { data: p, error: e1 } = await db.from('products').select('track_stock, stock').eq('id', productId).maybeSingle();
+  if (e1 || !p || !p.track_stock) return { ok: true };
+  const newStock = (p.stock || 0) + (qty || 0);
+  const { error } = await db.from('products').update({ stock: newStock }).eq('id', productId);
+  return error ? { error: error.message } : { ok: true, stock: newStock };
+}
 function no(r) {
   return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'', productId:r.product_id, productName:r.product_name, buyerName:r.buyer_name, buyerEmail:r.buyer_email, buyerPhone:r.buyer_phone, qty:r.qty, total:r.total, notes:r.notes, status:r.status, createdAt:r.created_at,
-    deliveryDate:r.delivery_date, deliveryTime:r.delivery_time, deliveryType:r.delivery_type||'campus', deliveryAddress:r.delivery_address };
+    deliveryDate:r.delivery_date, deliveryTime:r.delivery_time, deliveryType:r.delivery_type||'campus', deliveryAddress:r.delivery_address,
+    buyerClasse:r.buyer_classe||'', buyerFiliere:r.buyer_filiere||'', orderGroup:r.order_group||null };
+}
+
+/* ── RETOURS / LITIGES ── */
+async function dbGetReturns(f = {}) {
+  let q = db.from('returns').select('*').order('created_at', { ascending: false });
+  if (f.sellerId) q = q.eq('seller_id', f.sellerId);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return (data || []).map(nret);
+}
+async function dbInsertReturn(f) {
+  const { data, error } = await db.from('returns').insert({
+    order_id:f.orderId, seller_id:f.sellerId, buyer_name:f.buyerName, buyer_phone:f.buyerPhone,
+    product_name:f.productName, reason:f.reason, status:'pending'
+  }).select().single();
+  if (error) return { error: error.message };
+  return { return: nret(data) };
+}
+async function dbUpdateReturn(id, f) {
+  const p = {};
+  if (f.status         !== undefined) p.status          = f.status;
+  if (f.sellerResponse !== undefined) p.seller_response = f.sellerResponse;
+  if (f.status !== undefined) p.responded_at = new Date().toISOString();
+  const { data, error } = await db.from('returns').update(p).eq('id', id).select().single();
+  if (error) return { error: error.message };
+  return { return: nret(data) };
+}
+function nret(r) {
+  return { id:r.id, orderId:r.order_id, sellerId:r.seller_id, buyerName:r.buyer_name, buyerPhone:r.buyer_phone, productName:r.product_name, reason:r.reason, status:r.status||'pending', sellerResponse:r.seller_response||'', createdAt:r.created_at, respondedAt:r.responded_at };
 }
 
 /* ── REVIEWS ── */
@@ -278,7 +380,7 @@ function showToast(title, msg, color) {
 function showLoader(v) { const el = document.getElementById('loader'); if (el) el.style.display = v ? 'flex' : 'none'; }
 function starsHtml(r, sz) {
   sz = sz || '.85rem';
-  return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--yellow)':'var(--bg4)'};font-size:${sz}">★</span>`).join('');
+  return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--flash)':'var(--t4)'};font-size:${sz}">★</span>`).join('');
 }
 function catLabel(c)     { const cat = getCategory(c); return cat ? cat.label : (c==='food'?'Nourriture':c==='drink'?'Boisson':'Autre'); }
 function catEmoji(c)     { const cat = getCategory(c); return cat ? cat.emoji : '🛍️'; }
