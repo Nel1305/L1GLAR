@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
+<div class="flag-bar"></div>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
 <div id="lockedScreen" style="display:none;text-align:center;padding:100px 20px;max-width:360px;margin:0 auto">
   <div style="font-size:1.8rem;margin-bottom:14px">🔒</div>
@@ -18,7 +19,7 @@
 </div>
 <div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
-    <div class="logo-row"><div class="logo"><div class="logo-name" id="shopName">Mon commerce</div><div class="logo-sub">N Market</div></div><button class="theme-toggle" title="Changer de thème">🌙</button></div>
+    <div class="logo-row"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> <span id="shopName">Mon commerce</span></div><div class="logo-sub">N Market</div></div><button class="theme-toggle" title="Changer de thème">🌙</button></div>
     <nav class="nav">
       <span class="nav-label">Tableau de bord</span>
       <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Vue globale</button>
