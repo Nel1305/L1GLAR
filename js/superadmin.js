@@ -31,6 +31,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('addBannerBtn').addEventListener('click', () => openBannerModal());
   document.getElementById('saveBannerBtn').addEventListener('click', saveBanner);
   document.getElementById('bannerActive').addEventListener('click', function(){ this.classList.toggle('on'); });
+  document.getElementById('bannerImageFile').addEventListener('change', function() {
+    const file = this.files[0];
+    const preview = document.getElementById('bannerImgPreview');
+    const previewImg = document.getElementById('bannerImgPreviewImg');
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => { previewImg.src = e.target.result; preview.style.display = ''; };
+      reader.readAsDataURL(file);
+    } else { preview.style.display = 'none'; }
+  });
   document.getElementById('validateReportBtn').addEventListener('click', () => respondReport('validated'));
   document.getElementById('dismissReportBtn').addEventListener('click', () => respondReport('dismissed'));
   document.getElementById('deleteSellerBtn').addEventListener('click', deleteReportedSeller);
@@ -773,6 +783,29 @@ async function renderBannersPage() {
     </div>`).join('');
 }
 
+function switchBannerImgTab(tab) {
+  const urlField  = document.getElementById('bannerImgUrlField');
+  const fileField = document.getElementById('bannerImgFileField');
+  const tabUrl    = document.getElementById('bannerImgTabUrl');
+  const tabFile   = document.getElementById('bannerImgTabFile');
+  if (tab === 'url') {
+    urlField.style.display  = '';
+    fileField.style.display = 'none';
+    tabUrl.style.opacity  = '1';
+    tabFile.style.opacity = '0.5';
+    // Reset file input
+    document.getElementById('bannerImageFile').value = '';
+    document.getElementById('bannerImgPreview').style.display = 'none';
+  } else {
+    urlField.style.display  = 'none';
+    fileField.style.display = '';
+    tabUrl.style.opacity  = '0.5';
+    tabFile.style.opacity = '1';
+    // Clear URL input
+    document.getElementById('bannerImage').value = '';
+  }
+}
+
 function openBannerModal(id) {
   document.getElementById('bannerId').value = id || '';
   if (id) {
@@ -785,6 +818,10 @@ function openBannerModal(id) {
       document.getElementById('bannerColor').value = b?.bgColor||'#1a7a4a';
       document.getElementById('bannerLink').value = b?.linkUrl||'';
       b?.active ? document.getElementById('bannerActive').classList.add('on') : document.getElementById('bannerActive').classList.remove('on');
+      // Réinitialise l'onglet image
+      switchBannerImgTab('url');
+      document.getElementById('bannerImageFile').value = '';
+      document.getElementById('bannerImgPreview').style.display = 'none';
     });
   } else {
     document.getElementById('bannerModalTitle').textContent = 'Ajouter une bannière';
@@ -794,6 +831,9 @@ function openBannerModal(id) {
     document.getElementById('bannerColor').value = '#1a7a4a';
     document.getElementById('bannerLink').value = '';
     document.getElementById('bannerActive').classList.add('on');
+    switchBannerImgTab('url');
+    document.getElementById('bannerImageFile').value = '';
+    document.getElementById('bannerImgPreview').style.display = 'none';
   }
   openModal('bannerModal');
 }
@@ -802,11 +842,23 @@ async function saveBanner() {
   const id    = document.getElementById('bannerId').value;
   const title = document.getElementById('bannerTitle').value.trim();
   const subtitle = document.getElementById('bannerSubtitle').value.trim();
-  const imageUrl = document.getElementById('bannerImage').value.trim();
   const bgColor  = document.getElementById('bannerColor').value;
   const linkUrl  = document.getElementById('bannerLink').value.trim();
   const active   = document.getElementById('bannerActive').classList.contains('on');
   if (!title) { showToast('Titre manquant','','var(--err)'); return; }
+
+  // Résolution de l'image : fichier uploadé (base64) ou URL texte
+  let imageUrl = document.getElementById('bannerImage').value.trim();
+  const fileInput = document.getElementById('bannerImageFile');
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    // Convertir l'affiche en base64 pour la stocker en BDD
+    imageUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('Lecture fichier échouée'));
+      reader.readAsDataURL(fileInput.files[0]);
+    });
+  }
 
   showLoader(true);
   let r;

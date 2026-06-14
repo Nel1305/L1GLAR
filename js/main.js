@@ -448,7 +448,12 @@ async function submitOrder() {
 
   // Remplit le ticket (hors écran) et le télécharge automatiquement
   fillTicket(createdOrders, { name, phone, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress, classe, filiere, grandTotal });
-  setTimeout(() => downloadTicket(), 300);
+  // On attend que le ticket soit réellement rendu dans le DOM avant de lancer html2canvas
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => downloadTicket(), 150);
+    });
+  });
   document.getElementById('orderSuccess').scrollIntoView({ behavior:'smooth' });
 
   // Vide le panier et réinitialise le formulaire
@@ -516,7 +521,26 @@ function downloadTicket() {
     showToast('Indisponible', 'Fais une capture d\'écran de ce ticket comme preuve.', 'var(--orange)');
     return;
   }
-  html2canvas(el, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+  // S'assurer que le ticket est bien visible avant la capture
+  const wrap = document.getElementById('ticketWrap');
+  wrap.style.display = '';
+  el.style.visibility = 'visible';
+
+  // Forcer un reflow pour garantir que le navigateur a bien rendu le ticket
+  void el.offsetHeight;
+
+  html2canvas(el, {
+    scale: 2,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    logging: false,
+    onclone: (clonedDoc) => {
+      const clonedWrap = clonedDoc.getElementById('ticketWrap');
+      const clonedEl = clonedDoc.getElementById('ticketCard');
+      if (clonedWrap) clonedWrap.style.display = '';
+      if (clonedEl) { clonedEl.style.visibility = 'visible'; clonedEl.style.opacity = '1'; }
+    }
+  }).then(canvas => {
     const link = document.createElement('a');
     link.download = `ticket-commande-${document.getElementById('tkId').textContent.replace(/#/g,'')}.png`;
     link.href = canvas.toDataURL('image/png');

@@ -254,7 +254,18 @@
       <input type="hidden" id="bannerId">
       <div class="field"><label>Titre</label><input type="text" id="bannerTitle" placeholder="Ex : Promo spéciale rentrée !"></div>
       <div class="field"><label>Sous-titre (optionnel)</label><input type="text" id="bannerSubtitle" placeholder="Ex : -10% sur tous les snacks cette semaine"></div>
-      <div class="field"><label>Image de fond (URL, optionnel)</label><input type="text" id="bannerImage" placeholder="https://…"></div>
+      <div class="field">
+        <label>Affiche / Image de fond</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button type="button" class="btn-ghost" id="bannerImgTabUrl" onclick="switchBannerImgTab('url')" style="flex:1;font-size:.8rem;padding:6px 10px">🔗 URL</button>
+          <button type="button" class="btn-ghost" id="bannerImgTabFile" onclick="switchBannerImgTab('file')" style="flex:1;font-size:.8rem;padding:6px 10px">📁 Uploader une affiche</button>
+        </div>
+        <div id="bannerImgUrlField"><input type="text" id="bannerImage" placeholder="https://…"></div>
+        <div id="bannerImgFileField" style="display:none">
+          <input type="file" id="bannerImageFile" accept="image/*" style="width:100%;padding:8px;border:1px dashed var(--border);border-radius:8px;background:var(--bg2);cursor:pointer">
+          <div id="bannerImgPreview" style="margin-top:8px;display:none"><img id="bannerImgPreviewImg" src="" alt="Aperçu" style="width:100%;border-radius:8px;max-height:160px;object-fit:cover"></div>
+        </div>
+      </div>
       <div class="field-row">
         <div class="field"><label>Couleur de fond (si pas d'image)</label><input type="color" id="bannerColor" value="#1a7a4a" style="height:42px;padding:4px"></div>
         <div class="field"><label>Lien (optionnel)</label><input type="text" id="bannerLink" placeholder="https://…"></div>
