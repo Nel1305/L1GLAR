@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS orders (
   qty              integer NOT NULL DEFAULT 1,
   total            numeric NOT NULL DEFAULT 0,
   notes            text,
+  item_note        text,                          -- modification spécifique à CE produit
   status           text NOT NULL DEFAULT 'new',  -- 'new' | 'done' | 'cancel'
 
   -- Date / heure de livraison souhaitées
@@ -280,6 +281,39 @@ CREATE TABLE IF NOT EXISTS promotions (
 
 
 -- ════════════════════════════════════
+-- 8quater. SIGNALEMENTS DE VENDEURS
+-- ════════════════════════════════════
+CREATE TABLE IF NOT EXISTS seller_reports (
+  id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  seller_id    bigint REFERENCES users(id) ON DELETE CASCADE,
+  seller_name  text NOT NULL,
+  reporter_name  text,
+  reporter_phone text,
+  reason       text NOT NULL,
+  status       text DEFAULT 'pending',
+  created_at   timestamptz DEFAULT now()
+);
+INSERT INTO settings (key, value) VALUES ('report_threshold', '3')
+ON CONFLICT (key) DO NOTHING;
+
+
+-- ════════════════════════════════════
+-- 8quinquies. BANNIÈRES PUBLICITAIRES
+-- ════════════════════════════════════
+CREATE TABLE IF NOT EXISTS ad_banners (
+  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  title       text NOT NULL,
+  subtitle    text,
+  image_url   text,
+  link_url    text,
+  bg_color    text DEFAULT '#1a7a4a',
+  active      boolean DEFAULT true,
+  sort_order  integer DEFAULT 0,
+  created_at  timestamptz DEFAULT now()
+);
+
+
+-- ════════════════════════════════════
 -- 9. SÉCURITÉ (RLS) — accès ouvert via la clé "anon"
 --    (l'app gère l'authentification elle-même côté JS)
 -- ════════════════════════════════════
@@ -287,7 +321,7 @@ DO $$
 DECLARE
   tbl text;
 BEGIN
-  FOREACH tbl IN ARRAY ARRAY['users','products','orders','reviews','admins','commissions','messages','seller_connections','categories','filieres','settings','returns','promo_plans','promotions']
+  FOREACH tbl IN ARRAY ARRAY['users','products','orders','reviews','admins','commissions','messages','seller_connections','categories','filieres','settings','returns','promo_plans','promotions','seller_reports','ad_banners']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
     EXECUTE format('DROP POLICY IF EXISTS "public_all" ON %I', tbl);
@@ -312,4 +346,6 @@ SELECT 'filieres', count(*) FROM filieres UNION ALL
 SELECT 'settings', count(*) FROM settings UNION ALL
 SELECT 'returns', count(*) FROM returns UNION ALL
 SELECT 'promo_plans', count(*) FROM promo_plans UNION ALL
-SELECT 'promotions', count(*) FROM promotions;
+SELECT 'promotions', count(*) FROM promotions UNION ALL
+SELECT 'seller_reports', count(*) FROM seller_reports UNION ALL
+SELECT 'ad_banners', count(*) FROM ad_banners;

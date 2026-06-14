@@ -47,6 +47,8 @@
       <button class="nav-item" data-page="orders"><span class="icon">📦</span>Toutes les commandes</button>
       <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours / Litiges</button>
       <button class="nav-item" data-page="promo"><span class="icon">📣</span>Publicité <span class="dot" id="promoDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="banners"><span class="icon">🖼️</span>Bannières</button>
+      <button class="nav-item" data-page="reports"><span class="icon">🚩</span>Signalements <span class="dot" id="reportsDot" style="display:none"></span></button>
       <span class="nav-label">Communication</span>
       <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="adminChatDot" style="display:none"></span></button>
       <span class="nav-label">Paramètres</span>
@@ -56,7 +58,7 @@
       <div class="user-pill"><div class="avatar">◆</div><div class="user-info"><div class="user-name" id="adminName">Admin</div><div class="user-role">Super administrateur</div></div></div>
       <button class="admin-btn" id="adminLogoutBtn"><span class="icon">←</span>Se déconnecter</button>
       <a href="../index.html" class="admin-btn"><span class="icon">←</span>Retour au site</a>
-      <a href="../index.html" class="credit">codé par BUABEY Nel'si</a>
+      <a href="../index.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
 
@@ -144,6 +146,19 @@
       <div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur</th><th>Produit</th><th>Formule</th><th>Prix</th><th>Statut</th><th>Période</th></tr></thead><tbody id="promoHistoryBody"></tbody></table></div>
     </div>
 
+    <div id="page-banners" class="page">
+      <div class="page-header"><div><div class="page-title">Bannières</div><div class="page-desc">Bannières publicitaires affichées en haut de la page Produits</div></div><button class="btn-primary sm" id="addBannerBtn">+ Ajouter une bannière</button></div>
+      <div id="bannersList"></div>
+    </div>
+
+    <div id="page-reports" class="page">
+      <div class="page-header"><div><div class="page-title">Signalements</div><div class="page-desc">Signalements de vendeurs par les clients</div></div></div>
+      <div class="section-divider" style="margin-top:0">En attente</div>
+      <div id="reportsPendingList"></div>
+      <div class="section-divider">Historique</div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur</th><th>Motif</th><th>Signalé par</th><th>Statut</th><th>Date</th></tr></thead><tbody id="reportsHistoryBody"></tbody></table></div>
+    </div>
+
     <div id="page-orders" class="page">
       <div class="page-header"><div><div class="page-title">Toutes les commandes</div><div class="page-desc">Vue globale</div></div><select class="select-sm" id="allOrdersFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select></div>
       <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Client</th><th>Produit</th><th>Vendeur</th><th>Total</th><th>Livraison</th><th>Statut</th><th>Date</th></tr></thead><tbody id="allOrdersBody"></tbody></table></div>
@@ -227,6 +242,44 @@
       <div style="display:flex;gap:10px">
         <button class="btn-primary" id="activatePromoBtn" style="flex:1">Activer</button>
         <button class="btn-danger" id="rejectPromoBtn" style="flex:1">Refuser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="bannerModal">
+  <div class="modal"><button class="modal-x" data-close="bannerModal">✕</button>
+    <div class="modal-title" id="bannerModalTitle">Ajouter une bannière</div><div class="modal-sub">Affichée en haut de la page Produits</div>
+    <div class="modal-form">
+      <input type="hidden" id="bannerId">
+      <div class="field"><label>Titre</label><input type="text" id="bannerTitle" placeholder="Ex : Promo spéciale rentrée !"></div>
+      <div class="field"><label>Sous-titre (optionnel)</label><input type="text" id="bannerSubtitle" placeholder="Ex : -10% sur tous les snacks cette semaine"></div>
+      <div class="field"><label>Image de fond (URL, optionnel)</label><input type="text" id="bannerImage" placeholder="https://…"></div>
+      <div class="field-row">
+        <div class="field"><label>Couleur de fond (si pas d'image)</label><input type="color" id="bannerColor" value="#1a7a4a" style="height:42px;padding:4px"></div>
+        <div class="field"><label>Lien (optionnel)</label><input type="text" id="bannerLink" placeholder="https://…"></div>
+      </div>
+      <div class="toggle-row"><div class="toggle-info"><strong>Bannière active</strong><span>Visible sur la marketplace</span></div><button class="toggle on" id="bannerActive"></button></div>
+      <button class="btn-primary" id="saveBannerBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="reportReviewModal">
+  <div class="modal"><button class="modal-x" data-close="reportReviewModal">✕</button>
+    <div class="modal-title">Signalement</div><div class="modal-sub" id="reportReviewSub"></div>
+    <div id="reportReviewContent" style="margin-bottom:14px"></div>
+    <div class="modal-form">
+      <input type="hidden" id="reportReviewId">
+      <input type="hidden" id="reportReviewSellerId">
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" id="validateReportBtn" style="flex:1">Valider le signalement</button>
+        <button class="btn-danger" id="dismissReportBtn" style="flex:1">Rejeter</button>
+      </div>
+      <div id="reportDeleteWrap" style="display:none;margin-top:10px">
+        <div class="divider"></div>
+        <div class="hint" id="reportDeleteHint" style="margin-bottom:8px"></div>
+        <button class="btn-danger" id="deleteSellerBtn" style="width:100%">Supprimer le compte de ce vendeur</button>
       </div>
     </div>
   </div>

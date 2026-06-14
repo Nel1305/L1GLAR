@@ -20,7 +20,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="logo-row">
-      <div class="logo"><div class="logo-name"><span class="logo-star">★</span> N Market</div><div class="logo-sub">Université ESTM Dakar</div></div>
+      <div class="logo"><div class="logo-name"><span class="logo-star">★</span> N Market</div><div class="logo-sub">Université</div></div>
       <button class="theme-toggle" title="Changer de thème">🌙</button>
     </div>
     <nav class="nav">
@@ -36,17 +36,19 @@
         <div class="user-info"><div class="user-name" id="userName">Se connecter</div><div class="user-role" id="userRole">Visiteur</div></div>
       </div>
       <a href="pages/admin.html" class="admin-btn highlight" id="adminBtn" style="display:none"><span class="icon">⚙</span>Mon espace vendeur</a>
-      <a href="pages/superadmin.html" class="credit">codé par BUABEY Nel'si</a>
+      <a href="pages/superadmin.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
   <main class="main">
     <div id="page-products" class="page active">
       <div class="page-header"><div><div class="page-title">Produits</div><div class="page-desc">Parcourez les offres de vos camarades</div></div></div>
+      <div class="ad-banners-list" id="adBannersList"></div>
       <div class="toolbar">
         <div class="search-wrap"><span class="s-icon">🔍</span><input type="text" id="searchInput" placeholder="Rechercher…"></div>
         <div class="filters" id="filterButtons">
           <button class="filter-btn active" data-filter="all">Tout</button>
         </div>
+        <select class="select-sm filter-select" id="filterSelect"></select>
       </div>
       <div id="productsGrid"></div>
     </div>
@@ -67,8 +69,8 @@
           </div>
           <div class="divider"></div>
           <div class="f-section">
-            <span class="f-label">Modifications / Ajouts (optionnel)</span>
-            <div class="field"><textarea id="oNotes" placeholder="Ex : sans sucre pour la crêpe, sauce à part…"></textarea><div class="hint">Précise tout ce que tu veux changer ou ajouter, pour n'importe quel article du panier.</div></div>
+            <span class="f-label">Instructions générales (optionnel)</span>
+            <div class="field"><textarea id="oNotes" placeholder="Ex : appeler en arrivant, livrer à l'entrée du bâtiment B…"></textarea><div class="hint">Pour des modifications spécifiques à un produit (ex : sans sucre pour la crêpe), utilise le champ "Précision" sous chaque article du panier.</div></div>
           </div>
           <div class="divider"></div>
           <div class="f-section">
@@ -103,7 +105,12 @@
             </div>
           </div>
           <button class="btn-primary" id="submitOrderBtn">Valider la commande</button>
-          <div class="success-box" id="orderSuccess"><div class="ico">✓</div><strong>Commande envoyée !</strong><p id="orderSuccessText"></p></div>
+          <div class="order-confirm-box" id="orderSuccess" style="display:none">
+            <div class="ico">✓</div>
+            <strong>Commande envoyée !</strong>
+            <p id="orderSuccessText"></p>
+            <p style="margin-top:8px">📥 Ton ticket a été téléchargé automatiquement — conserve-le, le vendeur va te contacter pour confirmer la livraison.</p>
+          </div>
           <div class="ticket-wrap" id="ticketWrap" style="display:none">
             <div class="ticket" id="ticketCard">
               <div class="ticket-head">
@@ -129,7 +136,7 @@
               <div class="ticket-foot">Conserve ce ticket (téléchargement ou capture d'écran) comme preuve de ta commande. Le numéro de commande te permettra de signaler un retour si besoin.</div>
             </div>
             <div class="ticket-actions">
-              <button class="btn-ghost" id="downloadTicketBtn">⬇ Télécharger le ticket</button>
+              <button class="btn-ghost" id="downloadTicketBtn">⬇ Télécharger à nouveau</button>
             </div>
           </div>
         </div>
@@ -219,6 +226,29 @@
   <div class="modal modal-lg">
     <button class="modal-x" data-close="productDetailModal">✕</button>
     <div id="pdContent"></div>
+  </div>
+</div>
+
+<div class="overlay" id="shopModal">
+  <div class="modal modal-lg">
+    <button class="modal-x" data-close="shopModal">✕</button>
+    <div id="shopContent"></div>
+  </div>
+</div>
+
+<div class="overlay" id="reportModal">
+  <div class="modal">
+    <button class="modal-x" data-close="reportModal">✕</button>
+    <div class="modal-title">Signaler ce vendeur</div>
+    <div class="modal-sub" id="reportModalSub">Décris le problème rencontré. Le Super Admin examinera ton signalement.</div>
+    <div class="modal-form">
+      <input type="hidden" id="reportSellerId">
+      <div class="field"><label>Ton nom (optionnel)</label><input type="text" id="reportName" placeholder="Ton nom"></div>
+      <div class="field"><label>Ton téléphone (optionnel)</label><input type="tel" id="reportPhone" placeholder="+221 77 …"></div>
+      <div class="field"><label>Motif du signalement</label><textarea id="reportReason" placeholder="Ex : produit jamais livré, vendeur injoignable, articles non conformes…"></textarea></div>
+      <button class="btn-primary" id="submitReportBtn">Envoyer le signalement</button>
+      <div class="success-box" id="reportSuccess"><div class="ico">✓</div><strong>Signalement envoyé</strong><p>Merci, le Super Admin va examiner ta demande.</p></div>
+    </div>
   </div>
 </div>
 

@@ -15,10 +15,10 @@ const EMAILJS_TEMPLATE_INVOICE = 'template_dwcyv7g';   // ← template facture c
 const EMAILJS_TEMPLATE_SELLER_NOTIF = 'template_seller_notif'; // ← template notification nouvelle commande (vendeur)
 
 /* ── 3. PAIEMENT WAVE ── */
-const WAVE_NUMBER = '+221 77 597 71 14'; // ← Ton numéro Wave pour recevoir les paiements
+const WAVE_NUMBER = '+221 77 597 71 114'; // ← Ton numéro Wave pour recevoir les paiements
 const WAVE_NAME = 'Nel\'si';           // ← Ton prénom affiché dans le mail
 
 /* ── 4. PLATEFORME ── */
 const PLATFORM_NAME = 'N Market';
 const PLATFORM_EMAIL = 'ppbuabey@gmail.com';      // ← Email affiché dans les mails
-const COMMISSION_RATE_PCT = 2;                     // ← Taux de commission (%)
+const COMMISSION_RATE_PCT = 5;                     // ← Taux de commission (%)

@@ -22,8 +22,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   syncSessionUI();
   loadCart();
   await loadProducts();
+  loadAdBanners();
   initDeliveryFields();
   document.getElementById('submitReturnBtn').addEventListener('click', submitReturn);
+  document.getElementById('submitReportBtn').addEventListener('click', submitSellerReport);
 });
 
 /* ── NAV ── */
@@ -66,9 +68,15 @@ function renderProducts() {
 
   if (!list.length) { grid.innerHTML = '<div class="empty">Aucun produit disponible.</div>'; bindProductGridEvents(grid); return; }
 
+  // Tri : les produits les mieux notés sont mis en avant dans le catalogue
+  const sorted = [...list].sort((a,b) => {
+    if (b.rating !== a.rating) return b.rating - a.rating;
+    return (b.votes||0) - (a.votes||0);
+  });
+
   // Section "Sponsorisé" : produits dont une promotion est active, parmi la liste filtrée
-  const sponsored = activeFilter === 'all' && !searchQ ? list.filter(p => promotedIds.includes(p.id)) : [];
-  const rest = sponsored.length ? list.filter(p => !promotedIds.includes(p.id)) : list;
+  const sponsored = activeFilter === 'all' && !searchQ ? sorted.filter(p => promotedIds.includes(p.id)) : [];
+  const rest = sponsored.length ? sorted.filter(p => !promotedIds.includes(p.id)) : sorted;
 
   let html = '';
   if (sponsored.length) {
@@ -89,7 +97,7 @@ function productCardHtml(p, isSponsored) {
         ${catBadge(p.cat)}${stockBadgeHtml(p)}
         <div class="card-name" data-detail="${p.id}" style="cursor:pointer">${p.name}</div>
         ${p.desc ? `<div class="card-desc">${p.desc}</div>` : ''}
-        <div class="card-seller">Par ${p.sellerName}${sellerFiliere(p.sellerId)?` <span class="seller-filiere">· ${sellerFiliere(p.sellerId)}</span>`:''}</div>
+        <div class="card-seller">Par <span class="shop-link" data-shop="${p.sellerId}">${p.sellerName}</span>${sellerFiliere(p.sellerId)?` <span class="seller-filiere">· ${sellerFiliere(p.sellerId)}</span>`:''}</div>
         <div class="card-row">
           <div class="card-price">${p.price.toLocaleString()} FCFA</div>
           <div class="card-rating"><span style="color:var(--gold)">★</span> ${p.rating||'—'} ${p.votes?`<span style="color:var(--t3)">(${p.votes})</span>`:''}</div>
@@ -109,6 +117,30 @@ function bindProductGridEvents(grid) {
   grid.querySelectorAll('.btn-order:not(:disabled)').forEach(btn =>
     btn.addEventListener('click', () => addToCart(parseInt(btn.dataset.id)))
   );
+  grid.querySelectorAll('[data-shop]').forEach(el =>
+    el.addEventListener('click', (ev) => { ev.stopPropagation(); openShop(parseInt(el.dataset.shop)); })
+  );
+}
+
+/* ── BANNIÈRES PUBLICITAIRES ── */
+async function loadAdBanners() {
+  const wrap = document.getElementById('adBannersList');
+  if (!wrap) return;
+  const banners = await dbGetAdBanners(true);
+  if (!banners.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = banners.map(b => {
+    const bgStyle = b.imageUrl ? `background-image:url('${b.imageUrl}')` : `background:${b.bgColor}`;
+    const tag = `<span class="ab-tag">Publicité</span>`;
+    const inner = `
+      <div class="ab-overlay">
+        <div class="ab-title">${b.title}</div>
+        ${b.subtitle ? `<div class="ab-subtitle">${b.subtitle}</div>` : ''}
+      </div>
+      ${tag}`;
+    return b.linkUrl
+      ? `<a class="ad-banner" style="${bgStyle}" href="${b.linkUrl}" target="_blank" rel="noopener">${inner}</a>`
+      : `<div class="ad-banner" style="${bgStyle}">${inner}</div>`;
+  }).join('');
 }
 
 /* ── FILIÈRES (sélecteurs dynamiques) ── */
@@ -122,17 +154,26 @@ function populateFiliereSelects() {
 
 function initFilters() {
   const wrap = document.getElementById('filterButtons');
+  const select = document.getElementById('filterSelect');
   const cats = getCategories();
+
   wrap.innerHTML = '<button class="filter-btn active" data-filter="all">Tout</button>' +
     cats.map(c => `<button class="filter-btn" data-filter="${c.slug}">${c.emoji} ${c.label}</button>`).join('');
+  select.innerHTML = '<option value="all">Toutes les catégories</option>' +
+    cats.map(c => `<option value="${c.slug}">${c.emoji} ${c.label}</option>`).join('');
+
+  function setFilter(val) {
+    activeFilter = val;
+    wrap.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === val));
+    select.value = val;
+    renderProducts();
+  }
+
   wrap.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      wrap.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeFilter = btn.dataset.filter;
-      renderProducts();
-    });
+    btn.addEventListener('click', () => setFilter(btn.dataset.filter));
   });
+  select.addEventListener('change', () => setFilter(select.value));
+
   document.getElementById('searchInput').addEventListener('input', e => {
     searchQ = e.target.value.toLowerCase().trim();
     renderProducts();
@@ -143,6 +184,7 @@ function initFilters() {
 let cart = [];
 function loadCart() {
   try { cart = JSON.parse(localStorage.getItem('nmarket_cart') || '[]'); } catch { cart = []; }
+  cart.forEach(i => { if (i.note === undefined) i.note = ''; });
   updateCartBadge();
 }
 function saveCart() {
@@ -165,7 +207,7 @@ function addToCart(productId) {
   const wantQty = (existing ? existing.qty : 0) + 1;
   if (p.trackStock && wantQty > p.stock) { showToast('Stock insuffisant', `Il ne reste que ${p.stock} unité(s) de ce produit.`, 'var(--red)'); return; }
   if (existing) existing.qty++;
-  else cart.push({ productId, qty: 1 });
+  else cart.push({ productId, qty: 1, note: '' });
   saveCart();
   showToast('Ajouté au panier 🛒', p.name, 'var(--green)');
   if (document.getElementById('page-cart').classList.contains('active')) renderCart();
@@ -183,6 +225,13 @@ function setCartQty(productId, qty) {
   item.qty = qty;
   saveCart(); renderCart();
 }
+function setCartNote(productId, note) {
+  const item = cart.find(i => i.productId === productId);
+  if (!item) return;
+  item.note = note;
+  saveCart();
+}
+
 function renderCart() {
   const items = cart.map(i => ({ ...i, p: allProducts.find(x => x.id === i.productId) })).filter(i => i.p);
   const empty = document.getElementById('cartEmpty');
@@ -192,18 +241,23 @@ function renderCart() {
   const wrap = document.getElementById('cartItems');
   wrap.innerHTML = items.map(i => `
     <div class="cart-item">
-      <div class="ci-img">${i.p.photo ? `<img src="${i.p.photo}" alt="">` : (i.p.emoji || catEmoji(i.p.cat))}</div>
-      <div class="ci-info">
-        <div class="ci-name">${i.p.name}</div>
-        <div class="ci-seller">${i.p.sellerName}${sellerFiliere(i.p.sellerId)?` · ${sellerFiliere(i.p.sellerId)}`:''}</div>
-        <div class="ci-price">${i.p.price.toLocaleString()} FCFA</div>
+      <div class="ci-main">
+        <div class="ci-img">${i.p.photo ? `<img src="${i.p.photo}" alt="">` : (i.p.emoji || catEmoji(i.p.cat))}</div>
+        <div class="ci-info">
+          <div class="ci-name">${i.p.name}</div>
+          <div class="ci-seller">${i.p.sellerName}${sellerFiliere(i.p.sellerId)?` · ${sellerFiliere(i.p.sellerId)}`:''}</div>
+          <div class="ci-price">${i.p.price.toLocaleString()} FCFA</div>
+        </div>
+        <div class="ci-qty">
+          <button data-act="dec" data-id="${i.p.id}">−</button>
+          <span>${i.qty}</span>
+          <button data-act="inc" data-id="${i.p.id}">+</button>
+        </div>
+        <div class="ci-remove" data-act="rm" data-id="${i.p.id}" title="Retirer">✕</div>
       </div>
-      <div class="ci-qty">
-        <button data-act="dec" data-id="${i.p.id}">−</button>
-        <span>${i.qty}</span>
-        <button data-act="inc" data-id="${i.p.id}">+</button>
+      <div class="ci-note-wrap">
+        <textarea class="ci-note" data-note="${i.p.id}" rows="1" placeholder="Précision pour ce produit (ex : sans sucre, sauce à part…)">${i.note||''}</textarea>
       </div>
-      <div class="ci-remove" data-act="rm" data-id="${i.p.id}" title="Retirer">✕</div>
     </div>
   `).join('');
   const total = items.reduce((s,i) => s + i.p.price * i.qty, 0);
@@ -216,6 +270,9 @@ function renderCart() {
       if (btn.dataset.act === 'dec') setCartQty(id, item.qty - 1);
       if (btn.dataset.act === 'rm')  removeFromCart(id);
     });
+  });
+  wrap.querySelectorAll('[data-note]').forEach(el => {
+    el.addEventListener('input', () => setCartNote(parseInt(el.dataset.note), el.value));
   });
 }
 
@@ -231,7 +288,7 @@ async function openProductDetail(id) {
     <div class="pd-img cat-${p.cat}">${p.photo ? `<img src="${p.photo}" alt="${p.name}">` : (p.emoji || catEmoji(p.cat))}</div>
     ${catBadge(p.cat)}${stockBadgeHtml(p)}
     <div class="pd-title">${p.name}</div>
-    <div class="pd-seller">Par ${p.sellerName}${filiere?` <span class="seller-filiere">· ${filiere}</span>`:''}</div>
+    <div class="pd-seller">Par <span class="shop-link" id="pdShopLink">${p.sellerName}</span>${filiere?` <span class="seller-filiere">· ${filiere}</span>`:''}</div>
     ${p.desc ? `<div class="pd-desc">${p.desc}</div>` : ''}
     <div class="pd-row">
       <div class="pd-price">${p.price.toLocaleString()} FCFA</div>
@@ -252,7 +309,75 @@ async function openProductDetail(id) {
   `;
   const addBtn = document.getElementById('pdAddBtn');
   if (addBtn && !addBtn.disabled) addBtn.addEventListener('click', () => { addToCart(id); closeModal('productDetailModal'); });
+  document.getElementById('pdShopLink').addEventListener('click', () => { closeModal('productDetailModal'); openShop(p.sellerId); });
   openModal('productDetailModal');
+}
+
+/* ── BOUTIQUE VENDEUR ── */
+async function openShop(sellerId) {
+  showLoader(true);
+  const [products, seller] = await Promise.all([
+    dbGetProducts({ sellerId, available: true }),
+    (async () => { if (!allSellers.length) allSellers = await dbGetAllUsers(); return allSellers.find(u=>u.id===sellerId); })()
+  ]);
+  showLoader(false);
+  if (!seller) return;
+
+  const promoted = products.filter(p => promotedIds.includes(p.id));
+  const rest = products.filter(p => !promotedIds.includes(p.id));
+  const sortedRest = [...rest].sort((a,b) => (b.rating-a.rating) || ((b.votes||0)-(a.votes||0)));
+  const ordered = [...promoted, ...sortedRest];
+
+  const avgRating = products.length ? (products.reduce((s,p)=>s+(p.rating||0)*((p.votes||0)||1), 0) / products.reduce((s,p)=>s+((p.votes||0)||1),0)) : 0;
+  const filiere = seller.filiere ? getFiliereLabel(seller.filiere) : '';
+
+  document.getElementById('shopContent').innerHTML = `
+    <div class="shop-header">
+      <div class="shop-avatar">${(seller.name||'?')[0].toUpperCase()}</div>
+      <div class="shop-info">
+        <div class="shop-name">${seller.name}</div>
+        <div class="shop-meta">${filiere?filiere+' · ':''}${products.length} produit${products.length>1?'s':''}</div>
+        ${avgRating ? `<div class="shop-rating">★ ${avgRating.toFixed(1)} note moyenne</div>` : ''}
+      </div>
+      <div class="shop-actions">
+        <button class="btn-report" id="shopReportBtn">⚠ Signaler</button>
+      </div>
+    </div>
+    <div id="shopProductsGrid">
+      ${ordered.length ? `<div class="grid">${ordered.map(p => productCardHtml(p, promotedIds.includes(p.id))).join('')}</div>` : '<div class="empty">Ce vendeur n\'a aucun produit disponible pour le moment.</div>'}
+    </div>
+  `;
+  bindProductGridEvents(document.getElementById('shopProductsGrid'));
+  document.getElementById('shopReportBtn').addEventListener('click', () => openReportModal(seller.id, seller.name));
+  openModal('shopModal');
+}
+
+/* ── SIGNALEMENT D'UN VENDEUR ── */
+function openReportModal(sellerId, sellerName) {
+  document.getElementById('reportSellerId').value = sellerId;
+  document.getElementById('reportModalSub').textContent = `Signalement concernant : ${sellerName}`;
+  document.getElementById('reportName').value = '';
+  document.getElementById('reportPhone').value = '';
+  document.getElementById('reportReason').value = '';
+  document.getElementById('reportSuccess').classList.remove('show');
+  openModal('reportModal');
+}
+
+async function submitSellerReport() {
+  const sellerId = parseInt(document.getElementById('reportSellerId').value);
+  const reporterName  = document.getElementById('reportName').value.trim();
+  const reporterPhone = document.getElementById('reportPhone').value.trim();
+  const reason = document.getElementById('reportReason').value.trim();
+  if (!reason) { showToast('Motif manquant', 'Décris le problème rencontré.', 'var(--red)'); return; }
+
+  showLoader(true);
+  if (!allSellers.length) allSellers = await dbGetAllUsers();
+  const seller = allSellers.find(u=>u.id===sellerId);
+  const r = await dbInsertSellerReport({ sellerId, sellerName: seller?seller.name:'—', reporterName, reporterPhone, reason });
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  document.getElementById('reportSuccess').classList.add('show');
+  showToast('Signalement envoyé', 'Le Super Admin va l\'examiner.', 'var(--green)');
 }
 
 /* ── DELIVERY FIELDS ── */
@@ -300,31 +425,30 @@ async function submitOrder() {
   for (const i of items) {
     const result = await dbInsertOrder({
       sellerId:i.p.sellerId, sellerName:i.p.sellerName, productId:i.p.id, productName:i.p.name,
-      buyerName:name, buyerPhone:phone, qty:i.qty, total:i.p.price*i.qty, notes,
+      buyerName:name, buyerPhone:phone, qty:i.qty, total:i.p.price*i.qty, notes, itemNote:(i.note||'').trim(),
       deliveryDate, deliveryTime, deliveryType, deliveryAddress: deliveryType==='external' ? deliveryAddress : '',
       buyerClasse: deliveryType==='campus' ? classe : '', buyerFiliere: deliveryType==='campus' ? filiere : '',
       orderGroup
     });
     if (result.error) { showLoader(false); btn.disabled = false; showToast('Erreur', result.error, 'var(--red)'); return; }
-    createdOrders.push({ order: result.order, p: i.p, qty: i.qty });
+    createdOrders.push({ order: result.order, p: i.p, qty: i.qty, note: (i.note||'').trim() });
     if (i.p.trackStock) await dbUpdateProduct(i.p.id, { stock: Math.max(0, i.p.stock - i.qty) });
   }
 
   showLoader(false); btn.disabled = false;
 
   const grandTotal = createdOrders.reduce((s,o) => s + o.p.price*o.qty, 0);
-  const deliveryLine = `${new Date(deliveryDate+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})} à ${deliveryTime}`;
-  const placeLine = deliveryType==='external' ? `Livraison hors campus : ${deliveryAddress}` : `Livraison sur le campus (${classe} · ${getFiliereLabel(filiere)})`;
+  const firstId = createdOrders[0].order.id;
+  const ticketRef = createdOrders.length>1 ? `#${firstId}–#${createdOrders[createdOrders.length-1].order.id}` : `#${firstId}`;
   document.getElementById('orderSuccessText').innerHTML =
-    createdOrders.map(o => `${o.qty}× <strong>${o.p.name}</strong> — ${(o.p.price*o.qty).toLocaleString()} FCFA`).join('<br>') +
+    createdOrders.map(o => `${o.qty}× <strong>${o.p.name}</strong> — ${(o.p.price*o.qty).toLocaleString()} FCFA${o.note?`<br><span style="color:var(--t3);font-size:.85em">↳ ${o.note}</span>`:''}`).join('<br>') +
     `<br><strong>Total : ${grandTotal.toLocaleString()} FCFA</strong><br>` +
-    `<span style="color:var(--t3)">📅 ${deliveryLine}<br>📍 ${placeLine}</span>` +
-    (notes?`<br><span style="color:var(--t3)">Note : ${notes}</span>`:'');
-  document.getElementById('orderSuccess').classList.add('show');
+    `<span style="color:var(--t3)">Numéro de commande : ${ticketRef}</span>`;
+  document.getElementById('orderSuccess').style.display = '';
 
-  // Remplit et affiche le ticket de preuve de commande
+  // Remplit le ticket (hors écran) et le télécharge automatiquement
   fillTicket(createdOrders, { name, phone, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress, classe, filiere, grandTotal });
-  document.getElementById('ticketWrap').style.display = '';
+  setTimeout(() => downloadTicket(), 300);
   document.getElementById('orderSuccess').scrollIntoView({ behavior:'smooth' });
 
   // Vide le panier et réinitialise le formulaire
@@ -366,6 +490,7 @@ function fillTicket(createdOrders, f) {
   document.getElementById('tkItems').innerHTML = createdOrders.map(o => `
     <div class="ticket-row"><span class="k">#${o.order.id} · ${o.p.name} ×${o.qty}</span><span class="v">${(o.p.price*o.qty).toLocaleString()} FCFA</span></div>
     <div class="ticket-row" style="font-size:.7rem"><span class="k">Vendeur</span><span class="v">${o.p.sellerName}</span></div>
+    ${o.note ? `<div class="ticket-row" style="font-size:.7rem"><span class="k">Précision</span><span class="v">${o.note}</span></div>` : ''}
   `).join('<div class="ticket-sep"></div>');
 
   document.getElementById('tkTotal').textContent    = `${f.grandTotal.toLocaleString()} FCFA`;
@@ -377,6 +502,8 @@ function fillTicket(createdOrders, f) {
   const addrRow = document.getElementById('tkAddressRow');
   if (f.deliveryType === 'external' && f.deliveryAddress) { addrRow.style.display=''; document.getElementById('tkAddress').textContent = f.deliveryAddress; }
   else addrRow.style.display = 'none';
+
+  document.getElementById('ticketWrap').style.display = '';
 }
 
 document.addEventListener('DOMContentLoaded', () => {

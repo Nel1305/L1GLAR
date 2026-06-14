@@ -218,7 +218,7 @@ async function dbInsertOrder(f) {
   const { data, error } = await db.from('orders').insert({
     seller_id:f.sellerId, seller_name:f.sellerName||'', product_id:f.productId, product_name:f.productName,
     buyer_name:f.buyerName, buyer_email:f.buyerEmail||null, buyer_phone:f.buyerPhone||'',
-    qty:f.qty, total:f.total, notes:f.notes||'', status:'new',
+    qty:f.qty, total:f.total, notes:f.notes||'', item_note:f.itemNote||null, status:'new',
     delivery_date:f.deliveryDate||null, delivery_time:f.deliveryTime||null,
     delivery_type:f.deliveryType||'campus', delivery_address:f.deliveryAddress||null,
     buyer_classe:f.buyerClasse||null, buyer_filiere:f.buyerFiliere||null, order_group:f.orderGroup||null
@@ -244,7 +244,7 @@ async function restockProduct(productId, qty) {
   return error ? { error: error.message } : { ok: true, stock: newStock };
 }
 function no(r) {
-  return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'', productId:r.product_id, productName:r.product_name, buyerName:r.buyer_name, buyerEmail:r.buyer_email, buyerPhone:r.buyer_phone, qty:r.qty, total:r.total, notes:r.notes, status:r.status, createdAt:r.created_at,
+  return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'', productId:r.product_id, productName:r.product_name, buyerName:r.buyer_name, buyerEmail:r.buyer_email, buyerPhone:r.buyer_phone, qty:r.qty, total:r.total, notes:r.notes, itemNote:r.item_note||'', status:r.status, createdAt:r.created_at,
     deliveryDate:r.delivery_date, deliveryTime:r.delivery_time, deliveryType:r.delivery_type||'campus', deliveryAddress:r.delivery_address,
     buyerClasse:r.buyer_classe||'', buyerFiliere:r.buyer_filiere||'', orderGroup:r.order_group||null };
 }
@@ -316,6 +316,70 @@ async function dbGetActivePromotedProductIds() {
   const { data, error } = await db.from('promotions').select('product_id, ends_at').eq('status','active');
   if (error) { console.error(error); return []; }
   return (data || []).filter(r => !r.ends_at || r.ends_at > nowIso).map(r => r.product_id);
+}
+
+/* ── SIGNALEMENTS DE VENDEURS ── */
+async function dbGetSellerReports(f = {}) {
+  let q = db.from('seller_reports').select('*').order('created_at', { ascending: false });
+  if (f.sellerId) q = q.eq('seller_id', f.sellerId);
+  if (f.status)   q = q.eq('status', f.status);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return (data || []).map(nsr);
+}
+async function dbInsertSellerReport(f) {
+  const { data, error } = await db.from('seller_reports').insert({
+    seller_id:f.sellerId, seller_name:f.sellerName, reporter_name:f.reporterName||null,
+    reporter_phone:f.reporterPhone||null, reason:f.reason, status:'pending'
+  }).select().single();
+  if (error) return { error: error.message };
+  return { report: nsr(data) };
+}
+async function dbUpdateSellerReport(id, status) {
+  const { data, error } = await db.from('seller_reports').update({ status }).eq('id', id).select().single();
+  if (error) return { error: error.message };
+  return { report: nsr(data) };
+}
+function nsr(r) {
+  return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name, reporterName:r.reporter_name||'', reporterPhone:r.reporter_phone||'', reason:r.reason, status:r.status||'pending', createdAt:r.created_at };
+}
+function getReportThreshold() { return parseInt(getSetting('report_threshold', 3)) || 3; }
+
+/* ── BANNIÈRES PUBLICITAIRES ── */
+async function dbGetAdBanners(activeOnly) {
+  let q = db.from('ad_banners').select('*').order('sort_order', { ascending: true }).order('id', { ascending: true });
+  if (activeOnly) q = q.eq('active', true);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return (data || []).map(nab);
+}
+async function dbInsertAdBanner(f) {
+  const { data, error } = await db.from('ad_banners').insert({
+    title:f.title, subtitle:f.subtitle||null, image_url:f.imageUrl||null, link_url:f.linkUrl||null,
+    bg_color:f.bgColor||'#1a7a4a', active:f.active!==false, sort_order:f.sortOrder||0
+  }).select().single();
+  if (error) return { error: error.message };
+  return { banner: nab(data) };
+}
+async function dbUpdateAdBanner(id, f) {
+  const p = {};
+  if (f.title    !== undefined) p.title     = f.title;
+  if (f.subtitle !== undefined) p.subtitle  = f.subtitle;
+  if (f.imageUrl !== undefined) p.image_url = f.imageUrl;
+  if (f.linkUrl  !== undefined) p.link_url  = f.linkUrl;
+  if (f.bgColor  !== undefined) p.bg_color  = f.bgColor;
+  if (f.active   !== undefined) p.active    = f.active;
+  if (f.sortOrder!== undefined) p.sort_order= f.sortOrder;
+  const { data, error } = await db.from('ad_banners').update(p).eq('id', id).select().single();
+  if (error) return { error: error.message };
+  return { banner: nab(data) };
+}
+async function dbDeleteAdBanner(id) {
+  const { error } = await db.from('ad_banners').delete().eq('id', id);
+  return error ? { error: error.message } : { ok: true };
+}
+function nab(r) {
+  return { id:r.id, title:r.title, subtitle:r.subtitle||'', imageUrl:r.image_url||'', linkUrl:r.link_url||'', bgColor:r.bg_color||'#1a7a4a', active:r.active!==false, sortOrder:r.sort_order||0 };
 }
 
 /* ── RETOURS / LITIGES ── */
@@ -398,6 +462,11 @@ async function dbBlockUser(id, block, reason) {
 }
 async function dbUpdateUserBilling(id, period) {
   const { error } = await db.from('users').update({ billing_period: period }).eq('id', id);
+  return error ? { error: error.message } : { ok: true };
+}
+/* Supprime définitivement un compte vendeur (et ses produits, via ON DELETE CASCADE) */
+async function dbDeleteSeller(id) {
+  const { error } = await db.from('users').delete().eq('id', id);
   return error ? { error: error.message } : { ok: true };
 }
 

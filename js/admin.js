@@ -151,7 +151,7 @@ async function renderOrders() {
         <div style="font-weight:500">${formatDeliveryDateTime(o)}</div>
         <div style="color:var(--t3)">${o.deliveryType==='external'?'📍 Hors campus':'🏫 Sur le campus'}</div>
       </td>
-      <td style="max-width:120px">${o.notes?`<span style="font-size:.72rem;color:var(--t2);font-style:italic">${o.notes.substring(0,45)}${o.notes.length>45?'…':''}</span>`:`<span style="color:var(--t4)">—</span>`}</td>
+      <td style="max-width:120px">${o.itemNote?`<span style="font-size:.72rem;color:var(--t2);font-style:italic">${o.itemNote.substring(0,45)}${o.itemNote.length>45?'…':''}</span>`:`<span style="color:var(--t4)">—</span>`}</td>
       <td>
         <select class="select-sm" style="font-size:.72rem" onchange="updateStatus(${o.id},this.value)">
           <option value="new"    ${o.status==='new'   ?'selected':''}>Nouvelle</option>
@@ -310,7 +310,8 @@ async function viewOrder(id) {
     row('Lieu de livraison', deliveryTypeLabel(o.deliveryType)) +
     (o.deliveryType==='external' && o.deliveryAddress ? row('Adresse', o.deliveryAddress) : '') +
     (o.deliveryType==='campus' && (o.buyerClasse||o.buyerFiliere) ? row('Classe / Filière', `${o.buyerClasse||'—'} · ${getFiliereLabel(o.buyerFiliere)||'—'}`) : '') +
-    (o.notes?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Modification demandée</div><div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;border:1px solid var(--line)">${o.notes}</div></div>`:'');
+    (o.notes?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Instructions générales</div><div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;border:1px solid var(--b1)">${o.notes}</div></div>`:'') +
+    (o.itemNote?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Précision pour ce produit</div><div style="background:var(--accent-dim);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t1);font-style:italic;border:1px solid var(--accent-bdr)">${o.itemNote}</div></div>`:'');
   openModal('orderDetailModal');
 }
 

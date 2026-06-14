@@ -28,6 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('planActive').addEventListener('click', function(){ this.classList.toggle('on'); });
   document.getElementById('activatePromoBtn').addEventListener('click', () => respondPromo('active'));
   document.getElementById('rejectPromoBtn').addEventListener('click', () => respondPromo('rejected'));
+  document.getElementById('addBannerBtn').addEventListener('click', () => openBannerModal());
+  document.getElementById('saveBannerBtn').addEventListener('click', saveBanner);
+  document.getElementById('bannerActive').addEventListener('click', function(){ this.classList.toggle('on'); });
+  document.getElementById('validateReportBtn').addEventListener('click', () => respondReport('validated'));
+  document.getElementById('dismissReportBtn').addEventListener('click', () => respondReport('dismissed'));
+  document.getElementById('deleteSellerBtn').addEventListener('click', deleteReportedSeller);
   document.getElementById('dashDate').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const now=new Date(), fd=new Date(now.getFullYear(),now.getMonth(),1), ld=new Date(now.getFullYear(),now.getMonth()+1,0), dd=new Date(now.getFullYear(),now.getMonth()+1,7);
   document.getElementById('genStart').value=fd.toISOString().split('T')[0];
@@ -60,6 +66,12 @@ function showApp() {
   });
   renderDashboard();
   checkPendingPromos();
+  checkPendingReports();
+}
+
+async function checkPendingReports() {
+  const reports = await dbGetSellerReports({ status: 'pending' });
+  document.getElementById('reportsDot').style.display = reports.length ? '' : 'none';
 }
 
 async function checkPendingPromos() {
@@ -88,6 +100,8 @@ async function goPage(name) {
   if (name==='orders')      await renderAllOrders();
   if (name==='returns')     await renderReturns();
   if (name==='promo')       await renderPromoPage();
+  if (name==='banners')     await renderBannersPage();
+  if (name==='reports')     await renderReportsPage();
   if (name==='settings')    document.getElementById('globalRate').value = getCommissionRate();
   if (name==='chat' && !chatInited) {
     await initChat({ id: adminSession.id, name: adminSession.name||'Admin', firstName: 'Admin' }, true);
@@ -737,6 +751,164 @@ async function respondPromo(status) {
   closeModal('promoReviewModal');
   showToast(status==='active'?'Mise en avant activée':'Demande refusée','', status==='active'?'var(--ok)':'var(--err)');
   await renderPromoPage();
+}
+
+/* ── BANNIÈRES PUBLICITAIRES ── */
+async function renderBannersPage() {
+  showLoader(true);
+  const banners = await dbGetAdBanners();
+  showLoader(false);
+  const wrap = document.getElementById('bannersList');
+  if (!banners.length) { wrap.innerHTML = '<div class="table-empty">Aucune bannière. Clique sur « + Ajouter une bannière ».</div>'; return; }
+  wrap.innerHTML = banners.map(b => `
+    <div class="promo-item">
+      <div class="pi-info">
+        <div class="pi-name">${b.title}${b.active?'':' <span style="color:var(--t3);font-size:.65rem">(inactive)</span>'}</div>
+        <div class="pi-meta">${b.subtitle||''}${b.linkUrl?` · ${b.linkUrl}`:''}</div>
+      </div>
+      <div class="cat-actions">
+        <button class="icon-btn edit" onclick="openBannerModal(${b.id})" title="Modifier">✏</button>
+        <button class="icon-btn del" onclick="deleteBanner(${b.id},'${b.title.replace(/'/g,"\\'")}')" title="Supprimer">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function openBannerModal(id) {
+  document.getElementById('bannerId').value = id || '';
+  if (id) {
+    dbGetAdBanners().then(banners => {
+      const b = banners.find(x=>x.id===id);
+      document.getElementById('bannerModalTitle').textContent = 'Modifier la bannière';
+      document.getElementById('bannerTitle').value = b?.title||'';
+      document.getElementById('bannerSubtitle').value = b?.subtitle||'';
+      document.getElementById('bannerImage').value = b?.imageUrl||'';
+      document.getElementById('bannerColor').value = b?.bgColor||'#1a7a4a';
+      document.getElementById('bannerLink').value = b?.linkUrl||'';
+      b?.active ? document.getElementById('bannerActive').classList.add('on') : document.getElementById('bannerActive').classList.remove('on');
+    });
+  } else {
+    document.getElementById('bannerModalTitle').textContent = 'Ajouter une bannière';
+    document.getElementById('bannerTitle').value = '';
+    document.getElementById('bannerSubtitle').value = '';
+    document.getElementById('bannerImage').value = '';
+    document.getElementById('bannerColor').value = '#1a7a4a';
+    document.getElementById('bannerLink').value = '';
+    document.getElementById('bannerActive').classList.add('on');
+  }
+  openModal('bannerModal');
+}
+
+async function saveBanner() {
+  const id    = document.getElementById('bannerId').value;
+  const title = document.getElementById('bannerTitle').value.trim();
+  const subtitle = document.getElementById('bannerSubtitle').value.trim();
+  const imageUrl = document.getElementById('bannerImage').value.trim();
+  const bgColor  = document.getElementById('bannerColor').value;
+  const linkUrl  = document.getElementById('bannerLink').value.trim();
+  const active   = document.getElementById('bannerActive').classList.contains('on');
+  if (!title) { showToast('Titre manquant','','var(--err)'); return; }
+
+  showLoader(true);
+  let r;
+  if (id) r = await dbUpdateAdBanner(parseInt(id), { title, subtitle, imageUrl, bgColor, linkUrl, active });
+  else    r = await dbInsertAdBanner({ title, subtitle, imageUrl, bgColor, linkUrl, active, sortOrder: (await dbGetAdBanners()).length });
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--err)'); return; }
+  closeModal('bannerModal');
+  showToast(id?'Bannière modifiée':'Bannière ajoutée','','var(--ok)');
+  await renderBannersPage();
+}
+
+async function deleteBanner(id, title) {
+  if (!confirm(`Supprimer la bannière « ${title} » ?`)) return;
+  showLoader(true);
+  const r = await dbDeleteAdBanner(id);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--err)'); return; }
+  showToast('Bannière supprimée','','var(--err)');
+  await renderBannersPage();
+}
+
+/* ── SIGNALEMENTS DE VENDEURS ── */
+async function renderReportsPage() {
+  showLoader(true);
+  const reports = await dbGetSellerReports();
+  showLoader(false);
+
+  const pending = reports.filter(r=>r.status==='pending');
+  const pendingWrap = document.getElementById('reportsPendingList');
+  pendingWrap.innerHTML = pending.length ? pending.map(r => `
+    <div class="promo-item">
+      <div class="pi-info">
+        <div class="pi-name">${r.sellerName}</div>
+        <div class="pi-meta">${r.reporterName||'Anonyme'}${r.reporterPhone?` · 📞 ${r.reporterPhone}`:''} · ${formatDate(r.createdAt)}</div>
+        <div class="pi-meta" style="font-style:italic;margin-top:3px">${r.reason}</div>
+      </div>
+      <button class="btn-primary sm" onclick="openReportReview(${r.id})">Examiner</button>
+    </div>`).join('') : '<div class="table-empty">Aucun signalement en attente</div>';
+  document.getElementById('reportsDot').style.display = pending.length ? '' : 'none';
+
+  const history = reports.filter(r=>r.status!=='pending');
+  const tbody = document.getElementById('reportsHistoryBody');
+  tbody.innerHTML = history.length ? history.map(r => `
+    <tr>
+      <td>${r.sellerName}</td>
+      <td style="max-width:240px;font-size:.78rem">${r.reason}</td>
+      <td style="font-size:.78rem;color:var(--t2)">${r.reporterName||'Anonyme'}${r.reporterPhone?`<br>📞 ${r.reporterPhone}`:''}</td>
+      <td><span class="status-badge ${r.status==='validated'?'status-cancel':'status-done'}">${r.status==='validated'?'Validé':'Rejeté'}</span></td>
+      <td style="font-size:.72rem;color:var(--t3)">${formatDate(r.createdAt)}</td>
+    </tr>`).join('') : `<tr><td colspan="5" class="table-empty">Aucun historique</td></tr>`;
+}
+
+async function openReportReview(id) {
+  const reports = await dbGetSellerReports();
+  const r = reports.find(x=>x.id===id); if (!r) return;
+  const sellerReports = reports.filter(x=>x.sellerId===r.sellerId);
+  const validatedCount = sellerReports.filter(x=>x.status==='validated').length + 1; // +1 si celui-ci est validé
+
+  document.getElementById('reportReviewId').value = r.id;
+  document.getElementById('reportReviewSellerId').value = r.sellerId;
+  document.getElementById('reportReviewSub').textContent = `${r.sellerName} · ${formatDate(r.createdAt)}`;
+  document.getElementById('reportReviewContent').innerHTML = `
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Signalé par :</strong> ${r.reporterName||'Anonyme'}${r.reporterPhone?` · 📞 ${r.reporterPhone}`:''}</div>
+    <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;margin-top:8px">${r.reason}</div>
+    <div style="font-size:.74rem;color:var(--t3);margin-top:10px">Signalements déjà validés pour ce vendeur : ${validatedCount-1} / ${getReportThreshold()}</div>`;
+
+  const threshold = getReportThreshold();
+  const deleteWrap = document.getElementById('reportDeleteWrap');
+  if (validatedCount >= threshold) {
+    deleteWrap.style.display = '';
+    document.getElementById('reportDeleteHint').textContent = `Ce vendeur a atteint ${validatedCount}/${threshold} signalement(s) validé(s). Tu peux supprimer son compte si tu juges la situation justifiée.`;
+  } else {
+    deleteWrap.style.display = 'none';
+  }
+  openModal('reportReviewModal');
+}
+
+async function respondReport(status) {
+  const id = parseInt(document.getElementById('reportReviewId').value);
+  showLoader(true);
+  const r = await dbUpdateSellerReport(id, status);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--err)'); return; }
+  closeModal('reportReviewModal');
+  showToast(status==='validated'?'Signalement validé':'Signalement rejeté','', status==='validated'?'var(--err)':'var(--ok)');
+  await renderReportsPage();
+}
+
+async function deleteReportedSeller() {
+  const sellerId = parseInt(document.getElementById('reportReviewSellerId').value);
+  if (!confirm('Supprimer définitivement ce compte vendeur ainsi que tous ses produits ? Cette action est irréversible.')) return;
+  showLoader(true);
+  // Valide aussi le signalement en cours s'il était encore en attente
+  const id = parseInt(document.getElementById('reportReviewId').value);
+  await dbUpdateSellerReport(id, 'validated');
+  const r = await dbDeleteSeller(sellerId);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--err)'); return; }
+  closeModal('reportReviewModal');
+  showToast('Compte supprimé', 'Le vendeur et ses produits ont été supprimés.', 'var(--err)');
+  await renderReportsPage();
 }
 
 /* ── ALL ORDERS ── */
