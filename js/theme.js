@@ -57,9 +57,38 @@
   document.addEventListener('DOMContentLoaded', () => {
     updateButtons();
     document.querySelectorAll('.theme-toggle').forEach(btn => btn.addEventListener('click', cycleTheme));
+    initMobileNav();
   });
 
   if (window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', updateButtons);
+  }
+
+  /* ── NAVIGATION MOBILE (tiroir latéral) ── */
+  function initMobileNav() {
+    const sidebar  = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const burger   = document.getElementById('hamburgerBtn');
+    if (!sidebar || !burger) return;
+
+    function openDrawer()  { sidebar.classList.add('open'); backdrop && backdrop.classList.add('show'); }
+    function closeDrawer() { sidebar.classList.remove('open'); backdrop && backdrop.classList.remove('show'); }
+
+    burger.addEventListener('click', openDrawer);
+    if (backdrop) backdrop.addEventListener('click', closeDrawer);
+
+    // Ferme le tiroir après un clic sur un lien de nav (mobile)
+    sidebar.querySelectorAll('.nav-item, .admin-btn, #userPill, a').forEach(el => {
+      el.addEventListener('click', closeDrawer);
+    });
+
+    // Raccourci panier (page publique) : ouvre directement la page Panier
+    const cartBtn = document.querySelector('.mobile-cart-btn[data-page]');
+    if (cartBtn) {
+      cartBtn.addEventListener('click', () => {
+        const target = document.querySelector(`.nav-item[data-page="${cartBtn.dataset.page}"]`);
+        if (target) target.click();
+      });
+    }
   }
 })();

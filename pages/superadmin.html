@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../css/style.css">
   <script src="../js/theme.js"></script>
   <link rel="stylesheet" href="../css/superadmin.css">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="flag-bar"></div>
@@ -23,6 +23,12 @@
   </div>
 </div>
 
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburgerBtn" title="Menu">☰</button>
+  <div class="mt-title">★ Super Admin</div>
+  <div style="width:38px"></div>
+</div>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
     <div class="logo-row"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> Super Admin</div><div class="logo-sub">N Market</div></div><button class="theme-toggle" title="Changer de thème">🌙</button></div>
@@ -40,6 +46,7 @@
       <button class="nav-item" data-page="filieres"><span class="icon">🎓</span>Filières</button>
       <button class="nav-item" data-page="orders"><span class="icon">📦</span>Toutes les commandes</button>
       <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours / Litiges</button>
+      <button class="nav-item" data-page="promo"><span class="icon">📣</span>Publicité <span class="dot" id="promoDot" style="display:none"></span></button>
       <span class="nav-label">Communication</span>
       <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="adminChatDot" style="display:none"></span></button>
       <span class="nav-label">Paramètres</span>
@@ -124,6 +131,19 @@
       <div class="table-wrap"><table class="data-table"><thead><tr><th>Commande</th><th>Client</th><th>Vendeur</th><th>Produit</th><th>Motif</th><th>Statut</th><th>Date</th></tr></thead><tbody id="returnsBody"></tbody></table></div>
     </div>
 
+    <div id="page-promo" class="page">
+      <div class="page-header"><div><div class="page-title">Publicité</div><div class="page-desc">Demandes de mise en avant des vendeurs + tarifs</div></div><button class="btn-primary sm" id="addPlanBtn">+ Ajouter une formule</button></div>
+
+      <div class="section-divider" style="margin-top:0">Tarifs de mise en avant</div>
+      <div class="cat-grid" id="promoPlansGrid"></div>
+
+      <div class="section-divider">Demandes en attente</div>
+      <div id="promoPendingList"></div>
+
+      <div class="section-divider">Historique</div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur</th><th>Produit</th><th>Formule</th><th>Prix</th><th>Statut</th><th>Période</th></tr></thead><tbody id="promoHistoryBody"></tbody></table></div>
+    </div>
+
     <div id="page-orders" class="page">
       <div class="page-header"><div><div class="page-title">Toutes les commandes</div><div class="page-desc">Vue globale</div></div><select class="select-sm" id="allOrdersFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select></div>
       <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Client</th><th>Produit</th><th>Vendeur</th><th>Total</th><th>Livraison</th><th>Statut</th><th>Date</th></tr></thead><tbody id="allOrdersBody"></tbody></table></div>
@@ -162,7 +182,7 @@
       <div class="field"><label>Nom affiché</label><input type="text" id="catLabel" placeholder="Ex : Fournitures scolaires"></div>
       <div class="field-row">
         <div class="field"><label>Emoji</label><input type="text" id="catEmojiInput" placeholder="📚" style="max-width:100%"></div>
-        <div class="field"><label>Couleur du badge</label><input type="color" id="catColor" value="#5b8cff" style="height:42px;padding:4px"></div>
+        <div class="field"><label>Couleur du badge</label><input type="color" id="catColor" value="#1a7a4a" style="height:42px;padding:4px"></div>
       </div>
       <div class="field"><label>Identifiant technique (slug)</label><input type="text" id="catSlug" placeholder="ex : fournitures"><div class="hint">Lettres minuscules, chiffres et tirets uniquement. Généré automatiquement si laissé vide.</div></div>
       <button class="btn-primary" id="saveCatBtn">Enregistrer</button>
@@ -178,6 +198,36 @@
       <div class="field"><label>Nom affiché</label><input type="text" id="filiereLabel" placeholder="Ex : L1 GLAR"></div>
       <div class="field"><label>Identifiant technique (slug)</label><input type="text" id="filiereSlug" placeholder="ex : l1-glar"><div class="hint">Lettres minuscules, chiffres et tirets uniquement. Généré automatiquement si laissé vide.</div></div>
       <button class="btn-primary" id="saveFiliereBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="planModal">
+  <div class="modal"><button class="modal-x" data-close="planModal">✕</button>
+    <div class="modal-title" id="planModalTitle">Ajouter une formule</div><div class="modal-sub">Tarif de mise en avant proposé aux vendeurs</div>
+    <div class="modal-form">
+      <input type="hidden" id="planId">
+      <div class="field"><label>Nom</label><input type="text" id="planLabel" placeholder="Ex : Mise en avant — 7 jours"></div>
+      <div class="field-row">
+        <div class="field"><label>Durée (jours)</label><input type="number" id="planDuration" min="1" placeholder="7"></div>
+        <div class="field"><label>Prix (FCFA)</label><input type="number" id="planPrice" min="0" placeholder="2000"></div>
+      </div>
+      <div class="toggle-row"><div class="toggle-info"><strong>Formule active</strong><span>Visible par les vendeurs</span></div><button class="toggle on" id="planActive"></button></div>
+      <button class="btn-primary" id="savePlanBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="promoReviewModal">
+  <div class="modal"><button class="modal-x" data-close="promoReviewModal">✕</button>
+    <div class="modal-title">Demande de mise en avant</div><div class="modal-sub" id="promoReviewSub"></div>
+    <div id="promoReviewContent" style="margin-bottom:14px"></div>
+    <div class="modal-form">
+      <input type="hidden" id="promoReviewId">
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" id="activatePromoBtn" style="flex:1">Activer</button>
+        <button class="btn-danger" id="rejectPromoBtn" style="flex:1">Refuser</button>
+      </div>
     </div>
   </div>
 </div>

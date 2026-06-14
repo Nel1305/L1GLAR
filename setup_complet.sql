@@ -244,6 +244,42 @@ CREATE TABLE IF NOT EXISTS returns (
 
 
 -- ════════════════════════════════════
+-- 8ter. PUBLICITÉ / PRODUITS SPONSORISÉS
+-- ════════════════════════════════════
+CREATE TABLE IF NOT EXISTS promo_plans (
+  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  label       text NOT NULL,
+  duration_days integer NOT NULL,
+  price       numeric NOT NULL,
+  sort_order  integer DEFAULT 0,
+  active      boolean DEFAULT true,
+  created_at  timestamptz DEFAULT now()
+);
+INSERT INTO promo_plans (label, duration_days, price, sort_order) VALUES
+  ('Mise en avant — 3 jours',  3,  1000, 1),
+  ('Mise en avant — 7 jours',  7,  2000, 2),
+  ('Mise en avant — 15 jours', 15, 3500, 3)
+ON CONFLICT DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS promotions (
+  id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  product_id    bigint REFERENCES products(id) ON DELETE CASCADE,
+  seller_id     bigint REFERENCES users(id) ON DELETE CASCADE,
+  seller_name   text NOT NULL,
+  product_name  text NOT NULL,
+  plan_id       bigint REFERENCES promo_plans(id) ON DELETE SET NULL,
+  plan_label    text,
+  duration_days integer NOT NULL,
+  price         numeric NOT NULL,
+  status        text DEFAULT 'pending',
+  starts_at     timestamptz,
+  ends_at       timestamptz,
+  admin_note    text,
+  created_at    timestamptz DEFAULT now()
+);
+
+
+-- ════════════════════════════════════
 -- 9. SÉCURITÉ (RLS) — accès ouvert via la clé "anon"
 --    (l'app gère l'authentification elle-même côté JS)
 -- ════════════════════════════════════
@@ -251,7 +287,7 @@ DO $$
 DECLARE
   tbl text;
 BEGIN
-  FOREACH tbl IN ARRAY ARRAY['users','products','orders','reviews','admins','commissions','messages','seller_connections','categories','filieres','settings','returns']
+  FOREACH tbl IN ARRAY ARRAY['users','products','orders','reviews','admins','commissions','messages','seller_connections','categories','filieres','settings','returns','promo_plans','promotions']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
     EXECUTE format('DROP POLICY IF EXISTS "public_all" ON %I', tbl);
@@ -274,4 +310,6 @@ SELECT 'messages',    count(*) FROM messages    UNION ALL
 SELECT 'seller_connections', count(*) FROM seller_connections UNION ALL
 SELECT 'filieres', count(*) FROM filieres UNION ALL
 SELECT 'settings', count(*) FROM settings UNION ALL
-SELECT 'returns', count(*) FROM returns;
+SELECT 'returns', count(*) FROM returns UNION ALL
+SELECT 'promo_plans', count(*) FROM promo_plans UNION ALL
+SELECT 'promotions', count(*) FROM promotions;

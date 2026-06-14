@@ -6,6 +6,7 @@ let activeFilter = 'all';
 let searchQ      = '';
 let allProducts  = [];
 let allSellers   = [];
+let promotedIds  = [];
 function sellerFiliere(sellerId) {
   const u = allSellers.find(x => x.id === sellerId);
   return u && u.filiere ? getFiliereLabel(u.filiere) : '';
@@ -44,6 +45,7 @@ async function loadProducts() {
   showLoader(true);
   allProducts = await dbGetProducts({ available: true });
   if (!allSellers.length) allSellers = await dbGetAllUsers();
+  promotedIds = await dbGetActivePromotedProductIds();
   showLoader(false);
   renderProducts();
   populateReviewProductSelect();
@@ -62,28 +64,45 @@ function renderProducts() {
     (p.name.toLowerCase().includes(searchQ) || p.sellerName.toLowerCase().includes(searchQ) || (p.desc||'').toLowerCase().includes(searchQ))
   );
 
-  if (!list.length) { grid.innerHTML = '<div class="empty">Aucun produit disponible.</div>'; return; }
+  if (!list.length) { grid.innerHTML = '<div class="empty">Aucun produit disponible.</div>'; bindProductGridEvents(grid); return; }
 
-  grid.innerHTML = list.map(p => `
-    <div class="card">
+  // Section "Sponsorisé" : produits dont une promotion est active, parmi la liste filtrée
+  const sponsored = activeFilter === 'all' && !searchQ ? list.filter(p => promotedIds.includes(p.id)) : [];
+  const rest = sponsored.length ? list.filter(p => !promotedIds.includes(p.id)) : list;
+
+  let html = '';
+  if (sponsored.length) {
+    html += `<div class="section-divider">Sponsorisé</div><div class="grid">${sponsored.map(p => productCardHtml(p, true)).join('')}</div>`;
+    html += `<div class="section-divider">Tous les produits</div>`;
+  }
+  html += `<div class="grid">${rest.map(p => productCardHtml(p, false)).join('')}</div>`;
+  grid.innerHTML = html;
+  bindProductGridEvents(grid);
+}
+
+function productCardHtml(p, isSponsored) {
+  return `
+    <div class="card${isSponsored?' sponsored':''}">
       <div class="card-img cat-${p.cat}" data-detail="${p.id}">${p.photo ? `<img src="${p.photo}" alt="${p.name}">` : (p.emoji || catEmoji(p.cat))}</div>
       <div class="card-body">
+        ${isSponsored ? `<div class="sponsored-badge">★ Sponsorisé</div>` : ''}
         ${catBadge(p.cat)}${stockBadgeHtml(p)}
         <div class="card-name" data-detail="${p.id}" style="cursor:pointer">${p.name}</div>
         ${p.desc ? `<div class="card-desc">${p.desc}</div>` : ''}
         <div class="card-seller">Par ${p.sellerName}${sellerFiliere(p.sellerId)?` <span class="seller-filiere">· ${sellerFiliere(p.sellerId)}</span>`:''}</div>
         <div class="card-row">
           <div class="card-price">${p.price.toLocaleString()} FCFA</div>
-          <div class="card-rating"><span style="color:var(--flash)">★</span> ${p.rating||'—'} ${p.votes?`<span style="color:var(--t3)">(${p.votes})</span>`:''}</div>
+          <div class="card-rating"><span style="color:var(--gold)">★</span> ${p.rating||'—'} ${p.votes?`<span style="color:var(--t3)">(${p.votes})</span>`:''}</div>
         </div>
         <div class="card-actions">
           <button class="btn-detail" data-detail="${p.id}">Détails & avis</button>
           <button class="btn-order" data-id="${p.id}" data-name="${p.name}" ${isOutOfStock(p)?'disabled':''}>${isOutOfStock(p)?'Rupture':'🛒 Ajouter'}</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+}
 
+function bindProductGridEvents(grid) {
   grid.querySelectorAll('[data-detail]').forEach(el =>
     el.addEventListener('click', () => openProductDetail(parseInt(el.dataset.detail)))
   );
@@ -132,9 +151,12 @@ function saveCart() {
 }
 function updateCartBadge() {
   const count = cart.reduce((s,i) => s + i.qty, 0);
-  const el = document.getElementById('cartCount');
-  if (count > 0) { el.textContent = count; el.style.display = ''; }
-  else el.style.display = 'none';
+  ['cartCount','cartCountMobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (count > 0) { el.textContent = count; el.style.display = ''; }
+    else el.style.display = 'none';
+  });
 }
 function addToCart(productId) {
   const p = allProducts.find(x => x.id === productId);

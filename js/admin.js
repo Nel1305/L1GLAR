@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   document.getElementById('appShell').style.display = '';
   document.getElementById('shopName').textContent    = currentUser.name;
+  document.getElementById('shopNameMobile').textContent = currentUser.name;
   document.getElementById('userAvatar').textContent  = currentUser.firstName[0].toUpperCase();
   document.getElementById('userName').textContent    = currentUser.name;
   await loadCategories();
@@ -76,6 +77,7 @@ async function goPage(name) {
   if (name==='returns')    await renderReturnsPage();
   if (name==='products')   await renderProductsTable();
   if (name==='addproduct') resetAddForm();
+  if (name==='promote')    await renderPromotePage();
   if (name==='profile')    loadProfile();
   if (name==='chat' && !chatInited) await initChat(currentUser, false);
 }
@@ -217,6 +219,81 @@ async function respondReturn(status) {
   closeModal('returnModal');
   showToast(status==='accepted'?'Retour accepté':'Retour refusé','', status==='accepted'?'var(--green)':'var(--red)');
   await renderReturnsPage();
+}
+
+/* ── PUBLICITÉ (vendeur) ── */
+let selectedPromoPlanId = null;
+async function renderPromotePage() {
+  showLoader(true);
+  const [products, plans, myPromos] = await Promise.all([
+    dbGetProducts({ sellerId: currentUser.id }),
+    dbGetPromoPlans(true),
+    dbGetPromotions({ sellerId: currentUser.id })
+  ]);
+  showLoader(false);
+
+  // Sélecteur de produit
+  document.getElementById('promoProduct').innerHTML =
+    products.length ? products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+                     : '<option value="">Aucun produit publié</option>';
+
+  // Formules
+  selectedPromoPlanId = plans.length ? plans[0].id : null;
+  document.getElementById('promoPlans').innerHTML = plans.map(pl => `
+    <div class="promo-plan-card${pl.id===selectedPromoPlanId?' selected':''}" data-plan="${pl.id}">
+      <div class="pp-label">${pl.label}</div>
+      <div class="pp-price">${pl.price.toLocaleString()} FCFA</div>
+      <div class="pp-duration">${pl.durationDays} jour${pl.durationDays>1?'s':''}</div>
+    </div>`).join('') || '<div class="table-empty">Aucune formule disponible pour le moment.</div>';
+
+  document.querySelectorAll('.promo-plan-card[data-plan]').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.promo-plan-card').forEach(c=>c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedPromoPlanId = parseInt(card.dataset.plan);
+    });
+  });
+
+  // Mes demandes
+  const wrap = document.getElementById('myPromosList');
+  if (!myPromos.length) { wrap.innerHTML = '<div class="table-empty">Aucune demande de mise en avant pour le moment.</div>'; }
+  else {
+    wrap.innerHTML = myPromos.map(pr => `
+      <div class="promo-item">
+        <div class="pi-info">
+          <div class="pi-name">${pr.productName}</div>
+          <div class="pi-meta">${pr.planLabel||''} · ${formatDate(pr.createdAt)}${pr.status==='active'&&pr.endsAt?` · jusqu'au ${formatDate(pr.endsAt)}`:''}</div>
+        </div>
+        <div class="pi-price">${pr.price.toLocaleString()} FCFA</div>
+        <span class="status-badge ${pr.status==='active'?'status-done':pr.status==='rejected'||pr.status==='expired'?'status-cancel':'status-new'}">${pr.status==='active'?'Active':pr.status==='rejected'?'Refusée':pr.status==='expired'?'Terminée':'En attente'}</span>
+      </div>`).join('');
+  }
+
+  document.getElementById('submitPromoBtn').onclick = submitPromoRequest;
+  document.getElementById('promoSuccess').classList.remove('show');
+}
+
+async function submitPromoRequest() {
+  const productId = parseInt(document.getElementById('promoProduct').value);
+  if (!productId) { showToast('Aucun produit', 'Publie d\'abord un produit avant de le mettre en avant.', 'var(--err)'); return; }
+  if (!selectedPromoPlanId) { showToast('Formule manquante', 'Choisis une formule de mise en avant.', 'var(--err)'); return; }
+
+  showLoader(true);
+  const plans = await dbGetPromoPlans(true);
+  const plan = plans.find(p => p.id === selectedPromoPlanId);
+  const products = await dbGetProducts({ sellerId: currentUser.id });
+  const product = products.find(p => p.id === productId);
+  if (!plan || !product) { showLoader(false); showToast('Erreur', 'Données introuvables.', 'var(--err)'); return; }
+
+  const r = await dbInsertPromotion({
+    productId: product.id, sellerId: currentUser.id, sellerName: currentUser.name, productName: product.name,
+    planId: plan.id, planLabel: plan.label, durationDays: plan.durationDays, price: plan.price
+  });
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--err)'); return; }
+  document.getElementById('promoSuccess').classList.add('show');
+  showToast('Demande envoyée', 'Le Super Admin va la valider.', 'var(--ok)');
+  await renderPromotePage();
 }
 
 async function viewOrder(id) {
@@ -383,6 +460,7 @@ async function saveProfile() {
   if (r.error) { showToast('Erreur', r.error,'var(--red)'); return; }
   currentUser = r.user; setSession(currentUser);
   document.getElementById('shopName').textContent   = currentUser.name;
+  document.getElementById('shopNameMobile').textContent = currentUser.name;
   document.getElementById('userAvatar').textContent = currentUser.firstName[0].toUpperCase();
   document.getElementById('userName').textContent   = currentUser.name;
   const products = await dbGetProducts({ sellerId: currentUser.id });

@@ -6,7 +6,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <script src="../js/theme.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="flag-bar"></div>
@@ -17,6 +17,12 @@
   <p style="color:var(--t2);font-size:.82rem;margin-bottom:22px">Connecte-toi pour accéder à ton espace vendeur.</p>
   <a href="../index.html" style="display:inline-block;padding:9px 22px;background:var(--t1);color:var(--bg);border-radius:var(--r2);text-decoration:none;font-weight:600;font-size:.82rem">← Retourner au site</a>
 </div>
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburgerBtn" title="Menu">☰</button>
+  <div class="mt-title">★ <span id="shopNameMobile">N Market</span></div>
+  <div style="width:38px"></div>
+</div>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
     <div class="logo-row"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> <span id="shopName">Mon commerce</span></div><div class="logo-sub">N Market</div></div><button class="theme-toggle" title="Changer de thème">🌙</button></div>
@@ -28,6 +34,7 @@
       <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours <span class="dot" id="returnsDot" style="display:none"></span></button>
       <button class="nav-item" data-page="products"><span class="icon">🛍</span>Mes produits</button>
       <button class="nav-item" data-page="addproduct"><span class="icon">+</span>Ajouter un produit</button>
+      <button class="nav-item" data-page="promote"><span class="icon">📣</span>Publicité</button>
       <span class="nav-label">Communication</span>
       <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="chatDot" style="display:none"></span></button>
       <span class="nav-label">Compte</span>
@@ -80,6 +87,27 @@
     <div id="page-products" class="page">
       <div class="page-header"><div><div class="page-title">Mes produits</div><div class="page-desc">Gérer ta boutique</div></div><button class="btn-primary sm" onclick="goPage('addproduct')">+ Ajouter</button></div>
       <div class="table-wrap"><table class="data-table"><thead><tr><th>Photo</th><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>Note</th><th>Dispo</th><th>Actions</th></tr></thead><tbody id="productsBody"></tbody></table></div>
+    </div>
+
+    <div id="page-promote" class="page">
+      <div class="page-header"><div><div class="page-title">Publicité</div><div class="page-desc">Mets un produit en avant sur la marketplace pour booster sa visibilité</div></div></div>
+
+      <div class="form-wrap">
+        <div class="f-section">
+          <span class="f-label">1. Choisir un produit</span>
+          <div class="field"><select id="promoProduct"></select></div>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section">
+          <span class="f-label">2. Choisir une formule</span>
+          <div class="promo-plans" id="promoPlans"></div>
+        </div>
+        <button class="btn-primary" id="submitPromoBtn">Demander la mise en avant</button>
+        <div class="success-box" id="promoSuccess"><div class="ico">✓</div><strong>Demande envoyée !</strong><p>Le Super Admin va valider ta demande et activer la mise en avant.</p></div>
+      </div>
+
+      <div class="section-divider">Mes demandes de mise en avant</div>
+      <div id="myPromosList"></div>
     </div>
 
     <div id="page-addproduct" class="page">

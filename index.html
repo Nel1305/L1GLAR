@@ -5,12 +5,18 @@
   <title>N Market</title>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <script src="js/theme.js"></script>
 </head>
 <body>
 <div class="flag-bar"></div>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
+<div class="mobile-topbar">
+  <button class="hamburger-btn" id="hamburgerBtn" title="Menu">☰</button>
+  <div class="mt-title">★ N Market</div>
+  <button class="mobile-cart-btn" data-page="cart" title="Panier">🛒<span class="cart-count" id="cartCountMobile" style="display:none">0</span></button>
+</div>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="app">
   <aside class="sidebar">
     <div class="logo-row">
@@ -42,7 +48,7 @@
           <button class="filter-btn active" data-filter="all">Tout</button>
         </div>
       </div>
-      <div class="grid" id="productsGrid"></div>
+      <div id="productsGrid"></div>
     </div>
     <div id="page-cart" class="page">
       <div class="page-header"><div><div class="page-title">Panier</div><div class="page-desc">Vérifie ta commande avant de valider</div></div></div>

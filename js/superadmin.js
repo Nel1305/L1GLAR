@@ -23,6 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('saveCatBtn').addEventListener('click', saveCategory);
   document.getElementById('addFiliereBtn').addEventListener('click', () => openFiliereModal());
   document.getElementById('saveFiliereBtn').addEventListener('click', saveFiliere);
+  document.getElementById('addPlanBtn').addEventListener('click', () => openPlanModal());
+  document.getElementById('savePlanBtn').addEventListener('click', savePromoPlan);
+  document.getElementById('planActive').addEventListener('click', function(){ this.classList.toggle('on'); });
+  document.getElementById('activatePromoBtn').addEventListener('click', () => respondPromo('active'));
+  document.getElementById('rejectPromoBtn').addEventListener('click', () => respondPromo('rejected'));
   document.getElementById('dashDate').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const now=new Date(), fd=new Date(now.getFullYear(),now.getMonth(),1), ld=new Date(now.getFullYear(),now.getMonth()+1,0), dd=new Date(now.getFullYear(),now.getMonth()+1,7);
   document.getElementById('genStart').value=fd.toISOString().split('T')[0];
@@ -54,6 +59,12 @@ function showApp() {
     document.getElementById('genRate').value = getCommissionRate();
   });
   renderDashboard();
+  checkPendingPromos();
+}
+
+async function checkPendingPromos() {
+  const promos = await dbGetPromotions({ status: 'pending' });
+  document.getElementById('promoDot').style.display = promos.length ? '' : 'none';
 }
 
 /* ── NAV ── */
@@ -76,6 +87,7 @@ async function goPage(name) {
   if (name==='filieres')    await renderFilieres();
   if (name==='orders')      await renderAllOrders();
   if (name==='returns')     await renderReturns();
+  if (name==='promo')       await renderPromoPage();
   if (name==='settings')    document.getElementById('globalRate').value = getCommissionRate();
   if (name==='chat' && !chatInited) {
     await initChat({ id: adminSession.id, name: adminSession.name||'Admin', firstName: 'Admin' }, true);
@@ -458,13 +470,13 @@ function openCatModal(id) {
     document.getElementById('catModalTitle').textContent = 'Modifier la classe';
     document.getElementById('catLabel').value = c?.label||'';
     document.getElementById('catEmojiInput').value = c?.emoji||'';
-    document.getElementById('catColor').value = c?.color||'#5b8cff';
+    document.getElementById('catColor').value = c?.color||'#1a7a4a';
     document.getElementById('catSlug').value = c?.slug||'';
   } else {
     document.getElementById('catModalTitle').textContent = 'Ajouter une classe';
     document.getElementById('catLabel').value = '';
     document.getElementById('catEmojiInput').value = '🛍️';
-    document.getElementById('catColor').value = '#5b8cff';
+    document.getElementById('catColor').value = '#1a7a4a';
     document.getElementById('catSlug').value = '';
   }
   openModal('catModal');
@@ -594,6 +606,137 @@ async function renderReturns() {
       <td><span class="status-badge ${r.status==='accepted'?'status-done':r.status==='rejected'?'status-cancel':'status-new'}" style="font-size:.65rem">${r.status==='accepted'?'Acceptée':r.status==='rejected'?'Rejetée':'En attente'}</span></td>
       <td style="font-size:.72rem;color:var(--t3)">${formatDate(r.createdAt)}</td>
     </tr>`).join('');
+}
+
+/* ── PUBLICITÉ / PROMOTIONS ── */
+async function renderPromoPage() {
+  showLoader(true);
+  const [plans, allPromos] = await Promise.all([dbGetPromoPlans(), dbGetPromotions()]);
+  showLoader(false);
+
+  // Tarifs
+  const grid = document.getElementById('promoPlansGrid');
+  grid.innerHTML = plans.length ? plans.map(pl => `
+    <div class="cat-card">
+      <div class="cat-emoji" style="background:var(--gold-dim)">📣</div>
+      <div class="cat-info">
+        <div class="cat-name">${pl.label}${pl.active?'':' <span style="color:var(--t3);font-size:.65rem">(inactive)</span>'}</div>
+        <div class="cat-slug">${pl.durationDays} jour${pl.durationDays>1?'s':''} · ${pl.price.toLocaleString()} FCFA</div>
+      </div>
+      <div class="cat-actions">
+        <button class="icon-btn edit" onclick="openPlanModal(${pl.id})" title="Modifier">✏</button>
+        <button class="icon-btn del" onclick="deletePromoPlan(${pl.id},'${pl.label.replace(/'/g,"\\'")}')" title="Supprimer">✕</button>
+      </div>
+    </div>`).join('') : '<div class="table-empty">Aucune formule. Clique sur « + Ajouter une formule ».</div>';
+
+  // Demandes en attente
+  const pending = allPromos.filter(p=>p.status==='pending');
+  const pendingWrap = document.getElementById('promoPendingList');
+  pendingWrap.innerHTML = pending.length ? pending.map(pr => `
+    <div class="promo-item">
+      <div class="pi-info">
+        <div class="pi-name">${pr.productName}</div>
+        <div class="pi-meta">${pr.sellerName} · ${pr.planLabel||''} · ${formatDate(pr.createdAt)}</div>
+      </div>
+      <div class="pi-price">${pr.price.toLocaleString()} FCFA</div>
+      <button class="btn-primary sm" onclick="openPromoReview(${pr.id})">Examiner</button>
+    </div>`).join('') : '<div class="table-empty">Aucune demande en attente</div>';
+  document.getElementById('promoDot').style.display = pending.length ? '' : 'none';
+
+  // Historique
+  const history = allPromos.filter(p=>p.status!=='pending');
+  const tbody = document.getElementById('promoHistoryBody');
+  tbody.innerHTML = history.length ? history.map(pr => `
+    <tr>
+      <td>${pr.sellerName}</td>
+      <td>${pr.productName}</td>
+      <td>${pr.planLabel||'—'}</td>
+      <td style="font-weight:500">${pr.price.toLocaleString()} FCFA</td>
+      <td><span class="status-badge ${pr.status==='active'?'status-done':pr.status==='rejected'?'status-cancel':'status-new'}">${pr.status==='active'?'Active':pr.status==='rejected'?'Refusée':'Terminée'}</span></td>
+      <td style="font-size:.72rem;color:var(--t3)">${pr.startsAt?`${formatDate(pr.startsAt)} → ${formatDate(pr.endsAt)}`:'—'}</td>
+    </tr>`).join('') : `<tr><td colspan="6" class="table-empty">Aucun historique</td></tr>`;
+}
+
+function openPlanModal(id) {
+  document.getElementById('planId').value = id || '';
+  if (id) {
+    dbGetPromoPlans().then(plans => {
+      const pl = plans.find(x=>x.id===id);
+      document.getElementById('planModalTitle').textContent = 'Modifier la formule';
+      document.getElementById('planLabel').value = pl?.label||'';
+      document.getElementById('planDuration').value = pl?.durationDays||'';
+      document.getElementById('planPrice').value = pl?.price||'';
+      pl?.active ? document.getElementById('planActive').classList.add('on') : document.getElementById('planActive').classList.remove('on');
+    });
+  } else {
+    document.getElementById('planModalTitle').textContent = 'Ajouter une formule';
+    document.getElementById('planLabel').value = '';
+    document.getElementById('planDuration').value = '';
+    document.getElementById('planPrice').value = '';
+    document.getElementById('planActive').classList.add('on');
+  }
+  openModal('planModal');
+}
+
+async function savePromoPlan() {
+  const id    = document.getElementById('planId').value;
+  const label = document.getElementById('planLabel').value.trim();
+  const durationDays = parseInt(document.getElementById('planDuration').value);
+  const price = parseFloat(document.getElementById('planPrice').value);
+  const active = document.getElementById('planActive').classList.contains('on');
+  if (!label || !durationDays || isNaN(price) || durationDays<1 || price<0) { showToast('Champs invalides','Vérifie le nom, la durée et le prix.','var(--err)'); return; }
+
+  showLoader(true);
+  let r;
+  if (id) r = await dbUpdatePromoPlan(parseInt(id), { label, durationDays, price, active });
+  else    r = await dbInsertPromoPlan({ label, durationDays, price, active, sortOrder: (await dbGetPromoPlans()).length });
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--err)'); return; }
+  closeModal('planModal');
+  showToast(id?'Formule modifiée':'Formule ajoutée','','var(--ok)');
+  await renderPromoPage();
+}
+
+async function deletePromoPlan(id, label) {
+  if (!confirm(`Supprimer la formule « ${label} » ?`)) return;
+  showLoader(true);
+  const r = await dbDeletePromoPlan(id);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--err)'); return; }
+  showToast('Formule supprimée','','var(--err)');
+  await renderPromoPage();
+}
+
+async function openPromoReview(id) {
+  const promos = await dbGetPromotions();
+  const pr = promos.find(x=>x.id===id); if (!pr) return;
+  document.getElementById('promoReviewId').value = pr.id;
+  document.getElementById('promoReviewSub').textContent = `${pr.sellerName} · ${formatDate(pr.createdAt)}`;
+  document.getElementById('promoReviewContent').innerHTML = `
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Produit :</strong> ${pr.productName}</div>
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Formule :</strong> ${pr.planLabel} (${pr.durationDays} jour${pr.durationDays>1?'s':''})</div>
+    <div style="font-size:.78rem;color:var(--t2)"><strong>Montant :</strong> ${pr.price.toLocaleString()} FCFA</div>`;
+  openModal('promoReviewModal');
+}
+
+async function respondPromo(status) {
+  const id = parseInt(document.getElementById('promoReviewId').value);
+  showLoader(true);
+  const promos = await dbGetPromotions();
+  const pr = promos.find(x=>x.id===id);
+  const fields = { status };
+  if (status === 'active' && pr) {
+    const now = new Date();
+    const ends = new Date(now.getTime() + pr.durationDays*24*60*60*1000);
+    fields.startsAt = now.toISOString();
+    fields.endsAt = ends.toISOString();
+  }
+  const r = await dbUpdatePromotion(id, fields);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--err)'); return; }
+  closeModal('promoReviewModal');
+  showToast(status==='active'?'Mise en avant activée':'Demande refusée','', status==='active'?'var(--ok)':'var(--err)');
+  await renderPromoPage();
 }
 
 /* ── ALL ORDERS ── */

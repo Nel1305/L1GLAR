@@ -108,7 +108,7 @@ async function dbGetCategories() {
   return (data || []).map(ncat);
 }
 async function dbInsertCategory(f) {
-  const { data, error } = await db.from('categories').insert({ slug:f.slug, label:f.label, emoji:f.emoji||'🛍️', color:f.color||'#5b8cff', sort_order:f.sortOrder||0 }).select().single();
+  const { data, error } = await db.from('categories').insert({ slug:f.slug, label:f.label, emoji:f.emoji||'🛍️', color:f.color||'#1a7a4a', sort_order:f.sortOrder||0 }).select().single();
   if (error) return { error: error.message };
   return { category: ncat(data) };
 }
@@ -128,7 +128,7 @@ async function dbDeleteCategory(id) {
   return error ? { error: error.message } : { ok: true };
 }
 function ncat(r) {
-  return { id:r.id, slug:r.slug, label:r.label, emoji:r.emoji||'🛍️', color:r.color||'#5b8cff', sortOrder:r.sort_order||0 };
+  return { id:r.id, slug:r.slug, label:r.label, emoji:r.emoji||'🛍️', color:r.color||'#1a7a4a', sortOrder:r.sort_order||0 };
 }
 
 /* Cache local des catégories — chargée au démarrage de chaque page via loadCategories() */
@@ -139,7 +139,7 @@ async function loadCategories() {
     // Fallback si la table est vide / pas encore créée
     _categoriesCache = [
       { id:0, slug:'food',  label:'Nourriture', emoji:'🥞', color:'#3de8a0', sortOrder:1 },
-      { id:0, slug:'drink', label:'Boissons',   emoji:'🥤', color:'#5b8cff', sortOrder:2 },
+      { id:0, slug:'drink', label:'Boissons',   emoji:'🥤', color:'#b8902a', sortOrder:2 },
       { id:0, slug:'other', label:'Autres',     emoji:'✨', color:'#9b6dff', sortOrder:3 },
     ];
   }
@@ -247,6 +247,75 @@ function no(r) {
   return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'', productId:r.product_id, productName:r.product_name, buyerName:r.buyer_name, buyerEmail:r.buyer_email, buyerPhone:r.buyer_phone, qty:r.qty, total:r.total, notes:r.notes, status:r.status, createdAt:r.created_at,
     deliveryDate:r.delivery_date, deliveryTime:r.delivery_time, deliveryType:r.delivery_type||'campus', deliveryAddress:r.delivery_address,
     buyerClasse:r.buyer_classe||'', buyerFiliere:r.buyer_filiere||'', orderGroup:r.order_group||null };
+}
+
+/* ── PUBLICITÉ / PRODUITS SPONSORISÉS ── */
+async function dbGetPromoPlans(activeOnly) {
+  let q = db.from('promo_plans').select('*').order('sort_order', { ascending: true }).order('id', { ascending: true });
+  if (activeOnly) q = q.eq('active', true);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return (data || []).map(npp);
+}
+async function dbInsertPromoPlan(f) {
+  const { data, error } = await db.from('promo_plans').insert({ label:f.label, duration_days:f.durationDays, price:f.price, sort_order:f.sortOrder||0, active:f.active!==false }).select().single();
+  if (error) return { error: error.message };
+  return { plan: npp(data) };
+}
+async function dbUpdatePromoPlan(id, f) {
+  const p = {};
+  if (f.label        !== undefined) p.label = f.label;
+  if (f.durationDays  !== undefined) p.duration_days = f.durationDays;
+  if (f.price         !== undefined) p.price = f.price;
+  if (f.sortOrder     !== undefined) p.sort_order = f.sortOrder;
+  if (f.active        !== undefined) p.active = f.active;
+  const { data, error } = await db.from('promo_plans').update(p).eq('id', id).select().single();
+  if (error) return { error: error.message };
+  return { plan: npp(data) };
+}
+async function dbDeletePromoPlan(id) {
+  const { error } = await db.from('promo_plans').delete().eq('id', id);
+  return error ? { error: error.message } : { ok: true };
+}
+function npp(r) { return { id:r.id, label:r.label, durationDays:r.duration_days, price:r.price, sortOrder:r.sort_order||0, active:r.active!==false }; }
+
+async function dbGetPromotions(f = {}) {
+  let q = db.from('promotions').select('*').order('created_at', { ascending: false });
+  if (f.sellerId) q = q.eq('seller_id', f.sellerId);
+  if (f.status)   q = q.eq('status', f.status);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return (data || []).map(npromo);
+}
+async function dbInsertPromotion(f) {
+  const { data, error } = await db.from('promotions').insert({
+    product_id:f.productId, seller_id:f.sellerId, seller_name:f.sellerName, product_name:f.productName,
+    plan_id:f.planId, plan_label:f.planLabel, duration_days:f.durationDays, price:f.price, status:'pending'
+  }).select().single();
+  if (error) return { error: error.message };
+  return { promotion: npromo(data) };
+}
+async function dbUpdatePromotion(id, f) {
+  const p = {};
+  if (f.status     !== undefined) p.status     = f.status;
+  if (f.startsAt   !== undefined) p.starts_at  = f.startsAt;
+  if (f.endsAt     !== undefined) p.ends_at    = f.endsAt;
+  if (f.adminNote  !== undefined) p.admin_note = f.adminNote;
+  const { data, error } = await db.from('promotions').update(p).eq('id', id).select().single();
+  if (error) return { error: error.message };
+  return { promotion: npromo(data) };
+}
+function npromo(r) {
+  return { id:r.id, productId:r.product_id, sellerId:r.seller_id, sellerName:r.seller_name, productName:r.product_name,
+    planId:r.plan_id, planLabel:r.plan_label, durationDays:r.duration_days, price:r.price, status:r.status||'pending',
+    startsAt:r.starts_at, endsAt:r.ends_at, adminNote:r.admin_note||'', createdAt:r.created_at };
+}
+/* Retourne l'ensemble des productId actuellement "sponsorisés" (promotion active et non expirée) */
+async function dbGetActivePromotedProductIds() {
+  const nowIso = new Date().toISOString();
+  const { data, error } = await db.from('promotions').select('product_id, ends_at').eq('status','active');
+  if (error) { console.error(error); return []; }
+  return (data || []).filter(r => !r.ends_at || r.ends_at > nowIso).map(r => r.product_id);
 }
 
 /* ── RETOURS / LITIGES ── */
@@ -380,18 +449,18 @@ function showToast(title, msg, color) {
 function showLoader(v) { const el = document.getElementById('loader'); if (el) el.style.display = v ? 'flex' : 'none'; }
 function starsHtml(r, sz) {
   sz = sz || '.85rem';
-  return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--flash)':'var(--t4)'};font-size:${sz}">★</span>`).join('');
+  return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--gold)':'var(--t4)'};font-size:${sz}">★</span>`).join('');
 }
 function catLabel(c)     { const cat = getCategory(c); return cat ? cat.label : (c==='food'?'Nourriture':c==='drink'?'Boisson':'Autre'); }
 function catEmoji(c)     { const cat = getCategory(c); return cat ? cat.emoji : '🛍️'; }
 function catBadge(c, extraStyle) {
   const cat = getCategory(c);
-  const color = cat ? cat.color : '#9090bb';
+  const color = cat ? cat.color : '#1a7a4a';
   const label = catLabel(c);
   return `<div class="badge" style="background:${hexToRgba(color,0.12)};color:${color};border:1px solid ${hexToRgba(color,0.25)};${extraStyle||''}">${label}</div>`;
 }
 function hexToRgba(hex, alpha) {
-  hex = (hex||'#9090bb').replace('#','');
+  hex = (hex||'#1a7a4a').replace('#','');
   if (hex.length===3) hex = hex.split('').map(c=>c+c).join('');
   const r = parseInt(hex.substring(0,2),16), g = parseInt(hex.substring(2,4),16), b = parseInt(hex.substring(4,6),16);
   return `rgba(${r},${g},${b},${alpha})`;
