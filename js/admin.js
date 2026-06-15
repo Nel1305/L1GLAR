@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('saveProductBtn').addEventListener('click', saveNewProduct);
   document.getElementById('saveEditBtn').addEventListener('click', saveEditProduct);
   document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+  document.getElementById('openTermsLink').addEventListener('click', (e) => { e.preventDefault(); openModal('termsModal'); });
   document.getElementById('acceptReturnBtn').addEventListener('click', () => respondReturn('accepted'));
   document.getElementById('rejectReturnBtn').addEventListener('click', () => respondReturn('rejected'));
   document.getElementById('pfToggle').addEventListener('click', function(){ this.classList.toggle('on'); });

@@ -824,6 +824,27 @@ body {
 .modal-sep   { text-align: center; font-size: .68rem; color: var(--t3); margin: 3px 0; }
 .modal-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
+/* ── Conditions vendeur (inscription) ── */
+.terms-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: .73rem; color: var(--t2); line-height: 1.5;
+  padding: 4px 0;
+}
+.terms-row input[type="checkbox"] {
+  margin-top: 2px; width: 15px; height: 15px; flex-shrink: 0; accent-color: var(--accent);
+  cursor: pointer;
+}
+.terms-row label { cursor: pointer; }
+.terms-row a { color: var(--accent-lt); cursor: pointer; text-decoration: underline; }
+
+.terms-content { font-size: .82rem; color: var(--t2); line-height: 1.7; max-height: 60vh; overflow-y: auto; padding-right: 4px; }
+.terms-content h4 { font-size: .86rem; font-weight: 700; color: var(--t1); margin: 16px 0 6px; }
+.terms-content h4:first-child { margin-top: 0; }
+.terms-content ul { padding-left: 20px; margin: 4px 0; }
+.terms-content li { margin-bottom: 4px; }
+.terms-content p { margin: 4px 0; }
+.terms-footer { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--b1); font-size: .74rem; color: var(--t3); font-style: italic; }
+
 /* ══════════════════════════════════════════════════
    TABLE
 ══════════════════════════════════════════════════ */

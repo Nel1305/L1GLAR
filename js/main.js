@@ -671,11 +671,12 @@ async function submitReview() {
 
 /* ── AUTH ── */
 function initAuth() {
-  document.getElementById('goRegister').addEventListener('click', () => { document.getElementById('viewLogin').style.display='none'; document.getElementById('viewRegister').style.display=''; });
+  document.getElementById('goRegister').addEventListener('click', () => { document.getElementById('viewLogin').style.display='none'; document.getElementById('viewRegister').style.display=''; document.getElementById('rTerms').checked=false; });
   document.getElementById('goLogin').addEventListener('click', () => { document.getElementById('viewRegister').style.display='none'; document.getElementById('viewLogin').style.display=''; });
   document.getElementById('userPill').addEventListener('click', () => { if (!getSession()) openModal('authModal'); });
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
   document.getElementById('registerBtn').addEventListener('click', handleRegister);
+  document.getElementById('openTermsLink').addEventListener('click', (e) => { e.preventDefault(); openModal('termsModal'); });
 }
 
 async function handleLogin() {
@@ -699,6 +700,7 @@ async function handleRegister() {
   const pass  = document.getElementById('rPass').value;
   if (!first||!email||!pass) { showToast('Champs manquants','Prénom, email et mot de passe requis.','var(--red)'); return; }
   if (pass.length<6) { showToast('Mot de passe trop court','Minimum 6 caractères.','var(--red)'); return; }
+  if (!document.getElementById('rTerms').checked) { showToast('Conditions non acceptées','Tu dois accepter les conditions pour devenir vendeur.','var(--red)'); return; }
   showLoader(true);
   const r = await dbCreateUser(first, last, email, phone, pass, filiere);
   showLoader(false);

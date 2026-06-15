@@ -20,7 +20,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="logo-row">
-      <div class="logo"><div class="logo-name"><span class="logo-star">★</span> N Market</div><div class="logo-sub">Université</div></div>
+      <div class="logo"><div class="logo-name"><span class="logo-star">★</span> N Market</div><div class="logo-sub">Université ESTM Dakar</div></div>
       <button class="theme-toggle" title="Changer de thème">🌙</button>
     </div>
     <nav class="nav">
@@ -36,7 +36,7 @@
         <div class="user-info"><div class="user-name" id="userName">Se connecter</div><div class="user-role" id="userRole">Visiteur</div></div>
       </div>
       <a href="pages/admin.html" class="admin-btn highlight" id="adminBtn" style="display:none"><span class="icon">⚙</span>Mon espace vendeur</a>
-      <a href="pages/superadmin.html" class="credit">codé par Nel'si</a>
+      <a href="pages/superadmin.html" class="credit">codé par BUABEY Nel'si</a>
     </div>
   </aside>
   <main class="main">
@@ -193,9 +193,64 @@
         <div class="field"><label>Téléphone</label><input type="tel" id="rPhone" placeholder="+221 77 …"></div>
         <div class="field"><label>Filière</label><select id="rFiliere"><option value="">— Sélectionner —</option></select></div>
         <div class="field"><label>Mot de passe</label><input type="password" id="rPass" placeholder="Min. 6 caractères"></div>
+        <div class="terms-row">
+          <input type="checkbox" id="rTerms">
+          <label for="rTerms">J'ai lu et j'accepte les <a id="openTermsLink">conditions pour devenir vendeur</a> sur N Market.</label>
+        </div>
         <button class="btn-primary" id="registerBtn">Créer mon compte</button>
         <div class="modal-link">Déjà inscrit ? <a id="goLogin">Se connecter</a></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="termsModal">
+  <div class="modal modal-lg">
+    <button class="modal-x" data-close="termsModal">✕</button>
+    <div class="modal-title">Conditions pour devenir vendeur sur N Market</div>
+    <div class="modal-sub">À lire avant de créer ta boutique</div>
+    <div class="terms-content">
+      <h4>1. Qui peut vendre ?</h4>
+      <p>N Market est réservé à la communauté universitaire (étudiants, personnel). L'inscription est gratuite et ouverte à toute personne souhaitant proposer des produits ou services aux autres membres de l'université.</p>
+
+      <h4>2. Comment ça fonctionne</h4>
+      <ul>
+        <li>Tu crées ton compte avec ton prénom, nom, email, téléphone et ta filière.</li>
+        <li>Tu ajoutes tes produits (nom, description, prix, photo, catégorie, stock si besoin).</li>
+        <li>Les clients commandent depuis le catalogue, choisissent une date/heure et un lieu de livraison (sur le campus ou une adresse).</li>
+        <li>Tu reçois une notification par email pour chaque nouvelle commande, avec les coordonnées du client.</li>
+        <li>Une commission de service (taux fixé par l'administration) s'applique sur les ventes réalisées via la plateforme, facturée périodiquement.</li>
+        <li>Tu peux mettre tes produits en avant (section "Sponsorisé") via la page Publicité, selon les formules proposées.</li>
+      </ul>
+
+      <h4>3. Ce qu'il FAUT faire</h4>
+      <ul>
+        <li>Décrire tes produits de façon honnête (prix, quantité, ingrédients, état).</li>
+        <li>Mettre à jour ton stock et la disponibilité de tes produits régulièrement.</li>
+        <li>Répondre aux clients et confirmer les commandes dans un délai raisonnable.</li>
+        <li>Respecter les dates, heures et lieux de livraison convenus.</li>
+        <li>Traiter les demandes de retour ou de réclamation avec sérieux et de bonne foi.</li>
+        <li>Garder tes informations de profil (email, téléphone, filière) à jour.</li>
+        <li>Payer les commissions dues dans les délais indiqués par l'administration.</li>
+      </ul>
+
+      <h4>4. Ce qu'il NE FAUT PAS faire</h4>
+      <ul>
+        <li>Vendre des produits illégaux, dangereux, contrefaits ou interdits par le règlement de l'université.</li>
+        <li>Publier des photos, descriptions ou prix trompeurs.</li>
+        <li>Annuler des commandes confirmées sans motif valable, ou ne pas livrer.</li>
+        <li>Harceler, insulter ou faire pression sur un client ou un autre vendeur (y compris via la messagerie).</li>
+        <li>Créer plusieurs comptes pour contourner un blocage ou une suspension.</li>
+        <li>Utiliser les coordonnées des clients obtenues via une commande à d'autres fins que cette commande.</li>
+      </ul>
+
+      <h4>5. Signalements et sanctions</h4>
+      <p>Tout client peut signaler un vendeur via la page de sa boutique. Le Super Admin examine chaque signalement. Au-delà d'un seuil de signalements jugés fondés, le Super Admin peut suspendre ou supprimer définitivement le compte vendeur et ses produits, sans préavis, en cas de manquement grave ou répété aux présentes conditions.</p>
+
+      <h4>6. Modération et droit de retrait</h4>
+      <p>Le Super Admin peut, à tout moment, suspendre un compte, retirer un produit du catalogue, ou refuser une demande de mise en avant, notamment en cas de non-respect de ces règles, de retard de paiement de commission, ou de plainte fondée.</p>
+
+      <p class="terms-footer">En cochant la case d'inscription, tu confirmes avoir lu et accepté ces conditions.</p>
     </div>
   </div>
 </div>

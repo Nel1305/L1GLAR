@@ -21,4 +21,4 @@ const WAVE_NAME = 'Nel\'si';           // ← Ton prénom affiché dans le mail
 /* ── 4. PLATEFORME ── */
 const PLATFORM_NAME = 'N Market';
 const PLATFORM_EMAIL = 'ppbuabey@gmail.com';      // ← Email affiché dans les mails
-const COMMISSION_RATE_PCT = 5;                     // ← Taux de commission (%)
+const COMMISSION_RATE_PCT = 2;                     // ← Taux de commission (%)
