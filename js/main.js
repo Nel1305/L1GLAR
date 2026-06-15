@@ -122,25 +122,73 @@ function bindProductGridEvents(grid) {
   );
 }
 
-/* ── BANNIÈRES PUBLICITAIRES ── */
+/* ── BANNIÈRES PUBLICITAIRES (carousel) ── */
+let _bannerTimer = null;
+
 async function loadAdBanners() {
   const wrap = document.getElementById('adBannersList');
   if (!wrap) return;
   const banners = await dbGetAdBanners(true);
   if (!banners.length) { wrap.innerHTML = ''; return; }
-  wrap.innerHTML = banners.map(b => {
+
+  // Une seule bannière : affichage simple sans carousel
+  if (banners.length === 1) {
+    const b = banners[0];
     const bgStyle = b.imageUrl ? `background-image:url('${b.imageUrl}')` : `background:${b.bgColor}`;
-    const tag = `<span class="ab-tag">Publicité</span>`;
-    const inner = `
-      <div class="ab-overlay">
-        <div class="ab-title">${b.title}</div>
-        ${b.subtitle ? `<div class="ab-subtitle">${b.subtitle}</div>` : ''}
-      </div>
-      ${tag}`;
-    return b.linkUrl
+    const inner = `<div class="ab-overlay"><div class="ab-title">${b.title}</div>${b.subtitle ? `<div class="ab-subtitle">${b.subtitle}</div>` : ''}</div><span class="ab-tag">Publicité</span>`;
+    wrap.innerHTML = b.linkUrl
       ? `<a class="ad-banner" style="${bgStyle}" href="${b.linkUrl}" target="_blank" rel="noopener">${inner}</a>`
       : `<div class="ad-banner" style="${bgStyle}">${inner}</div>`;
+    return;
+  }
+
+  // Plusieurs bannières : carousel
+  const slides = banners.map((b, i) => {
+    const bgStyle = b.imageUrl ? `background-image:url('${b.imageUrl}')` : `background:${b.bgColor}`;
+    const inner = `<div class="ab-overlay"><div class="ab-title">${b.title}</div>${b.subtitle ? `<div class="ab-subtitle">${b.subtitle}</div>` : ''}</div><span class="ab-tag">Publicité</span>`;
+    const el = b.linkUrl
+      ? `<a class="ad-banner ab-slide" style="${bgStyle}" href="${b.linkUrl}" target="_blank" rel="noopener">${inner}</a>`
+      : `<div class="ad-banner ab-slide" style="${bgStyle}">${inner}</div>`;
+    return el;
   }).join('');
+
+  const dots = banners.map((_, i) => `<button class="ab-dot${i===0?' active':''}" data-idx="${i}"></button>`).join('');
+
+  wrap.innerHTML = `
+    <div class="ab-carousel">
+      <div class="ab-track" id="abTrack">${slides}</div>
+      <button class="ab-arrow ab-prev" id="abPrev">&#8249;</button>
+      <button class="ab-arrow ab-next" id="abNext">&#8250;</button>
+      <div class="ab-dots" id="abDots">${dots}</div>
+    </div>`;
+
+  let current = 0;
+  const track = document.getElementById('abTrack');
+  const dotsEl = document.getElementById('abDots');
+
+  function goTo(idx) {
+    current = (idx + banners.length) % banners.length;
+    track.style.transform = `translateX(-${current * 100}%)`;
+    dotsEl.querySelectorAll('.ab-dot').forEach((d, i) => d.classList.toggle('active', i === current));
+  }
+
+  document.getElementById('abPrev').addEventListener('click', () => { goTo(current - 1); resetTimer(); });
+  document.getElementById('abNext').addEventListener('click', () => { goTo(current + 1); resetTimer(); });
+  dotsEl.querySelectorAll('.ab-dot').forEach(d => d.addEventListener('click', () => { goTo(parseInt(d.dataset.idx)); resetTimer(); }));
+
+  // Swipe tactile
+  let startX = 0;
+  track.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+  track.addEventListener('touchend', e => {
+    const diff = startX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) { goTo(diff > 0 ? current + 1 : current - 1); resetTimer(); }
+  });
+
+  function resetTimer() {
+    if (_bannerTimer) clearInterval(_bannerTimer);
+    _bannerTimer = setInterval(() => goTo(current + 1), 4000);
+  }
+  resetTimer();
 }
 
 /* ── FILIÈRES (sélecteurs dynamiques) ── */
