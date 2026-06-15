@@ -670,13 +670,16 @@ async function submitReview() {
 }
 
 /* ── AUTH ── */
+let pendingRegistration = null;
+
 function initAuth() {
-  document.getElementById('goRegister').addEventListener('click', () => { document.getElementById('viewLogin').style.display='none'; document.getElementById('viewRegister').style.display=''; document.getElementById('rTerms').checked=false; });
+  document.getElementById('goRegister').addEventListener('click', () => { document.getElementById('viewLogin').style.display='none'; document.getElementById('viewRegister').style.display=''; });
   document.getElementById('goLogin').addEventListener('click', () => { document.getElementById('viewRegister').style.display='none'; document.getElementById('viewLogin').style.display=''; });
   document.getElementById('userPill').addEventListener('click', () => { if (!getSession()) openModal('authModal'); });
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
   document.getElementById('registerBtn').addEventListener('click', handleRegister);
-  document.getElementById('openTermsLink').addEventListener('click', (e) => { e.preventDefault(); openModal('termsModal'); });
+  document.getElementById('acceptTermsBtn').addEventListener('click', acceptTermsAndCreateAccount);
+  document.getElementById('declineTermsBtn').addEventListener('click', declineTerms);
 }
 
 async function handleLogin() {
@@ -691,7 +694,9 @@ async function handleLogin() {
   showToast('Connecté', `Bienvenue ${r.user.firstName} !`);
 }
 
-async function handleRegister() {
+/* Étape 1 : valide le formulaire, puis ouvre la popup des conditions vendeur.
+   Le compte n'est créé qu'après acceptation. */
+function handleRegister() {
   const first = document.getElementById('rFirst').value.trim();
   const last  = document.getElementById('rLast').value.trim();
   const email = document.getElementById('rEmail').value.trim();
@@ -700,12 +705,29 @@ async function handleRegister() {
   const pass  = document.getElementById('rPass').value;
   if (!first||!email||!pass) { showToast('Champs manquants','Prénom, email et mot de passe requis.','var(--red)'); return; }
   if (pass.length<6) { showToast('Mot de passe trop court','Minimum 6 caractères.','var(--red)'); return; }
-  if (!document.getElementById('rTerms').checked) { showToast('Conditions non acceptées','Tu dois accepter les conditions pour devenir vendeur.','var(--red)'); return; }
+
+  pendingRegistration = { first, last, email, phone, filiere, pass };
+
+  // Affiche la popup des conditions, avec boutons Accepter / Refuser
+  document.getElementById('termsFooterText').textContent = 'Pour finaliser la création de ton compte vendeur, merci de lire et d\'accepter les conditions ci-dessus.';
+  document.getElementById('termsActions').style.display = '';
+  openModal('termsModal');
+}
+
+/* Étape 2 : l'utilisateur accepte → on crée réellement le compte */
+async function acceptTermsAndCreateAccount() {
+  if (!pendingRegistration) { closeModal('termsModal'); return; }
+  const { first, last, email, phone, filiere, pass } = pendingRegistration;
+
   showLoader(true);
   const r = await dbCreateUser(first, last, email, phone, pass, filiere);
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
-  setSession(r.user); closeModal('authModal'); syncSessionUI();
+
+  pendingRegistration = null;
+  closeModal('termsModal');
+  closeModal('authModal');
+  setSession(r.user); syncSessionUI();
   showToast('Compte créé !', `Bienvenue ${first} 🎉`);
   // Email de bienvenue
   if (typeof sendWelcomeEmail !== 'undefined') {
@@ -713,6 +735,13 @@ async function handleRegister() {
       if (res.ok) showToast('Email envoyé', 'Vérifie ta boîte mail 📧');
     });
   }
+}
+
+/* L'utilisateur refuse → le compte n'est pas créé */
+function declineTerms() {
+  pendingRegistration = null;
+  closeModal('termsModal');
+  showToast('Inscription annulée', 'Tu dois accepter les conditions pour devenir vendeur sur N Market.', 'var(--red)');
 }
 
 function syncSessionUI() {

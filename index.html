@@ -13,14 +13,14 @@
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
 <div class="mobile-topbar">
   <button class="hamburger-btn" id="hamburgerBtn" title="Menu">☰</button>
-  <div class="mt-title">★ N Market ★</div>
+  <div class="mt-title">★ N Market</div>
   <button class="mobile-cart-btn" data-page="cart" title="Panier">🛒<span class="cart-count" id="cartCountMobile" style="display:none">0</span></button>
 </div>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="app">
   <aside class="sidebar">
     <div class="logo-row">
-      <div class="logo"><div class="logo-name"><span class="logo-star">★</span> N Market</div><div class="logo-sub">Université ESTM Dakar</div></div>
+      <div class="logo"><div class="logo-name"><span class="logo-star">★</span> N Market</div><div class="logo-sub">Université</div></div>
       <button class="theme-toggle" title="Changer de thème">🌙</button>
     </div>
     <nav class="nav">
@@ -36,7 +36,7 @@
         <div class="user-info"><div class="user-name" id="userName">Se connecter</div><div class="user-role" id="userRole">Visiteur</div></div>
       </div>
       <a href="pages/admin.html" class="admin-btn highlight" id="adminBtn" style="display:none"><span class="icon">⚙</span>Mon espace vendeur</a>
-      <a href="pages/superadmin.html" class="credit">codé par BUABEY Nel'si</a>
+      <a href="pages/superadmin.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
   <main class="main">
@@ -193,10 +193,6 @@
         <div class="field"><label>Téléphone</label><input type="tel" id="rPhone" placeholder="+221 77 …"></div>
         <div class="field"><label>Filière</label><select id="rFiliere"><option value="">— Sélectionner —</option></select></div>
         <div class="field"><label>Mot de passe</label><input type="password" id="rPass" placeholder="Min. 6 caractères"></div>
-        <div class="terms-row">
-          <input type="checkbox" id="rTerms">
-          <label for="rTerms">J'ai lu et j'accepte les <a id="openTermsLink">conditions pour devenir vendeur</a> sur N Market.</label>
-        </div>
         <button class="btn-primary" id="registerBtn">Créer mon compte</button>
         <div class="modal-link">Déjà inscrit ? <a id="goLogin">Se connecter</a></div>
       </div>
@@ -250,7 +246,13 @@
       <h4>6. Modération et droit de retrait</h4>
       <p>Le Super Admin peut, à tout moment, suspendre un compte, retirer un produit du catalogue, ou refuser une demande de mise en avant, notamment en cas de non-respect de ces règles, de retard de paiement de commission, ou de plainte fondée.</p>
 
-      <p class="terms-footer">En cochant la case d'inscription, tu confirmes avoir lu et accepté ces conditions.</p>
+      <p class="terms-footer" id="termsFooterText">Ces conditions s'appliquent à tout compte vendeur créé sur N Market.</p>
+    </div>
+    <div class="modal-form" id="termsActions" style="display:none;margin-top:14px">
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" id="acceptTermsBtn" style="flex:1">J'accepte, créer mon compte</button>
+        <button class="btn-danger" id="declineTermsBtn" style="flex:1">Refuser</button>
+      </div>
     </div>
   </div>
 </div>

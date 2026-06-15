@@ -547,5 +547,13 @@ function today()         { return new Date().toISOString().split('T')[0]; }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if (e.target===o) o.classList.remove('show'); }));
-  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.close === 'termsModal' && typeof pendingRegistration !== 'undefined' && pendingRegistration && typeof declineTerms === 'function') {
+      declineTerms();
+    } else {
+      closeModal(b.dataset.close);
+      const actions = document.getElementById('termsActions');
+      if (b.dataset.close === 'termsModal' && actions) actions.style.display = 'none';
+    }
+  }));
 });

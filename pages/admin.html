@@ -19,7 +19,7 @@
 </div>
 <div class="mobile-topbar">
   <button class="hamburger-btn" id="hamburgerBtn" title="Menu">☰</button>
-  <div class="mt-title">★ <span id="shopNameMobile">N Market</span> ★ </div>
+  <div class="mt-title">★ <span id="shopNameMobile">N Market</span></div>
   <div style="width:38px"></div>
 </div>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -47,7 +47,7 @@
       </div>
       <button class="admin-btn" id="logoutBtn"><span class="icon">←</span>Se déconnecter</button>
       <a href="../index.html" class="admin-btn"><span class="icon">←</span>Retour au site</a>
-      <a href="superadmin.html" class="credit">codé par BUABEY Nel'si</a>
+      <a href="superadmin.html" class="credit">codé par Nel'si</a>
     </div>
   </aside>
   <main class="main">
@@ -285,10 +285,17 @@
       <h4>6. Modération et droit de retrait</h4>
       <p>Le Super Admin peut, à tout moment, suspendre un compte, retirer un produit du catalogue, ou refuser une demande de mise en avant, notamment en cas de non-respect de ces règles, de retard de paiement de commission, ou de plainte fondée.</p>
 
-      <p class="terms-footer">En cochant la case d'inscription, tu confirmes avoir lu et accepté ces conditions.</p>
+      <p class="terms-footer" id="termsFooterText">Ces conditions s'appliquent à tout compte vendeur créé sur N Market.</p>
+    </div>
+    <div class="modal-form" id="termsActions" style="display:none;margin-top:14px">
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" id="acceptTermsBtn" style="flex:1">J'accepte, créer mon compte</button>
+        <button class="btn-danger" id="declineTermsBtn" style="flex:1">Refuser</button>
+      </div>
     </div>
   </div>
 </div>
+
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
