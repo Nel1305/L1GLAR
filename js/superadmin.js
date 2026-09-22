@@ -981,7 +981,11 @@ async function saveSettings() {
 
   const pass=document.getElementById('newAdminPass').value;
   if(pass&&pass.length<6){showToast('Trop court','Min. 6 caractères.','var(--red)');return;}
-  if(pass){const hash=btoa(unescape(encodeURIComponent(pass)));await db.from('admins').update({password:hash}).eq('id',adminSession.id);document.getElementById('newAdminPass').value='';}
+  if(pass){
+    const { data: pr, error: pe } = await db.rpc('fn_admin_update_password', { p_admin_id:adminSession.id, p_new_pass:pass });
+    if (pe || (pr && pr.error)) { showToast('Erreur', (pe&&pe.message)||pr.error, 'var(--red)'); return; }
+    document.getElementById('newAdminPass').value='';
+  }
   showToast('Sauvegardé','Taux de commission : '+rate+'%','var(--green)');
 }
 

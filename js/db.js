@@ -10,23 +10,23 @@ function getSession()     { return JSON.parse(localStorage.getItem('glar_session
 function setSession(u)    { localStorage.setItem('glar_session', JSON.stringify(u)); }
 function clearSession()   { localStorage.removeItem('glar_session'); }
 
-/* ── USERS ── */
+/* ── USERS ──
+   Auth déplacée en base (fonctions RPC SECURITY DEFINER, bcrypt via pgcrypto) :
+   voir backend_hardening_v7.sql. Le client ne lit/écrit plus jamais de mot de
+   passe ou de hash — ni en clair, ni en base64. Ces mêmes fonctions RPC sont
+   appelées à l'identique par l'app iOS : une seule logique d'authentification
+   pour les deux plateformes, contre la même base de données. */
 async function dbCreateUser(first, last, email, phone, pass, filiere) {
-  const { data: ex } = await db.from('users').select('id').eq('email', email).maybeSingle();
-  if (ex) return { error: 'Cet email est déjà utilisé.' };
-  const name = first + (last ? ' ' + last[0].toUpperCase() + '.' : '');
-  const hash = btoa(unescape(encodeURIComponent(pass)));
-  const { data, error } = await db.from('users').insert({ first_name:first, last_name:last, name, email, phone, password:hash, filiere:filiere||null }).select().single();
+  const { data, error } = await db.rpc('fn_register_user', { p_first:first, p_last:last||null, p_email:email, p_phone:phone||null, p_pass:pass, p_filiere:filiere||null });
   if (error) return { error: error.message };
-  return { user: nu(data) };
+  if (data && data.error) return { error: data.error };
+  return { user: data.user };
 }
 async function dbLoginUser(email, pass) {
-  const { data, error } = await db.from('users').select('*').eq('email', email.trim()).maybeSingle();
+  const { data, error } = await db.rpc('fn_login_user', { p_email:email, p_pass:pass });
   if (error) return { error: error.message };
-  if (!data) return { error: 'Email ou mot de passe incorrect.' };
-  if (data.password !== btoa(unescape(encodeURIComponent(pass)))) return { error: 'Email ou mot de passe incorrect.' };
-  if (data.is_blocked) return { error: 'Ton compte est actuellement suspendu. Contacte l\'administrateur.' };
-  return { user: nu(data) };
+  if (data && data.error) return { error: data.error };
+  return { user: data.user };
 }
 async function dbUpdateUser(id, f) {
   const p = {};
@@ -38,13 +38,21 @@ async function dbUpdateUser(id, f) {
   if (f.bio       !== undefined) p.bio         = f.bio;
   if (f.shopOpen  !== undefined) p.shop_open   = f.shopOpen;
   if (f.filiere   !== undefined) p.filiere     = f.filiere;
-  if (f.password)                p.password    = btoa(unescape(encodeURIComponent(f.password)));
-  const { data, error } = await db.from('users').update(p).eq('id', id).select().single();
+  // Le mot de passe ne transite plus jamais par une simple colonne : RPC dédiée.
+  if (f.password) {
+    const { data: pr, error: pe } = await db.rpc('fn_update_password', { p_user_id:id, p_new_pass:f.password });
+    if (pe) return { error: pe.message };
+    if (pr && pr.error) return { error: pr.error };
+  }
+  const { data, error } = await db.from('users').update(p).eq('id', id)
+    .select('id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at').single();
   if (error) return { error: error.message };
   return { user: nu(data) };
 }
 async function dbGetAllUsers() {
-  const { data, error } = await db.from('users').select('*').order('created_at', { ascending: false });
+  const { data, error } = await db.from('users')
+    .select('id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at')
+    .order('created_at', { ascending: false });
   if (error) { console.error(error); return []; }
   return (data || []).map(nu);
 }
@@ -450,11 +458,10 @@ async function dbUpdateCommission(id, f) {
 
 /* ── ADMIN ── */
 async function dbAdminLogin(email, pass) {
-  const { data, error } = await db.from('admins').select('*').eq('email', email.trim()).maybeSingle();
+  const { data, error } = await db.rpc('fn_admin_login', { p_email:email, p_pass:pass });
   if (error) return { error: error.message };
-  if (!data) return { error: 'Email ou mot de passe incorrect.' };
-  if (data.password !== btoa(unescape(encodeURIComponent(pass)))) return { error: 'Email ou mot de passe incorrect.' };
-  return { admin: data };
+  if (data && data.error) return { error: data.error };
+  return { admin: data.admin };
 }
 async function dbBlockUser(id, block, reason) {
   const { error } = await db.from('users').update({ is_blocked: block, blocked_reason: reason||null }).eq('id', id);
