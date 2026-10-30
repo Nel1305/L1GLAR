@@ -321,6 +321,21 @@ COMMENT ON COLUMN orders.delivery_place_name IS 'Nom court du lieu (ex: nom du q
 
 
 -- ───────────────────────────────────────────────────────────────
+-- v11 — Attributs produit par catégorie (app iOS) + structure Premium
+-- ───────────────────────────────────────────────────────────────
+
+ALTER TABLE products ADD COLUMN IF NOT EXISTS attributes jsonb;
+COMMENT ON COLUMN products.attributes IS 'Caractéristiques libres par catégorie (taille, état, marque, stockage…), définies côté app/site — clé/valeur texte en JSON.';
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_premium        boolean DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_expires_at timestamptz;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_theme      jsonb;
+COMMENT ON COLUMN users.is_premium         IS 'Abonnement Premium actif (activation manuelle pour l''instant — pas de paiement intégré).';
+COMMENT ON COLUMN users.premium_expires_at IS 'Date de fin de l''abonnement Premium en cours, si applicable.';
+COMMENT ON COLUMN users.premium_theme      IS 'Personnalisation de l''interface vendeur réservée aux comptes Premium (couleurs, accent...) — JSON libre.';
+
+
+-- ───────────────────────────────────────────────────────────────
 -- Vérification finale — ne doit renvoyer aucune ligne
 -- ───────────────────────────────────────────────────────────────
 SELECT id, email FROM users WHERE first_name IS NULL OR name IS NULL OR access_key IS NULL;
