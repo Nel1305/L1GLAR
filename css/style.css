@@ -866,6 +866,21 @@ body {
 .table-empty { text-align: center; padding: 40px; color: var(--t3); font-size: .8rem; }
 
 /* ══════════════════════════════════════════════════
+   NOTIFICATIONS (centre de notifications in-app)
+══════════════════════════════════════════════════ */
+.notif-list { display: flex; flex-direction: column; gap: 6px; }
+.notif-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--b1); border-radius: var(--r2); background: var(--s1); cursor: default; transition: background .15s; }
+.notif-item.unread { background: var(--s2, var(--s1)); border-color: var(--accent, #1a7a4a); cursor: pointer; }
+.notif-item.unread:hover { background: var(--b1); }
+.notif-ico { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.notif-body { flex: 1; min-width: 0; }
+.notif-title { font-weight: 600; font-size: .83rem; }
+.notif-text { font-size: .78rem; color: var(--t2); margin-top: 2px; }
+.notif-time { font-size: .7rem; color: var(--t3); margin-top: 4px; }
+.notif-bell { position: relative; cursor: pointer; }
+.notif-bell .dot { position: absolute; top: -2px; right: -2px; margin: 0; }
+
+/* ══════════════════════════════════════════════════
    PROD THUMB / STAT CARDS / SELECTS
 ══════════════════════════════════════════════════ */
 .prod-thumb {

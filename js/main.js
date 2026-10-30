@@ -677,6 +677,9 @@ function initAuth() {
   document.getElementById('goLogin').addEventListener('click', () => { document.getElementById('viewRegister').style.display='none'; document.getElementById('viewLogin').style.display=''; });
   document.getElementById('userPill').addEventListener('click', () => { if (!getSession()) openModal('authModal'); });
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
+  document.getElementById('loginKeyBtn').addEventListener('click', handleLoginWithAccessKey);
+  document.getElementById('goAccessKey').addEventListener('click', () => { document.getElementById('loginFormEmail').style.display='none'; document.getElementById('loginFormKey').style.display=''; });
+  document.getElementById('goPasswordLogin').addEventListener('click', () => { document.getElementById('loginFormKey').style.display='none'; document.getElementById('loginFormEmail').style.display=''; });
   document.getElementById('registerBtn').addEventListener('click', handleRegister);
   document.getElementById('acceptTermsBtn').addEventListener('click', acceptTermsAndCreateAccount);
   document.getElementById('declineTermsBtn').addEventListener('click', declineTerms);
@@ -688,6 +691,17 @@ async function handleLogin() {
   if (!email||!pass) { showToast('Champs manquants','Email et mot de passe requis.','var(--red)'); return; }
   showLoader(true);
   const r = await dbLoginUser(email, pass);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  setSession(r.user); closeModal('authModal'); syncSessionUI();
+  showToast('Connecté', `Bienvenue ${r.user.firstName} !`);
+}
+
+async function handleLoginWithAccessKey() {
+  const key = document.getElementById('lAccessKey').value.trim();
+  if (!key) { showToast('Champ manquant','Clé d\'accès requise.','var(--red)'); return; }
+  showLoader(true);
+  const r = await dbLoginWithAccessKey(key);
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
   setSession(r.user); closeModal('authModal'); syncSessionUI();

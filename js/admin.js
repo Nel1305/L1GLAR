@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('saveProductBtn').addEventListener('click', saveNewProduct);
   document.getElementById('saveEditBtn').addEventListener('click', saveEditProduct);
   document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+  document.getElementById('copyAccessKeyBtn').addEventListener('click', copyAccessKey);
+  document.getElementById('regenAccessKeyBtn').addEventListener('click', regenerateAccessKey);
   document.getElementById('openTermsLink').addEventListener('click', (e) => { e.preventDefault(); openModal('termsModal'); });
   document.getElementById('acceptReturnBtn').addEventListener('click', () => respondReturn('accepted'));
   document.getElementById('rejectReturnBtn').addEventListener('click', () => respondReturn('rejected'));
@@ -37,8 +39,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('apShowStock').addEventListener('click', function(){ this.classList.toggle('on'); });
   document.getElementById('editShowStock').addEventListener('click', function(){ this.classList.toggle('on'); });
   document.getElementById('orderStatusFilter').addEventListener('change', renderOrders);
+  document.getElementById('markAllReadBtn').addEventListener('click', markAllNotificationsRead);
   await renderDashboard();
   checkPendingReturns();
+  await refreshNotifDot();
+  setInterval(refreshNotifDot, 20000);
   showLoader(false);
 });
 
@@ -46,6 +51,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function checkPendingReturns() {
   const returns = await dbGetReturns({ sellerId: currentUser.id });
   document.getElementById('returnsDot').style.display = returns.some(r=>r.status==='pending') ? '' : 'none';
+}
+
+/* ── NOTIFICATIONS (centre de notifications in-app) ── */
+async function refreshNotifDot() {
+  const count = await dbGetUnreadNotificationCount('seller', currentUser.id);
+  document.getElementById('notifDot').style.display = count > 0 ? '' : 'none';
+}
+async function renderNotificationsPage() {
+  showLoader(true);
+  const notifs = await dbGetNotifications('seller', currentUser.id);
+  showLoader(false);
+  const list = document.getElementById('notifList');
+  list.innerHTML = notifs.map(n => `
+    <div class="notif-item ${n.isRead?'':'unread'}" data-id="${n.id}">
+      <div class="notif-ico">${notifIcon(n.type)}</div>
+      <div class="notif-body"><div class="notif-title">${n.title}</div><div class="notif-text">${n.body||''}</div><div class="notif-time">${timeAgo(n.createdAt)}</div></div>
+    </div>`).join('') || `<div class="table-empty">Aucune notification pour le moment.</div>`;
+  list.querySelectorAll('.notif-item.unread').forEach(el => {
+    el.addEventListener('click', async () => {
+      await dbMarkNotificationRead(el.dataset.id);
+      el.classList.remove('unread');
+      refreshNotifDot();
+    });
+  });
+}
+async function markAllNotificationsRead() {
+  await dbMarkAllNotificationsRead('seller', currentUser.id);
+  await renderNotificationsPage();
+  await refreshNotifDot();
 }
 
 /* ── CATEGORIES ── */
@@ -74,6 +108,7 @@ async function goPage(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   if (name==='dashboard')  await renderDashboard();
+  if (name==='notifications') await renderNotificationsPage();
   if (name==='orders')     await renderOrders();
   if (name==='returns')    await renderReturnsPage();
   if (name==='products')   await renderProductsTable();
@@ -310,6 +345,7 @@ async function viewOrder(id) {
     row('Date/heure souhaitées', formatDeliveryDateTime(o)) +
     row('Lieu de livraison', deliveryTypeLabel(o.deliveryType)) +
     (o.deliveryType==='external' && o.deliveryAddress ? row('Adresse', o.deliveryAddress) : '') +
+    (o.deliveryType==='external' && o.deliveryLat && o.deliveryLng ? row('Position GPS', `<a href="https://maps.apple.com/?ll=${o.deliveryLat},${o.deliveryLng}&q=${encodeURIComponent(o.deliveryPlaceName||'Livraison')}" target="_blank" style="color:var(--green)">📍 Ouvrir dans Apple Maps</a>`) : '') +
     (o.deliveryType==='campus' && (o.buyerClasse||o.buyerFiliere) ? row('Classe / Filière', `${o.buyerClasse||'—'} · ${getFiliereLabel(o.buyerFiliere)||'—'}`) : '') +
     (o.notes?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Instructions générales</div><div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;border:1px solid var(--b1)">${o.notes}</div></div>`:'') +
     (o.itemNote?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Précision pour ce produit</div><div style="background:var(--accent-dim);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t1);font-style:italic;border:1px solid var(--accent-bdr)">${o.itemNote}</div></div>`:'');
@@ -439,6 +475,25 @@ function loadProfile() {
   document.getElementById('pfBio').value      = currentUser.bio||'';
   populateFiliereSelect();
   currentUser.shopOpen!==false ? document.getElementById('pfToggle').classList.add('on') : document.getElementById('pfToggle').classList.remove('on');
+  document.getElementById('pfAccessKey').value = currentUser.accessKey || '—';
+}
+
+async function copyAccessKey() {
+  const key = document.getElementById('pfAccessKey').value;
+  if (!key || key === '—') return;
+  try { await navigator.clipboard.writeText(key); showToast('Copié','Ta clé d\'accès est dans le presse-papier.','var(--green)'); }
+  catch { showToast('Erreur','Copie impossible, sélectionne et copie manuellement.','var(--red)'); }
+}
+
+async function regenerateAccessKey() {
+  if (!confirm('Générer une nouvelle clé rendra l\'ancienne invalide immédiatement. Continuer ?')) return;
+  showLoader(true);
+  const r = await dbRegenerateAccessKey(currentUser.id);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  currentUser.accessKey = r.accessKey; setSession(currentUser);
+  document.getElementById('pfAccessKey').value = r.accessKey;
+  showToast('Nouvelle clé générée','','var(--green)');
 }
 
 async function saveProfile() {

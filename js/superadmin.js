@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('savePaymentBtn').addEventListener('click', savePayment);
   document.getElementById('confirmBlockBtn').addEventListener('click', confirmBlock);
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+  document.getElementById('markAllReadBtn').addEventListener('click', markAllNotificationsRead);
   document.getElementById('commStatusFilter').addEventListener('change', renderCommissions);
   document.getElementById('sellerStatusFilter').addEventListener('change', renderSellers);
   document.getElementById('allOrdersFilter').addEventListener('change', renderAllOrders);
@@ -77,6 +78,8 @@ function showApp() {
   renderDashboard();
   checkPendingPromos();
   checkPendingReports();
+  refreshNotifDot();
+  setInterval(refreshNotifDot, 20000);
 }
 
 async function checkPendingReports() {
@@ -87,6 +90,35 @@ async function checkPendingReports() {
 async function checkPendingPromos() {
   const promos = await dbGetPromotions({ status: 'pending' });
   document.getElementById('promoDot').style.display = promos.length ? '' : 'none';
+}
+
+/* ── NOTIFICATIONS (centre de notifications in-app, admin) ── */
+async function refreshNotifDot() {
+  const count = await dbGetUnreadNotificationCount('admin', null);
+  document.getElementById('notifDot').style.display = count > 0 ? '' : 'none';
+}
+async function renderNotificationsPage() {
+  showLoader(true);
+  const notifs = await dbGetNotifications('admin', null);
+  showLoader(false);
+  const list = document.getElementById('notifList');
+  list.innerHTML = notifs.map(n => `
+    <div class="notif-item ${n.isRead?'':'unread'}" data-id="${n.id}">
+      <div class="notif-ico">${notifIcon(n.type)}</div>
+      <div class="notif-body"><div class="notif-title">${n.title}</div><div class="notif-text">${n.body||''}</div><div class="notif-time">${timeAgo(n.createdAt)}</div></div>
+    </div>`).join('') || `<div class="table-empty">Aucune notification pour le moment.</div>`;
+  list.querySelectorAll('.notif-item.unread').forEach(el => {
+    el.addEventListener('click', async () => {
+      await dbMarkNotificationRead(el.dataset.id);
+      el.classList.remove('unread');
+      refreshNotifDot();
+    });
+  });
+}
+async function markAllNotificationsRead() {
+  await dbMarkAllNotificationsRead('admin', null);
+  await renderNotificationsPage();
+  await refreshNotifDot();
 }
 
 /* ── NAV ── */
@@ -101,6 +133,7 @@ async function goPage(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   if (name==='dashboard')   await renderDashboard();
+  if (name==='notifications') await renderNotificationsPage();
   if (name==='commissions') await renderCommissions();
   if (name==='sellers')     await renderSellers();
   if (name==='network')     await renderNetwork();
@@ -982,8 +1015,8 @@ async function saveSettings() {
   const pass=document.getElementById('newAdminPass').value;
   if(pass&&pass.length<6){showToast('Trop court','Min. 6 caractères.','var(--red)');return;}
   if(pass){
-    const { data: pr, error: pe } = await db.rpc('fn_admin_update_password', { p_admin_id:adminSession.id, p_new_pass:pass });
-    if (pe || (pr && pr.error)) { showToast('Erreur', (pe&&pe.message)||pr.error, 'var(--red)'); return; }
+    const r2 = await dbAdminUpdatePassword(adminSession.id, pass);
+    if (r2.error) { showToast('Erreur', r2.error, 'var(--red)'); return; }
     document.getElementById('newAdminPass').value='';
   }
   showToast('Sauvegardé','Taux de commission : '+rate+'%','var(--green)');

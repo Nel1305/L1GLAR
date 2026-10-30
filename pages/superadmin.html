@@ -35,6 +35,7 @@
     <nav class="nav">
       <span class="nav-label">Vue globale</span>
       <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Tableau de bord</button>
+      <button class="nav-item" data-page="notifications"><span class="icon">🔔</span>Notifications <span class="dot" id="notifDot" style="display:none"></span></button>
       <span class="nav-label">Finances</span>
       <button class="nav-item" data-page="commissions"><span class="icon">💰</span>Commissions</button>
       <button class="nav-item" data-page="generate"><span class="icon">🧾</span>Générer factures</button>
@@ -174,6 +175,11 @@
           <div class="chat-input-area"><textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1"></textarea><button class="chat-send" id="chatSendBtn">↑</button></div>
         </div>
       </div>
+    </div>
+
+    <div id="page-notifications" class="page">
+      <div class="page-header"><div><div class="page-title">Notifications</div><div class="page-desc">Demandes de sponsoring et signalements de vendeurs</div></div><button class="btn-ghost" id="markAllReadBtn" style="font-size:.74rem">Tout marquer comme lu</button></div>
+      <div id="notifList" class="notif-list"></div>
     </div>
 
     <div id="page-settings" class="page">

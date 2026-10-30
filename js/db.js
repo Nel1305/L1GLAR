@@ -11,22 +11,37 @@ function setSession(u)    { localStorage.setItem('glar_session', JSON.stringify(
 function clearSession()   { localStorage.removeItem('glar_session'); }
 
 /* ── USERS ──
-   Auth déplacée en base (fonctions RPC SECURITY DEFINER, bcrypt via pgcrypto) :
-   voir backend_hardening_v7.sql. Le client ne lit/écrit plus jamais de mot de
-   passe ou de hash — ni en clair, ni en base64. Ces mêmes fonctions RPC sont
-   appelées à l'identique par l'app iOS : une seule logique d'authentification
-   pour les deux plateformes, contre la même base de données. */
+   Authentification durcie : toute vérification de mot de passe passe désormais
+   par des fonctions RPC Postgres (SECURITY DEFINER) qui seules peuvent lire
+   la colonne password_hash (bcrypt). Le client (anon/authenticated) n'a plus
+   aucun accès en lecture à password / password_hash. Voir backend_hardening_v7.sql
+   et v8 (clé d'accès vendeur) pour le détail des fonctions. */
 async function dbCreateUser(first, last, email, phone, pass, filiere) {
-  const { data, error } = await db.rpc('fn_register_user', { p_first:first, p_last:last||null, p_email:email, p_phone:phone||null, p_pass:pass, p_filiere:filiere||null });
+  const name = first + (last ? ' ' + last[0].toUpperCase() + '.' : '');
+  const { data, error } = await db.rpc('fn_register_user', {
+    p_first: first, p_last: last, p_email: email, p_phone: phone, p_pass: pass, p_filiere: filiere || null
+  });
   if (error) return { error: error.message };
   if (data && data.error) return { error: data.error };
-  return { user: data.user };
+  return { user: nu(data.user) };
 }
 async function dbLoginUser(email, pass) {
-  const { data, error } = await db.rpc('fn_login_user', { p_email:email, p_pass:pass });
+  const { data, error } = await db.rpc('fn_login_user', { p_email: email.trim(), p_pass: pass });
   if (error) return { error: error.message };
   if (data && data.error) return { error: data.error };
-  return { user: data.user };
+  return { user: nu(data.user) };
+}
+async function dbLoginWithAccessKey(accessKey) {
+  const { data, error } = await db.rpc('fn_login_with_access_key', { p_key: (accessKey||'').trim() });
+  if (error) return { error: error.message };
+  if (data && data.error) return { error: data.error };
+  return { user: nu(data.user) };
+}
+async function dbRegenerateAccessKey(userId) {
+  const { data, error } = await db.rpc('fn_regenerate_access_key', { p_user_id: userId });
+  if (error) return { error: error.message };
+  if (data && data.error) return { error: data.error };
+  return { accessKey: data.access_key };
 }
 async function dbUpdateUser(id, f) {
   const p = {};
@@ -38,26 +53,28 @@ async function dbUpdateUser(id, f) {
   if (f.bio       !== undefined) p.bio         = f.bio;
   if (f.shopOpen  !== undefined) p.shop_open   = f.shopOpen;
   if (f.filiere   !== undefined) p.filiere     = f.filiere;
-  // Le mot de passe ne transite plus jamais par une simple colonne : RPC dédiée.
-  if (f.password) {
-    const { data: pr, error: pe } = await db.rpc('fn_update_password', { p_user_id:id, p_new_pass:f.password });
-    if (pe) return { error: pe.message };
-    if (pr && pr.error) return { error: pr.error };
+  if (Object.keys(p).length) {
+    const { error } = await db.from('users').update(p).eq('id', id);
+    if (error) return { error: error.message };
   }
-  const { data, error } = await db.from('users').update(p).eq('id', id)
-    .select('id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at').single();
+  if (f.password) {
+    const { data: pwData, error: pwErr } = await db.rpc('fn_update_password', { p_user_id: id, p_new_pass: f.password });
+    if (pwErr) return { error: pwErr.message };
+    if (pwData && pwData.error) return { error: pwData.error };
+  }
+  const { data, error } = await db.from('users').select('id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at, access_key').eq('id', id).single();
   if (error) return { error: error.message };
   return { user: nu(data) };
 }
 async function dbGetAllUsers() {
   const { data, error } = await db.from('users')
-    .select('id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at')
+    .select('id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at, access_key')
     .order('created_at', { ascending: false });
   if (error) { console.error(error); return []; }
   return (data || []).map(nu);
 }
 function nu(r) {
-  return { id:r.id, firstName:r.first_name, lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, isBlocked:r.is_blocked||false, blockedReason:r.blocked_reason||'', billingPeriod:r.billing_period||'monthly', filiere:r.filiere||'', createdAt:r.created_at };
+  return { id:r.id, firstName:r.first_name, lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, isBlocked:r.is_blocked||false, blockedReason:r.blocked_reason||'', billingPeriod:r.billing_period||'monthly', filiere:r.filiere||'', createdAt:r.created_at, accessKey:r.access_key||'' };
 }
 
 /* ── PRODUCTS ── */
@@ -229,6 +246,7 @@ async function dbInsertOrder(f) {
     qty:f.qty, total:f.total, notes:f.notes||'', item_note:f.itemNote||null, status:'new',
     delivery_date:f.deliveryDate||null, delivery_time:f.deliveryTime||null,
     delivery_type:f.deliveryType||'campus', delivery_address:f.deliveryAddress||null,
+    delivery_lat:f.deliveryLat||null, delivery_lng:f.deliveryLng||null, delivery_place_name:f.deliveryPlaceName||null,
     buyer_classe:f.buyerClasse||null, buyer_filiere:f.buyerFiliere||null, order_group:f.orderGroup||null
   }).select().single();
   if (error) return { error: error.message };
@@ -254,6 +272,7 @@ async function restockProduct(productId, qty) {
 function no(r) {
   return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'', productId:r.product_id, productName:r.product_name, buyerName:r.buyer_name, buyerEmail:r.buyer_email, buyerPhone:r.buyer_phone, qty:r.qty, total:r.total, notes:r.notes, itemNote:r.item_note||'', status:r.status, createdAt:r.created_at,
     deliveryDate:r.delivery_date, deliveryTime:r.delivery_time, deliveryType:r.delivery_type||'campus', deliveryAddress:r.delivery_address,
+    deliveryLat:r.delivery_lat||null, deliveryLng:r.delivery_lng||null, deliveryPlaceName:r.delivery_place_name||'',
     buyerClasse:r.buyer_classe||'', buyerFiliere:r.buyer_filiere||'', orderGroup:r.order_group||null };
 }
 
@@ -458,10 +477,16 @@ async function dbUpdateCommission(id, f) {
 
 /* ── ADMIN ── */
 async function dbAdminLogin(email, pass) {
-  const { data, error } = await db.rpc('fn_admin_login', { p_email:email, p_pass:pass });
+  const { data, error } = await db.rpc('fn_admin_login', { p_email: email.trim(), p_pass: pass });
   if (error) return { error: error.message };
   if (data && data.error) return { error: data.error };
   return { admin: data.admin };
+}
+async function dbAdminUpdatePassword(adminId, newPass) {
+  const { data, error } = await db.rpc('fn_admin_update_password', { p_admin_id: adminId, p_new_pass: newPass });
+  if (error) return { error: error.message };
+  if (data && data.error) return { error: data.error };
+  return { ok: true };
 }
 async function dbBlockUser(id, block, reason) {
   const { error } = await db.from('users').update({ is_blocked: block, blocked_reason: reason||null }).eq('id', id);
@@ -507,6 +532,60 @@ async function dbUpsertConnection(aId, aName, bId, bName) {
 async function dbGetConnections() {
   const { data } = await db.from('seller_connections').select('*').order('last_contact', { ascending: false });
   return data || [];
+}
+
+/* ── NOTIFICATIONS ──
+   Alimentées côté serveur par des triggers Postgres (voir backend_hardening_v8.sql)
+   sur orders / returns / promotions / seller_reports / reviews, afin que toute
+   action faite depuis le site OU depuis l'app iOS génère la même notification,
+   sans dépendre d'un code client dupliqué. */
+async function dbGetNotifications(recipientType, recipientId, opts = {}) {
+  let q = db.from('notifications').select('*').eq('recipient_type', recipientType).order('created_at', { ascending: false }).limit(opts.limit || 50);
+  if (recipientId !== null && recipientId !== undefined) q = q.eq('recipient_id', recipientId);
+  if (opts.unreadOnly) q = q.eq('is_read', false);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return (data || []).map(nn);
+}
+async function dbGetUnreadNotificationCount(recipientType, recipientId) {
+  let q = db.from('notifications').select('id', { count: 'exact', head: true }).eq('recipient_type', recipientType).eq('is_read', false);
+  if (recipientId !== null && recipientId !== undefined) q = q.eq('recipient_id', recipientId);
+  const { count, error } = await q;
+  if (error) { console.error(error); return 0; }
+  return count || 0;
+}
+async function dbMarkNotificationRead(id) {
+  const { error } = await db.from('notifications').update({ is_read: true }).eq('id', id);
+  return error ? { error: error.message } : { ok: true };
+}
+async function dbMarkAllNotificationsRead(recipientType, recipientId) {
+  let q = db.from('notifications').update({ is_read: true }).eq('recipient_type', recipientType).eq('is_read', false);
+  if (recipientId !== null && recipientId !== undefined) q = q.eq('recipient_id', recipientId);
+  const { error } = await q;
+  return error ? { error: error.message } : { ok: true };
+}
+function nn(r) {
+  return { id:r.id, recipientType:r.recipient_type, recipientId:r.recipient_id, type:r.type, title:r.title, body:r.body||'', relatedId:r.related_id, isRead:r.is_read||false, createdAt:r.created_at };
+}
+function notifIcon(type) {
+  switch (type) {
+    case 'order_new':        return '🛒';
+    case 'order_status':     return '📦';
+    case 'return_new':       return '↩️';
+    case 'return_status':    return '✅';
+    case 'promotion_new':    return '📣';
+    case 'promotion_status': return '⭐';
+    case 'seller_report':    return '⚠️';
+    case 'review_new':       return '⭐';
+    default:                 return '🔔';
+  }
+}
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return 'à l\'instant';
+  if (diff < 3600) return Math.floor(diff/60) + ' min';
+  if (diff < 86400) return Math.floor(diff/3600) + ' h';
+  return Math.floor(diff/86400) + ' j';
 }
 
 /* ── SHARED UI ── */

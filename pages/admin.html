@@ -29,6 +29,7 @@
     <nav class="nav">
       <span class="nav-label">Tableau de bord</span>
       <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Vue globale</button>
+      <button class="nav-item" data-page="notifications"><span class="icon">🔔</span>Notifications <span class="dot" id="notifDot" style="display:none"></span></button>
       <span class="nav-label">Ventes</span>
       <button class="nav-item" data-page="orders"><span class="icon">📦</span>Commandes</button>
       <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours <span class="dot" id="returnsDot" style="display:none"></span></button>
@@ -162,6 +163,11 @@
       </div>
     </div>
 
+    <div id="page-notifications" class="page">
+      <div class="page-header"><div><div class="page-title">Notifications</div><div class="page-desc">Commandes, retours, avis et sponsorings</div></div><button class="btn-ghost" id="markAllReadBtn" style="font-size:.74rem">Tout marquer comme lu</button></div>
+      <div id="notifList" class="notif-list"></div>
+    </div>
+
     <div id="page-profile" class="page">
       <div class="page-header"><div><div class="page-title">Mon profil</div><div class="page-desc">Gérer les informations de ton commerce</div></div></div>
       <div class="form-wrap">
@@ -181,6 +187,16 @@
         </div>
         <div class="divider"></div>
         <div class="f-section"><span class="f-label">Sécurité</span><div class="field"><label>Nouveau mot de passe</label><input type="password" id="pfPass" placeholder="Laisser vide pour ne pas changer"></div></div>
+        <div class="divider"></div>
+        <div class="f-section">
+          <span class="f-label">Clé d'accès rapide</span>
+          <div class="hint">Utilise cette clé pour te connecter instantanément, sans ressaisir ton email et ton mot de passe.</div>
+          <div class="field-row" style="align-items:flex-end">
+            <div class="field" style="flex:1"><label>Ta clé</label><input type="text" id="pfAccessKey" readonly style="font-weight:600;letter-spacing:1px"></div>
+            <button class="btn-ghost" id="copyAccessKeyBtn" type="button" style="margin-bottom:14px">Copier</button>
+          </div>
+          <div class="modal-link"><a id="regenAccessKeyBtn">Générer une nouvelle clé (invalide l'ancienne)</a></div>
+        </div>
         <button class="btn-primary" id="saveProfileBtn">Sauvegarder</button>
         <div class="modal-link" style="margin-top:14px"><a id="openTermsLink">Conditions vendeur — comment ça fonctionne, ce qu'il faut et ne faut pas faire</a></div>
       </div>

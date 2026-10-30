@@ -174,12 +174,19 @@
     <button class="modal-x" data-close="authModal">✕</button>
     <div id="viewLogin">
       <div class="modal-title">Connexion</div><div class="modal-sub">Accède à ton espace vendeur</div>
-      <div class="modal-form">
+      <div class="modal-form" id="loginFormEmail">
         <div class="field"><label>Email</label><input type="email" id="lEmail" placeholder="ton@email.com"></div>
         <div class="field"><label>Mot de passe</label><input type="password" id="lPass" placeholder="••••••••"></div>
         <button class="btn-primary" id="loginBtn">Se connecter</button>
+        <div class="modal-link" style="margin-top:4px"><a id="goAccessKey">Se connecter avec ma clé d'accès</a></div>
         <div class="modal-sep">ou</div>
         <div class="modal-link">Pas de compte ? <a id="goRegister">S'inscrire</a></div>
+      </div>
+      <div class="modal-form" id="loginFormKey" style="display:none">
+        <div class="field"><label>Clé d'accès</label><input type="text" id="lAccessKey" placeholder="Ex : A1B2C3D4E5" style="text-transform:uppercase;letter-spacing:1px"></div>
+        <div class="hint">Ta clé d'accès personnelle se trouve dans ton espace vendeur, section Profil. Elle te permet de te connecter sans mot de passe.</div>
+        <button class="btn-primary" id="loginKeyBtn">Se connecter</button>
+        <div class="modal-link" style="margin-top:4px"><a id="goPasswordLogin">Se connecter avec mon email</a></div>
       </div>
     </div>
     <div id="viewRegister" style="display:none">
