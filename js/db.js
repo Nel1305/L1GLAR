@@ -691,7 +691,7 @@ function showToast(title, msg, color) {
   clearTimeout(t._t);
   t._t = setTimeout(() => t.classList.remove('show'), 3600);
 }
-function showLoader(v) { const el = document.getElementById('loader'); if (el) el.style.display = v ? 'flex' : 'none'; }
+function showLoader(v) { if (window.NM_SILENT && v) return; const el = document.getElementById('loader'); if (el) el.style.display = v ? 'flex' : 'none'; }   // NM_SILENT : actualisation en arrière-plan
 function starsHtml(r, sz) {
   sz = sz || '.85rem';
   return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--gold)':'var(--t4)'};font-size:${sz}">★</span>`).join('');
@@ -733,3 +733,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }));
 });
+
+
+/* ── COMPRESSION D'IMAGE (réduit fortement la bande passante : les photos sont stockées dans la base) ── */
+function compressImageFile(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('Lecture impossible'));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Image invalide'));
+      img.onload = () => {
+        let { width: w, height: h } = img;
+        const k = Math.min(1, maxDim / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL('image/jpeg', quality));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}

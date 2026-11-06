@@ -49,12 +49,27 @@ function createLocationPicker(boxId, { onChange } = {}) {
     });
   }
   function locate() {
-    return new Promise(resolve => {
-      if (!navigator.geolocation) { resolve({ error: 'La géolocalisation n\'est pas disponible sur cet appareil.' }); return; }
-      navigator.geolocation.getCurrentPosition(
-        p => { set(p.coords.latitude, p.coords.longitude, true); resolve({ ok: true, accuracy: Math.round(p.coords.accuracy || 0) }); },
-        e => resolve({ error: e.code === 1 ? 'Autorise la localisation dans ton navigateur, ou place le repère toi-même sur la carte.' : 'Position introuvable. Place le repère sur la carte.' }),
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 });
+    return new Promise(async resolve => {
+      if (!navigator.geolocation) { resolve({ error: 'La géolocalisation n\'est pas disponible sur cet appareil. Écris ton adresse ci-dessus.' }); return; }
+      if (window.isSecureContext === false) { resolve({ error: 'La localisation ne fonctionne que sur une connexion sécurisée (adresse en https://). Écris ton adresse ci-dessus.' }); return; }
+      const isMac = /Mac/i.test(navigator.platform || navigator.userAgent) && !/iPhone|iPad/i.test(navigator.userAgent);
+      const done = p => { set(p.coords.latitude, p.coords.longitude, true); resolve({ ok: true, accuracy: Math.round(p.coords.accuracy || 0) }); };
+      const fail = e => {
+        let msg;
+        if (e && e.code === 1) msg = isMac
+          ? 'Localisation refusée. Clique sur le cadenas de la barre d\'adresse → Localisation → Autoriser ; puis sur le Mac : Réglages Système → Confidentialité et sécurité → Services de localisation → coche ton navigateur. Tu peux aussi écrire ton adresse.'
+          : 'Localisation refusée. Autorise-la dans les réglages du navigateur (cadenas de la barre d\'adresse), ou écris ton adresse.';
+        else if (e && e.code === 3) msg = 'La localisation prend trop de temps. Réessaie, ou écris ton adresse / place le repère sur la carte.';
+        else msg = isMac
+          ? 'Position introuvable : vérifie que le Wi-Fi est activé et que les Services de localisation sont actifs sur le Mac. Tu peux aussi écrire ton adresse.'
+          : 'Position introuvable (signal GPS indisponible). Écris ton adresse ou place le repère sur la carte.';
+        resolve({ error: msg });
+      };
+      // 1) précision normale (Wi-Fi / réseau : c'est ce qui fonctionne sur un Mac, sans GPS) ; 2) haute précision si ça échoue
+      navigator.geolocation.getCurrentPosition(done, e => {
+        if (e && e.code === 1) return fail(e);
+        navigator.geolocation.getCurrentPosition(done, fail, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+      }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
     });
   }
   async function mount() {

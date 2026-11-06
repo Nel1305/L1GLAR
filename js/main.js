@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadCart();
   await loadProducts();
   loadAdBanners();
+  NMCache.startAutoRefresh(async () => { await loadProducts(); await loadAdBanners(); }, 90000,
+    () => document.getElementById('page-products').classList.contains('active'));
   initDeliveryFields();
   document.getElementById('submitReturnBtn').addEventListener('click', submitReturn);
   document.getElementById('submitReportBtn').addEventListener('click', submitSellerReport);
@@ -49,6 +51,7 @@ function initNav() {
 
 /* ── PRODUCTS ── */
 async function loadProducts() {
+  NMCache.beginPage();
   showLoader(true);
   allProducts = await dbGetProducts({ available: true });
   if (!allSellers.length) allSellers = await dbGetPublicSellers();
@@ -246,6 +249,14 @@ function saveCart() {
 }
 function updateCartBadge() {
   const count = cart.reduce((s,i) => s + i.qty, 0);
+  document.body.classList.toggle('cart-empty', count === 0);      // le Panier disparaît du menu quand il est vide
+  if (count === 0) {
+    const cp = document.getElementById('page-cart');
+    const ok = document.getElementById('orderSuccess');
+    if (cp && cp.classList.contains('active') && ok && ok.style.display === 'none') {
+      const b = document.querySelector('.sidebar .nav-item[data-page="products"]'); if (b) setTimeout(() => b.click(), 350);
+    }
+  }
   ['cartCount','cartCountMobile'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -262,9 +273,27 @@ function addToCart(productId) {
   if (existing) existing.qty++;
   else cart.push({ productId, qty: 1, note: '' });
   saveCart();
-  showToast('Ajouté au panier 🛒', p.name, 'var(--green)');
+  showCartPopup(p, existing ? existing.qty : 1);
   if (document.getElementById('page-cart').classList.contains('active')) renderCart();
 }
+/* Popup « Ajouté au panier » */
+let _cpTimer = null;
+function showCartPopup(p, qty) {
+  const el = document.getElementById('cartPopup'); if (!el) return;
+  const total = cart.reduce((s, i) => s + i.qty, 0);
+  document.getElementById('cpThumb').innerHTML = thumbHtml(p, p.name);
+  document.getElementById('cpName').textContent = p.name;
+  document.getElementById('cpMeta').textContent = qty + ' × ' + Number(p.price).toLocaleString() + ' FCFA · ' + total + ' article' + (total > 1 ? 's' : '') + ' au panier';
+  el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  clearTimeout(_cpTimer); _cpTimer = setTimeout(hideCartPopup, 5000);
+}
+function hideCartPopup() { const el = document.getElementById('cartPopup'); if (el) { el.classList.remove('show'); setTimeout(() => { if (!el.classList.contains('show')) el.hidden = true; }, 220); } }
+document.addEventListener('DOMContentLoaded', () => {
+  const v = document.getElementById('cpView'), k = document.getElementById('cpKeep'), x = document.getElementById('cpClose');
+  if (v) v.addEventListener('click', () => { hideCartPopup(); const b = document.querySelector('.sidebar .nav-item[data-page="cart"]'); if (b) b.click(); window.scrollTo({ top: 0 }); });
+  if (k) k.addEventListener('click', hideCartPopup);
+  if (x) x.addEventListener('click', hideCartPopup);
+});
 function removeFromCart(productId) { cart = cart.filter(i => i.productId !== productId); saveCart(); renderCart(); }
 function setCartQty(productId, qty) {
   const item = cart.find(i => i.productId === productId);
@@ -460,6 +489,7 @@ function initDeliveryFields() {
     if (r.error) showToast('Position non obtenue', r.error, 'var(--red)');
     else if (r.accuracy > 200) showToast('Position approximative', 'Précision ~' + r.accuracy + ' m : ajuste le repère sur la carte si besoin.', 'var(--t2)');
   });
+  if (typeof WHATSAPP_ENABLED === 'undefined' || !WHATSAPP_ENABLED) { const r = document.getElementById('oWaRow'); if (r) r.style.display = 'none'; }   // WhatsApp : bientôt
   document.getElementById('submitOrderBtn').addEventListener('click', submitOrder);
 }
 

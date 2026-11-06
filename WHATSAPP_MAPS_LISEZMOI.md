@@ -1,5 +1,7 @@
 # N Market — Google Maps + WhatsApp (Meta) : mise en route
 
+> ℹ️ **WhatsApp est actuellement affiché « Bientôt disponible »** sur le site (`WHATSAPP_ENABLED = false`) : la page affiche « en cours de préparation » et la case WhatsApp du formulaire de commande est masquée. Tout se réactive en passant `WHATSAPP_ENABLED = true` une fois les étapes B–D faites.
+
 Tout ce qui suit demande **tes** comptes (Google Cloud, Meta Business, Supabase). Rien ne part tant que les
 étapes ne sont pas faites : le site continue de fonctionner normalement (sans carte intégrée, sans WhatsApp).
 

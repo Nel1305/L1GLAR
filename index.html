@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>N Market</title>
   <link rel="stylesheet" href="css/style.css">
 <script src="js/theme.js"></script>
 </head>
-<body>
+<body data-bnav="shop">
 <div class="flag-bar"></div>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
-<div class="mobile-topbar">
-  <button class="hamburger-btn" id="hamburgerBtn" title="Menu">☰</button>
-  <div class="mt-title">N Market</div>
-  <button class="mobile-cart-btn" data-page="cart" title="Panier">🛒<span class="cart-count" id="cartCountMobile" style="display:none">0</span></button>
-</div>
-<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+<div class="mobile-topbar"><div class="mt-title">N Market</div></div>
 <div class="app">
   <aside class="sidebar">
     <div class="logo-row">
-      <div class="logo"><div class="logo-name"><span class="logo-star">★</span> N-Market</div><div class="logo-sub">Université ESTM Dakar</div></div>
+      <div class="logo"><div class="logo-name">N Market</div><div class="logo-sub">Université ESTM Dakar</div></div>
       <button class="theme-toggle" title="Changer de thème">🌙</button>
     </div>
     <nav class="nav">
@@ -115,7 +110,8 @@
             <strong>Commande envoyée !</strong>
             <p id="orderSuccessText"></p>
             <p style="margin-top:8px" id="waContactP" hidden><a class="btn-ghost" id="waContactLink" target="_blank" rel="noopener noreferrer">💬 Écrire sur WhatsApp</a></p>
-            <p style="margin-top:8px">📥 Ton ticket a été téléchargé automatiquement — conserve-le, le vendeur va te contacter pour confirmer la livraison.</p>
+            <p class="order-contact-note">🤝 <strong>Le vendeur te contactera dans peu de temps</strong> pour confirmer ta commande et la livraison. Garde ton téléphone à portée de main.</p>
+            <p style="margin-top:8px">📥 Ton ticket a été téléchargé automatiquement — conserve-le (le code de reçu sert pour un retour).</p>
           </div>
           <div class="ticket-wrap" id="ticketWrap" style="display:none">
             <div class="ticket" id="ticketCard">
@@ -331,9 +327,15 @@
   </div>
 </div>
 
+<div class="cart-popup" id="cartPopup" role="status" aria-live="polite" hidden>
+  <div class="cp-thumb" id="cpThumb"></div>
+  <div class="cp-body"><div class="cp-title">✓ Ajouté au panier</div><div class="cp-name" id="cpName"></div><div class="cp-meta" id="cpMeta"></div></div>
+  <div class="cp-actions"><button type="button" class="btn-primary sm" id="cpView">Voir le panier</button><button type="button" class="btn-ghost" id="cpKeep">Continuer</button></div>
+  <button type="button" class="cp-x" id="cpClose" aria-label="Fermer">×</button>
+</div>
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
 <script src="js/vendor/supabase.js"></script>
-<script src="js/config.js"></script><script src="js/db.js"></script><script src="js/maps.js"></script><script src="js/vendor/emailjs.min.js"></script>
+<script src="js/config.js"></script><script src="js/db.js"></script><script src="js/cache.js"></script><script src="js/maps.js"></script><script src="js/mobilenav.js"></script><script src="js/vendor/emailjs.min.js"></script>
 <script src="js/email.js"></script>
 <script src="js/vendor/html2canvas.min.js"></script>
 <script src="js/main.js"></script>

@@ -84,7 +84,9 @@ function showApp() {
   checkPendingPromos();
   checkPendingReports();
   refreshNotifDot();
-  setInterval(refreshNotifDot, 20000);
+  setInterval(() => { if (!document.hidden) refreshNotifDot(); }, 45000);
+  NMCache.startAutoRefresh(() => goPage(currentPageName), 60000,
+    () => ['dashboard','notifications','commissions','sellers','products','orders','returns','promo','reports'].includes(currentPageName));
 }
 
 async function checkPendingReports() {
@@ -132,7 +134,9 @@ function bindNav() {
     btn.addEventListener('click', () => goPage(btn.dataset.page));
   });
 }
+let currentPageName = 'dashboard';
 async function goPage(name) {
+  currentPageName = name; NMCache.beginPage();
   document.querySelectorAll('.nav-item[data-page]').forEach(b=>b.classList.remove('active'));
   const b=document.querySelector(`.nav-item[data-page="${name}"]`); if(b) b.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -893,12 +897,7 @@ async function saveBanner() {
   const fileInput = document.getElementById('bannerImageFile');
   if (fileInput && fileInput.files && fileInput.files[0]) {
     // Convertir l'affiche en base64 pour la stocker en BDD
-    imageUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
-      reader.onerror = () => reject(new Error('Lecture fichier échouée'));
-      reader.readAsDataURL(fileInput.files[0]);
-    });
+    imageUrl = await compressImageFile(fileInput.files[0], 1400, 0.82);
   }
 
   showLoader(true);

@@ -41,7 +41,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   await renderDashboard();
   checkPendingReturns();
   await refreshNotifDot();
-  setInterval(refreshNotifDot, 20000);
+  setInterval(() => { if (!document.hidden) refreshNotifDot(); }, 45000);
+  NMCache.startAutoRefresh(() => goPage(currentPageName), 60000,
+    () => ['dashboard','orders','returns','products','notifications'].includes(currentPageName));
   showLoader(false);
 });
 
@@ -100,7 +102,9 @@ function bindNav() {
     btn.addEventListener('click', () => goPage(btn.dataset.page));
   });
 }
+let currentPageName = 'dashboard';
 async function goPage(name) {
+  currentPageName = name; NMCache.beginPage();
   document.querySelectorAll('.nav-item[data-page]').forEach(b=>b.classList.remove('active'));
   const b=document.querySelector(`.nav-item[data-page="${name}"]`); if(b) b.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -511,7 +515,6 @@ async function saveProfile() {
 function handlePhoto(input, previewId, placeholderId, cb) {
   const file = input.files[0]; if (!file) return;
   if (file.size>5*1024*1024) { showToast('Fichier trop lourd','Max 5 Mo.','var(--red)'); return; }
-  const r = new FileReader();
-  r.onload = e => { cb(e.target.result); const p=document.getElementById(previewId); p.src=e.target.result; p.style.display='block'; document.getElementById(placeholderId).style.display='none'; };
-  r.readAsDataURL(file);
+  compressImageFile(file, 900, 0.8).then(data => { cb(data); const p=document.getElementById(previewId); p.src=data; p.style.display='block'; document.getElementById(placeholderId).style.display='none'; })
+    .catch(() => showToast('Image illisible','Choisis une photo JPG ou PNG.','var(--red)'));
 }

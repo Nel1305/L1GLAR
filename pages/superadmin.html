@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Super Admin · N Market</title>
   <link rel="stylesheet" href="../css/style.css">
   <script src="../js/theme.js"></script>
   <link rel="stylesheet" href="../css/superadmin.css">
 </head>
-<body>
+<body data-bnav="admin">
 <div class="flag-bar"></div>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
 
@@ -21,12 +21,7 @@
   </div>
 </div>
 
-<div class="mobile-topbar">
-  <button class="hamburger-btn" id="hamburgerBtn" title="Menu">☰</button>
-  <div class="mt-title">Super Admin</div>
-  <div style="width:38px"></div>
-</div>
-<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+<div class="mobile-topbar"><div class="mt-title">Super Admin</div></div>
 <div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
     <div class="logo-row"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> Super Admin</div><div class="logo-sub">N Market</div></div><button class="theme-toggle" title="Changer de thème">🌙</button></div>
@@ -49,7 +44,7 @@
       <button class="nav-item" data-page="banners"><span class="icon">🖼️</span>Bannières</button>
       <button class="nav-item" data-page="reports"><span class="icon">🚩</span>Signalements <span class="dot" id="reportsDot" style="display:none"></span></button>
       <span class="nav-label">Communication</span>
-      <button class="nav-item" data-page="whatsapp"><span class="icon">🟢</span>WhatsApp <span class="dot wa-dot" style="display:none"></span></button>
+      <button class="nav-item" data-page="whatsapp"><span class="icon">🟢</span>WhatsApp <span class="soon-tag">Bientôt</span><span class="dot wa-dot" style="display:none"></span></button>
       <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="adminChatDot" style="display:none"></span></button>
       <span class="nav-label">Paramètres</span>
       <button class="nav-item" data-page="settings"><span class="icon">⚙</span>Paramètres</button>
@@ -365,7 +360,7 @@
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
 <script src="../js/vendor/supabase.js"></script>
-<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script>
+<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/cache.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script><script src="../js/mobilenav.js"></script>
 <script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
 <script src="../js/vendor/emailjs.min.js"></script>
 <script src="../js/email.js"></script>

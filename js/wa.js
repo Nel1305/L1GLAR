@@ -46,7 +46,9 @@ async function mountWhatsApp(isAdmin) {
   const root = document.getElementById('page-whatsapp'); if (!root) return;
   if (typeof WHATSAPP_ENABLED === 'undefined' || !WHATSAPP_ENABLED) {
     root.innerHTML = `<div class="page-header"><div><div class="page-title">WhatsApp</div><div class="page-desc">Conversations avec tes clients</div></div></div>
-      <div class="wa-setup"><strong>WhatsApp n'est pas encore activé sur la plateforme.</strong><p>L'administrateur doit déployer les fonctions Meta puis passer <code>WHATSAPP_ENABLED</code> à <code>true</code> dans <code>js/config.js</code> (voir WHATSAPP_MAPS_LISEZMOI.md).</p></div>`;
+      <div class="coming-soon"><div class="cs-ico">🟢</div><span class="cs-tag">Bientôt disponible</span>
+        <h3>L'intégration WhatsApp est en cours de préparation</h3>
+        <p>Très bientôt, les clients recevront automatiquement leur reçu et le suivi de leur commande sur WhatsApp, et tu pourras leur répondre directement ici.</p></div>`;
     return;
   }
   if (!WA.inited) {
