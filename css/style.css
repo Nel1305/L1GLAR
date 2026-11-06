@@ -190,7 +190,7 @@ body {
 .logo { padding: 20px 16px 18px; border-bottom: 1px solid var(--b1); flex-shrink: 0; }
 .logo-name {
   font-family: var(--font);
-  font-size: 1rem; font-weight: 700; color: var(--t1); letter-spacing: -.01em;
+  font-size: 1rem; font-weight: 700; color: var(--t1); letter-spacing: -.01em; text-align:center;
 }
 .logo-sub { font-size: .65rem; color: var(--t3); margin-top: 2px; letter-spacing: .05em; text-transform: uppercase; }
 .logo-star { color: var(--accent); font-size: .7em; }
