@@ -17,6 +17,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('savePaymentBtn').addEventListener('click', savePayment);
   document.getElementById('confirmBlockBtn').addEventListener('click', confirmBlock);
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+  document.getElementById('accSaveNameBtn').addEventListener('click', accSaveName);
+  document.getElementById('accSaveEmailBtn').addEventListener('click', accSaveEmail);
+  document.getElementById('accSavePassBtn').addEventListener('click', accSavePass);
+  document.getElementById('accAddAdminBtn').addEventListener('click', () => accSaveAdmin(false));
+  document.getElementById('accTransferBtn').addEventListener('click', () => accSaveAdmin(true));
   document.getElementById('markAllReadBtn').addEventListener('click', markAllNotificationsRead);
   document.getElementById('commStatusFilter').addEventListener('change', renderCommissions);
   document.getElementById('sellerStatusFilter').addEventListener('change', renderSellers);
@@ -146,6 +151,8 @@ async function goPage(name) {
   if (name==='banners')     await renderBannersPage();
   if (name==='reports')     await renderReportsPage();
   if (name==='settings')    document.getElementById('globalRate').value = getCommissionRate();
+  if (name==='account')     await renderAccountPage();
+  if (name==='whatsapp')    await mountWhatsApp(true);
   if (name==='chat' && !chatInited) {
     await initChat({ id: adminSession.id, name: adminSession.name||'Admin', firstName: 'Admin', isAdmin: true }, true);
   }
@@ -1002,7 +1009,7 @@ async function renderAllOrders() {
   showLoader(true); const f=document.getElementById('allOrdersFilter').value; let orders=await dbGetOrders(); showLoader(false);
   if(f!=='all') orders=orders.filter(o=>o.status===f);
   const tbody=document.getElementById('allOrdersBody');
-  tbody.innerHTML=orders.map(o=>`<tr><td style="color:var(--t3);font-size:.7rem">#${o.id}</td><td><span style="font-weight:500">${esc(o.buyerName)}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${esc(o.buyerPhone||'—')}</div></td><td>${esc(o.productName)}</td><td style="color:var(--t2)">${esc(o.sellerName||'—')}</td><td style="font-weight:500">${o.total.toLocaleString()} FCFA</td><td style="font-size:.72rem"><div style="font-weight:500">${formatDeliveryDateTime(o)}</div><div style="color:var(--t3)">${o.deliveryType==='external'?`📍 ${(o.deliveryAddress||'Hors campus').substring(0,30)}${(o.deliveryAddress||'').length>30?'…':''}`:'🏫 Sur le campus'}</div></td><td><span class="status-badge status-${o.status}" style="font-size:.65rem">${statusLabel(o.status)}</span></td><td style="font-size:.72rem;color:var(--t3)">${formatDate(o.createdAt)}</td></tr>`).join('')||`<tr><td colspan="8" class="table-empty">Aucune commande</td></tr>`;
+  tbody.innerHTML=orders.map(o=>`<tr><td style="color:var(--t3);font-size:.7rem">#${o.id}</td><td><span style="font-weight:500">${esc(o.buyerName)}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${esc(o.buyerPhone||'—')}</div></td><td>${esc(o.productName)}</td><td style="color:var(--t2)">${esc(o.sellerName||'—')}</td><td style="font-weight:500">${o.total.toLocaleString()} FCFA</td><td style="font-size:.72rem"><div style="font-weight:500">${formatDeliveryDateTime(o)}</div><div style="color:var(--t3)">${o.deliveryType==='external'?`📍 ${esc((o.deliveryAddress||'Hors campus').substring(0,30))}${(o.deliveryAddress||'').length>30?'…':''}${o.deliveryLat?` <a href="${gmapsViewUrl(o.deliveryLat,o.deliveryLng)}" target="_blank" rel="noopener noreferrer">carte ↗</a>`:''}`:'🏫 Sur le campus'}</div></td><td><span class="status-badge status-${o.status}" style="font-size:.65rem">${statusLabel(o.status)}</span></td><td style="font-size:.72rem;color:var(--t3)">${formatDate(o.createdAt)}</td></tr>`).join('')||`<tr><td colspan="8" class="table-empty">Aucune commande</td></tr>`;
 }
 
 /* ── SETTINGS ── */
@@ -1013,15 +1020,68 @@ async function saveSettings() {
   if (r1.error) { showToast('Erreur', r1.error, 'var(--red)'); return; }
   document.getElementById('genRate').value = rate;
 
-  const pass=document.getElementById('newAdminPass').value;
-  if(pass&&pass.length<12){showToast('Trop court','Min. 12 caractères.','var(--red)');return;}
-  if(pass){
-    const r2 = await dbAdminUpdatePassword(pass);
-    if (r2.error) { showToast('Erreur', r2.error, 'var(--red)'); return; }
-    document.getElementById('newAdminPass').value='';
-  }
   showToast('Sauvegardé','Taux de commission : '+rate+'%','var(--green)');
 }
 
 /* ── HELPERS ── */
 function cLabel(s){return s==='pending'?'En attente':s==='overdue'?'En retard':s==='partial'?'Partiel':'Payé';}
+
+
+/* ── COMPTE ADMIN ── */
+async function renderAccountPage() {
+  adminSession = await dbAdminLoadSession() || adminSession;
+  document.getElementById('accName').value = adminSession.name || '';
+  document.getElementById('accEmailCur').value = adminSession.email || '';
+  const admins = await dbAdminListAdmins();
+  document.getElementById('accAdminsBody').innerHTML = admins.map(a => `<tr>
+    <td style="font-weight:500">${esc(a.name||'—')}${a.is_me?' <span style="color:var(--t3);font-size:.7rem">(toi)</span>':''}</td>
+    <td style="color:var(--t2)">${esc(a.email)}</td>
+    <td style="text-align:right">${a.is_me?'':`<button class="btn-ghost" style="font-size:.72rem" onclick="accRemoveAdmin(${Number(a.id)}, ${jsArg(a.email)})">Retirer</button>`}</td>
+  </tr>`).join('') || '<tr><td colspan="3" class="table-empty">—</td></tr>';
+}
+async function accSaveName() {
+  const name = document.getElementById('accName').value.trim();
+  const r = await dbAdminSetProfile(name);
+  if (r.error) return showToast('Erreur', r.error, 'var(--red)');
+  adminSession.name = name; document.getElementById('adminName').textContent = name;
+  showToast('Enregistré', 'Nom mis à jour.', 'var(--green)');
+}
+async function accSaveEmail() {
+  const email = document.getElementById('accEmailNew').value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showToast('Email invalide', '', 'var(--red)');
+  const r = await dbAdminChangeEmail(email);
+  if (r.error) return showToast('Erreur', r.error, 'var(--red)');
+  document.getElementById('accEmailNew').value = '';
+  showToast('Vérifie ta boîte mail', 'Clique sur le lien reçu pour confirmer le nouvel email.', 'var(--green)');
+}
+async function accSavePass() {
+  const cur = document.getElementById('accPassCur').value, n1 = document.getElementById('accPassNew').value, n2 = document.getElementById('accPassNew2').value;
+  if (!cur) return showToast('Mot de passe actuel requis', '', 'var(--red)');
+  if (n1.length < 12) return showToast('Trop court', 'Min. 12 caractères.', 'var(--red)');
+  if (n1 !== n2) return showToast('Confirmation différente', '', 'var(--red)');
+  const r = await dbAdminChangePassword(cur, n1);
+  if (r.error) return showToast('Erreur', r.error, 'var(--red)');
+  ['accPassCur','accPassNew','accPassNew2'].forEach(i => document.getElementById(i).value = '');
+  showToast('Mot de passe changé', '', 'var(--green)');
+}
+async function accSaveAdmin(replace) {
+  const name = document.getElementById('accNewAdminName').value.trim();
+  const email = document.getElementById('accNewAdminEmail').value.trim();
+  const pass = document.getElementById('accNewAdminPass').value;
+  if (!name || !email) return showToast('Nom et email requis', '', 'var(--red)');
+  if (pass.length < 12) return showToast('Trop court', 'Min. 12 caractères.', 'var(--red)');
+  if (replace && !confirm('Transférer le rôle de super admin à ' + email + ' ? Tu perdras immédiatement tes droits et seras déconnecté.')) return;
+  const r = await dbAdminSaveAdmin(email, name, pass, replace);
+  if (r.error) return showToast('Erreur', r.error, 'var(--red)');
+  if (replace) { await clearSession(); window.location.reload(); return; }
+  ['accNewAdminName','accNewAdminEmail','accNewAdminPass'].forEach(i => document.getElementById(i).value = '');
+  showToast('Admin ajouté', email, 'var(--green)');
+  renderAccountPage();
+}
+async function accRemoveAdmin(id, email) {
+  if (!confirm('Retirer les droits admin de ' + email + ' ?')) return;
+  const r = await dbAdminRemoveAdmin(id);
+  if (r.error) return showToast('Erreur', r.error, 'var(--red)');
+  showToast('Droits retirés', email, 'var(--green)');
+  renderAccountPage();
+}

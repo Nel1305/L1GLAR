@@ -311,12 +311,13 @@ async function dbPlaceOrder(f) {
     p_buyer_name: f.buyerName, p_buyer_phone: f.buyerPhone, p_notes: f.notes || '',
     p_delivery_date: f.deliveryDate, p_delivery_time: f.deliveryTime, p_delivery_type: f.deliveryType,
     p_delivery_address: f.deliveryAddress || null, p_buyer_classe: f.buyerClasse || null, p_buyer_filiere: f.buyerFiliere || null,
-    p_items: f.items.map(i => ({ product_id: i.productId, qty: i.qty, note: i.note || '' }))
+    p_items: f.items.map(i => ({ product_id: i.productId, qty: i.qty, note: i.note || '' })),
+    p_lat: f.lat ?? null, p_lng: f.lng ?? null, p_place_name: f.placeName || null, p_wa_opt_in: !!f.waOptIn
   });
   if (error) return { error: error.message };
   return { orderGroup: data.order_group, grandTotal: Number(data.grand_total), orders: (data.orders || []).map(o => ({
     id:o.id, createdAt:o.created_at, productId:o.product_id, productName:o.product_name, sellerId:o.seller_id,
-    sellerName:o.seller_name, qty:o.qty, total:Number(o.total), itemNote:o.item_note || ''
+    sellerName:o.seller_name, qty:o.qty, total:Number(o.total), itemNote:o.item_note || '', receiptCode:o.receipt_code || ''
   })) };
 }
 async function dbGetOrderById(id) {
@@ -332,7 +333,7 @@ function no(r) {
   return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'', productId:r.product_id, productName:r.product_name, buyerName:r.buyer_name, buyerEmail:r.buyer_email, buyerPhone:r.buyer_phone, qty:r.qty, total:r.total, notes:r.notes, itemNote:r.item_note||'', status:r.status, createdAt:r.created_at,
     deliveryDate:r.delivery_date, deliveryTime:r.delivery_time, deliveryType:r.delivery_type||'campus', deliveryAddress:r.delivery_address,
     deliveryLat:r.delivery_lat||null, deliveryLng:r.delivery_lng||null, deliveryPlaceName:r.delivery_place_name||'',
-    buyerClasse:r.buyer_classe||'', buyerFiliere:r.buyer_filiere||'', orderGroup:r.order_group||null };
+    buyerClasse:r.buyer_classe||'', buyerFiliere:r.buyer_filiere||'', orderGroup:r.order_group||null, receiptCode:r.receipt_code||'' };
 }
 
 /* ── PUBLICITÉ / PRODUITS SPONSORISÉS ── */
@@ -471,8 +472,9 @@ async function dbGetReturns(f = {}) {
 }
 /* Création vérifiée côté serveur : n° de commande + téléphone doivent correspondre */
 async function dbInsertReturn(f) {
-  const { error } = await db.rpc('fn_create_return', { p_order_id: f.orderId, p_phone: f.buyerPhone, p_reason: f.reason });
-  return error ? { error: error.message } : { ok: true };
+  const { data, error } = await db.rpc('fn_create_return_by_code', { p_code: f.code, p_reason: f.reason });
+  if (error) return { error: error.message };
+  return data && data.ok ? { ok: true } : { error: (data && data.error) || 'Demande refusée.' };
 }
 async function dbUpdateReturn(id, f) {
   const p = {};
@@ -542,6 +544,34 @@ async function dbAdminLogin(email, pass) {
 async function dbAdminUpdatePassword(newPass) {
   const { error } = await db.auth.updateUser({ password: newPass });
   return error ? { error: authErrMsg(error) } : { ok: true };
+}
+/* Section « Compte admin » */
+async function dbAdminChangePassword(current, next) {
+  const me = await dbAdminLoadSession();
+  if (!me) return { error: 'Session expirée.' };
+  const { error: e1 } = await db.auth.signInWithPassword({ email: me.email, password: current });
+  if (e1) return { error: 'Mot de passe actuel incorrect.' };
+  return dbAdminUpdatePassword(next);
+}
+async function dbAdminChangeEmail(email) {
+  const { error } = await db.auth.updateUser({ email: email.trim() });
+  return error ? { error: authErrMsg(error) } : { ok: true };
+}
+async function dbAdminSetProfile(name) {
+  const { error } = await db.rpc('admin_set_profile', { p_name: name });
+  return error ? { error: error.message } : { ok: true };
+}
+async function dbAdminListAdmins() {
+  const { data, error } = await db.rpc('admin_list_admins');
+  return error ? [] : (data || []);
+}
+async function dbAdminSaveAdmin(email, name, password, replace) {
+  const { error } = await db.rpc('admin_save_admin', { p_email: email, p_name: name, p_password: password, p_replace: !!replace });
+  return error ? { error: error.message } : { ok: true };
+}
+async function dbAdminRemoveAdmin(id) {
+  const { error } = await db.rpc('admin_remove_admin', { p_id: id });
+  return error ? { error: error.message } : { ok: true };
 }
 async function dbBlockUser(id, block, reason) {
   const { error } = await db.rpc('admin_set_block', { p_user_id: id, p_block: block, p_reason: reason || null });

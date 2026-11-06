@@ -49,9 +49,11 @@
       <button class="nav-item" data-page="banners"><span class="icon">🖼️</span>Bannières</button>
       <button class="nav-item" data-page="reports"><span class="icon">🚩</span>Signalements <span class="dot" id="reportsDot" style="display:none"></span></button>
       <span class="nav-label">Communication</span>
+      <button class="nav-item" data-page="whatsapp"><span class="icon">🟢</span>WhatsApp <span class="dot wa-dot" style="display:none"></span></button>
       <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="adminChatDot" style="display:none"></span></button>
       <span class="nav-label">Paramètres</span>
       <button class="nav-item" data-page="settings"><span class="icon">⚙</span>Paramètres</button>
+      <button class="nav-item" data-page="account"><span class="icon">🔐</span>Compte admin</button>
     </nav>
     <div class="sidebar-footer">
       <div class="user-pill"><div class="avatar">◆</div><div class="user-info"><div class="user-name" id="adminName">Admin</div><div class="user-role">Super administrateur</div></div></div>
@@ -184,9 +186,46 @@
       <div class="page-header"><div><div class="page-title">Paramètres</div><div class="page-desc">Configuration de la plateforme</div></div></div>
       <div class="form-wrap">
         <div class="f-section"><span class="f-label">Commission</span><div class="field"><label>Taux global (%)</label><input type="number" id="globalRate" value="5" min="1" max="50" step="0.5" style="max-width:120px"><div class="hint">Appliqué lors de la génération des factures.</div></div></div>
-        <div class="divider"></div>
-        <div class="f-section"><span class="f-label">Sécurité</span><div class="field"><label>Nouveau mot de passe admin</label><input type="password" id="newAdminPass" placeholder="Min. 12 caractères" autocomplete="new-password"></div></div>
         <button class="btn-primary" id="saveSettingsBtn">Sauvegarder</button>
+      </div>
+    </div>
+
+    <div id="page-whatsapp" class="page"></div>
+
+    <div id="page-account" class="page">
+      <div class="page-header"><div><div class="page-title">Compte admin</div><div class="page-desc">Ton profil, tes accès et les administrateurs de la plateforme</div></div></div>
+      <div class="form-wrap">
+        <div class="f-section"><span class="f-label">Profil</span>
+          <div class="field"><label>Nom affiché</label><input type="text" id="accName" maxlength="80"></div>
+          <button class="btn-primary sm" id="accSaveNameBtn">Enregistrer le nom</button>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section"><span class="f-label">Email de connexion</span>
+          <div class="field"><label>Email actuel</label><input type="email" id="accEmailCur" disabled></div>
+          <div class="field"><label>Nouvel email</label><input type="email" id="accEmailNew" placeholder="nouvel@email.com" autocomplete="off"><div class="hint">Un lien de confirmation est envoyé : l'email ne change qu'après avoir cliqué dessus.</div></div>
+          <button class="btn-primary sm" id="accSaveEmailBtn">Changer l'email</button>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section"><span class="f-label">Mot de passe</span>
+          <div class="field"><label>Mot de passe actuel</label><input type="password" id="accPassCur" autocomplete="current-password"></div>
+          <div class="field"><label>Nouveau mot de passe</label><input type="password" id="accPassNew" placeholder="Min. 12 caractères" autocomplete="new-password"></div>
+          <div class="field"><label>Confirmer</label><input type="password" id="accPassNew2" autocomplete="new-password"></div>
+          <button class="btn-primary sm" id="accSavePassBtn">Changer le mot de passe</button>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section"><span class="f-label">Administrateurs</span>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>Nom</th><th>Email</th><th></th></tr></thead><tbody id="accAdminsBody"></tbody></table></div>
+        </div>
+        <div class="f-section" style="margin-top:18px"><span class="f-label">Ajouter ou transférer le rôle</span>
+          <div class="field"><label>Nom</label><input type="text" id="accNewAdminName" maxlength="80" autocomplete="off"></div>
+          <div class="field"><label>Email</label><input type="email" id="accNewAdminEmail" autocomplete="off"></div>
+          <div class="field"><label>Mot de passe (min. 12 caractères)</label><input type="password" id="accNewAdminPass" autocomplete="new-password"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-primary sm" id="accAddAdminBtn">Ajouter comme admin</button>
+            <button class="btn-ghost" id="accTransferBtn">Transférer mon rôle</button>
+          </div>
+          <div class="hint">« Transférer » donne tous les droits au nouveau compte et te les retire (tu seras déconnecté).</div>
+        </div>
       </div>
     </div>
 
@@ -326,7 +365,7 @@
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
 <script src="../js/vendor/supabase.js"></script>
-<script src="../js/config.js"></script><script src="../js/db.js"></script>
+<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script>
 <script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
 <script src="../js/vendor/emailjs.min.js"></script>
 <script src="../js/email.js"></script>

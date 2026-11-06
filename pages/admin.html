@@ -35,6 +35,7 @@
       <button class="nav-item" data-page="addproduct"><span class="icon">+</span>Ajouter un produit</button>
       <button class="nav-item" data-page="promote"><span class="icon">📣</span>Publicité</button>
       <span class="nav-label">Communication</span>
+      <button class="nav-item" data-page="whatsapp"><span class="icon">🟢</span>WhatsApp <span class="dot wa-dot" style="display:none"></span></button>
       <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="chatDot" style="display:none"></span></button>
       <span class="nav-label">Compte</span>
       <button class="nav-item" data-page="profile"><span class="icon">⚙</span>Mon profil</button>
@@ -136,6 +137,8 @@
         <div class="success-box" id="addSuccess"><div class="ico">✓</div><strong>Produit publié !</strong><p>Il est maintenant visible par toute la promo.</p></div>
       </div>
     </div>
+
+    <div id="page-whatsapp" class="page"></div>
 
     <div id="page-chat" class="page">
       <div class="page-header"><div><div class="page-title">Messages</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Accès restreint</span></div></div></div>
@@ -303,7 +306,7 @@
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
 <script src="../js/vendor/supabase.js"></script>
-<script src="../js/config.js"></script><script src="../js/db.js"></script>
+<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script>
 <script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
 <script src="../js/vendor/emailjs.min.js"></script>
 <script src="../js/email.js"></script>

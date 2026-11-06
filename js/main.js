@@ -441,7 +441,24 @@ function initDeliveryFields() {
       radio.closest('.delivery-type-opt').classList.add('active');
       document.getElementById('oAddressField').style.display = radio.value === 'external' ? '' : 'none';
       document.getElementById('oCampusFields').style.display = radio.value === 'campus' ? '' : 'none';
+      if (radio.value === 'external') { picker.mount(); }
     });
+  });
+  const picker = window.deliveryPicker = createLocationPicker('oMapBox', { onChange: s => {
+    const addr = document.getElementById('oAddress');
+    if (s.label && (!addr.value.trim() || addr.dataset.auto === '1')) { addr.value = s.label; addr.dataset.auto = '1'; }
+    const chk = document.getElementById('oMapCheck');
+    if (s.lat != null) { chk.href = gmapsViewUrl(s.lat, s.lng); chk.style.display = ''; }
+    document.getElementById('oMapHint').textContent = s.lat != null ? '✅ Position enregistrée. Tu peux déplacer le repère pour l\'ajuster.' : document.getElementById('oMapHint').textContent;
+  }});
+  document.getElementById('oAddress').addEventListener('input', e => { e.target.dataset.auto = '0'; });
+  document.getElementById('oLocateBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('oLocateBtn'); btn.disabled = true; btn.textContent = 'Localisation…';
+    await picker.mount();
+    const r = await picker.locate();
+    btn.disabled = false; btn.textContent = '📍 Utiliser ma position';
+    if (r.error) showToast('Position non obtenue', r.error, 'var(--red)');
+    else if (r.accuracy > 200) showToast('Position approximative', 'Précision ~' + r.accuracy + ' m : ajuste le repère sur la carte si besoin.', 'var(--t2)');
   });
   document.getElementById('submitOrderBtn').addEventListener('click', submitOrder);
 }
@@ -461,7 +478,8 @@ async function submitOrder() {
   if (!items.length) { showToast('Panier vide', 'Ajoute au moins un produit.', 'var(--red)'); return; }
   if (!name || !phone) { showToast('Champs manquants', 'Nom et téléphone requis.', 'var(--red)'); return; }
   if (!deliveryDate || !deliveryTime) { showToast('Date/heure manquantes', 'Choisis une date et une heure de livraison.', 'var(--red)'); return; }
-  if (deliveryType === 'external' && !deliveryAddress) { showToast('Adresse manquante', 'Indique l\'adresse de livraison hors campus.', 'var(--red)'); return; }
+  const geo = deliveryType === 'external' && window.deliveryPicker ? window.deliveryPicker.position : null;
+  if (deliveryType === 'external' && !deliveryAddress && !geo) { showToast('Adresse manquante', 'Indique l\'adresse hors campus ou place un repère sur la carte.', 'var(--red)'); return; }
   if (deliveryType === 'campus' && (!classe || !filiere)) { showToast('Informations manquantes', 'Indique ta classe et ta filière pour la livraison sur le campus.', 'var(--red)'); return; }
 
   for (const i of items) {
@@ -477,6 +495,8 @@ async function submitOrder() {
     buyerName:name, buyerPhone:phone, notes, deliveryDate, deliveryTime, deliveryType,
     deliveryAddress: deliveryType==='external' ? deliveryAddress : '',
     buyerClasse: deliveryType==='campus' ? classe : '', buyerFiliere: deliveryType==='campus' ? filiere : '',
+    lat: geo ? geo.lat : null, lng: geo ? geo.lng : null, placeName: geo ? geo.label : '',
+    waOptIn: document.getElementById('oWaOptIn').checked,
     items: items.map(i => ({ productId:i.p.id, qty:i.qty, note:(i.note||'').trim() }))
   });
   showLoader(false); btn.disabled = false;
@@ -486,17 +506,22 @@ async function submitOrder() {
   const createdOrders = result.orders.map(o => ({
     order: { id:o.id, createdAt:o.createdAt },
     p: { name:o.productName, sellerName:o.sellerName, price:o.qty ? o.total/o.qty : o.total },
-    qty:o.qty, total:o.total, note:o.itemNote
+    qty:o.qty, total:o.total, note:o.itemNote, code:o.receiptCode
   }));
 
   const grandTotal = result.grandTotal;
   const firstId = createdOrders[0].order.id;
   const ticketRef = createdOrders.length>1 ? `#${firstId}–#${createdOrders[createdOrders.length-1].order.id}` : `#${firstId}`;
   document.getElementById('orderSuccessText').innerHTML =
-    createdOrders.map(o => `${Number(o.qty)}× <strong>${esc(o.p.name)}</strong> — ${o.total.toLocaleString()} FCFA${o.note?`<br><span style="color:var(--t3);font-size:.85em">↳ ${esc(o.note)}</span>`:''}`).join('<br>') +
+    createdOrders.map(o => `${Number(o.qty)}× <strong>${esc(o.p.name)}</strong> — ${o.total.toLocaleString()} FCFA${o.note?`<br><span style="color:var(--t3);font-size:.85em">↳ ${esc(o.note)}</span>`:''}${o.code?`<br><span class="receipt-code">🔑 ${esc(o.code)}</span>`:''}`).join('<br>') +
     `<br><strong>Total : ${grandTotal.toLocaleString()} FCFA</strong><br>` +
     `<span style="color:var(--t3)">Numéro de commande : ${esc(ticketRef)}</span>`;
   document.getElementById('orderSuccess').style.display = '';
+  if (typeof WHATSAPP_BUSINESS_NUMBER !== 'undefined' && WHATSAPP_BUSINESS_NUMBER) {
+    const codes = createdOrders.map(o => o.code).filter(Boolean).join(', ');
+    document.getElementById('waContactLink').href = 'https://wa.me/' + encodeURIComponent(WHATSAPP_BUSINESS_NUMBER) + '?text=' + encodeURIComponent('Bonjour, ma commande ' + codes);
+    document.getElementById('waContactP').hidden = false;
+  }
 
   // Remplit le ticket (hors écran) et le télécharge automatiquement
   fillTicket(createdOrders, { name, phone, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress, classe, filiere, grandTotal });
@@ -510,6 +535,7 @@ async function submitOrder() {
   // Vide le panier et réinitialise le formulaire
   cart = []; saveCart(); renderCart();
   ['oName','oPhone','oNotes','oAddress','oDate','oTime','oClasse'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('oWaOptIn').checked = false; if (window.deliveryPicker) window.deliveryPicker.reset();
   document.getElementById('oFiliere').value = '';
   document.querySelector('input[name="deliveryType"][value="campus"]').checked = true;
   document.querySelectorAll('.delivery-type-opt').forEach(o => o.classList.remove('active'));
@@ -541,6 +567,7 @@ function fillTicket(createdOrders, f) {
     <div class="ticket-row"><span class="k">#${Number(o.order.id)} · ${esc(o.p.name)} ×${Number(o.qty)}</span><span class="v">${o.total.toLocaleString()} FCFA</span></div>
     <div class="ticket-row" style="font-size:.7rem"><span class="k">Vendeur</span><span class="v">${esc(o.p.sellerName)}</span></div>
     ${o.note ? `<div class="ticket-row" style="font-size:.7rem"><span class="k">Précision</span><span class="v">${esc(o.note)}</span></div>` : ''}
+    ${o.code ? `<div class="ticket-row"><span class="k">Code de reçu</span><span class="v receipt-code">${esc(o.code)}</span></div>` : ''}
   `).join('<div class="ticket-sep"></div>');
 
   document.getElementById('tkTotal').textContent    = `${f.grandTotal.toLocaleString()} FCFA`;
@@ -597,19 +624,18 @@ function downloadTicket() {
 
 /* ── RETOURS / LITIGES ── */
 async function submitReturn() {
-  const orderId = parseInt(document.getElementById('rtOrderId').value);
-  const phone = document.getElementById('rtPhone').value.trim();
+  const code = document.getElementById('rtCode').value.trim();
   const reason = document.getElementById('rtReason').value.trim();
-  if (!orderId || !phone || !reason) { showToast('Champs manquants', 'Remplis tous les champs.', 'var(--red)'); return; }
+  if (!code || !reason) { showToast('Champs manquants', 'Indique ton code de reçu et le motif.', 'var(--red)'); return; }
 
   showLoader(true);
-  // La vérification (n° de commande + téléphone) est faite CÔTÉ SERVEUR
-  const r = await dbInsertReturn({ orderId, buyerPhone:phone, reason });
+  // La vérification du code de reçu est faite CÔTÉ SERVEUR
+  const r = await dbInsertReturn({ code, reason });
   showLoader(false);
   if (r.error) { showToast('Demande refusée', r.error, 'var(--red)'); return; }
   document.getElementById('returnSuccess').classList.add('show');
   showToast('Demande envoyée', 'Le vendeur a été notifié de ta demande.', 'var(--green)');
-  ['rtOrderId','rtName','rtPhone','rtReason'].forEach(id => document.getElementById(id).value='');
+  ['rtCode','rtReason'].forEach(id => document.getElementById(id).value='');
 }
 
 /* ── REVIEWS ── */

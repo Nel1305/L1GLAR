@@ -22,3 +22,22 @@ const WAVE_NAME = 'Nel\'si';           // ← Ton prénom affiché dans le mail
 const PLATFORM_NAME = 'N Market';
 const PLATFORM_EMAIL = 'ppbuabey@gmail.com';      // ← Email affiché dans les mails
 const COMMISSION_RATE_PCT = 2;                     // ← Taux de commission (%)
+
+/* ── 5. GOOGLE MAPS (carte de livraison hors campus) ──
+   Clé API : console.cloud.google.com → APIs & Services → Credentials.
+   Active « Maps JavaScript API » (+ « Geocoding API » pour pré-remplir l'adresse).
+   RESTREINS la clé aux sites HTTP referrers de ton domaine (voir WHATSAPP_MAPS_LISEZMOI.md).
+   Laisse vide pour fonctionner sans carte : le client partage sa position GPS et le vendeur
+   ouvre Google Maps via un lien. */
+const GOOGLE_MAPS_API_KEY = '';
+/* Point de repère du campus (clic droit sur Google Maps → copier les coordonnées) */
+const CAMPUS = { name: 'Campus', lat: null, lng: null };
+/* Centre de la carte quand le client n'a pas encore partagé sa position (Dakar par défaut) */
+const MAP_DEFAULT_CENTER = { lat: 14.6937, lng: -17.4441 };
+
+/* ── 6. WHATSAPP (Meta Cloud API) ──
+   Les messages automatiques partent des Edge Functions Supabase (le jeton Meta n'est JAMAIS ici).
+   Mets true quand les fonctions sont déployées : la boîte WhatsApp des vendeurs devient active. */
+const WHATSAPP_ENABLED = false;
+const WHATSAPP_DEFAULT_CC = '221';     // indicatif ajouté aux numéros locaux à 9 chiffres (221 = Sénégal)
+const WHATSAPP_BUSINESS_NUMBER = '';   // numéro WhatsApp Business affiché aux clients (ex : '221771234567')

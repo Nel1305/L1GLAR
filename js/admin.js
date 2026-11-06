@@ -113,6 +113,7 @@ async function goPage(name) {
   if (name==='addproduct') resetAddForm();
   if (name==='promote')    await renderPromotePage();
   if (name==='profile')    loadProfile();
+  if (name==='whatsapp')   await mountWhatsApp(false);
   if (name==='chat' && !chatInited) await initChat(currentUser, false);
 }
 
@@ -341,11 +342,15 @@ async function viewOrder(id) {
     row('Date/heure souhaitées', formatDeliveryDateTime(o)) +
     row('Lieu de livraison', deliveryTypeLabel(o.deliveryType)) +
     (o.deliveryType==='external' && o.deliveryAddress ? row('Adresse', esc(o.deliveryAddress)) : '') +
-    (o.deliveryType==='external' && o.deliveryLat && o.deliveryLng ? row('Position GPS', `<a href="https://maps.apple.com/?ll=${Number(o.deliveryLat)},${Number(o.deliveryLng)}&q=${encodeURIComponent(o.deliveryPlaceName||'Livraison')}" target="_blank" rel="noopener noreferrer" style="color:var(--green)">📍 Ouvrir dans Apple Maps</a>`) : '') +
+    (o.receiptCode ? row('Code de reçu', `<span class="receipt-code">${esc(o.receiptCode)}</span>`) : '') +
+    (o.deliveryType==='external' && o.deliveryLat && o.deliveryLng ? `<div class="gmap-box gmap-view" id="orderMapBox"></div>${mapLinksHtml(o.deliveryLat, o.deliveryLng)}` : '') +
+    (o.deliveryType==='campus' && typeof CAMPUS!=='undefined' && CAMPUS.lat!=null ? `<div class="gmap-box gmap-view" id="orderMapBox"></div>${mapLinksHtml(CAMPUS.lat, CAMPUS.lng)}` : '') +
     (o.deliveryType==='campus' && (o.buyerClasse||o.buyerFiliere) ? row('Classe / Filière', `${esc(o.buyerClasse||'—')} · ${esc(getFiliereLabel(o.buyerFiliere)||'—')}`) : '') +
     (o.notes?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Instructions générales</div><div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;border:1px solid var(--b1)">${esc(o.notes)}</div></div>`:'') +
     (o.itemNote?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Précision pour ce produit</div><div style="background:var(--accent-dim);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t1);font-style:italic;border:1px solid var(--accent-bdr)">${esc(o.itemNote)}</div></div>`:'');
   openModal('orderDetailModal');
+  if (o.deliveryType==='external' && o.deliveryLat && o.deliveryLng) showMapInto('orderMapBox', o.deliveryLat, o.deliveryLng, o.deliveryPlaceName||o.buyerName);
+  else if (o.deliveryType==='campus' && typeof CAMPUS!=='undefined' && CAMPUS.lat!=null) showMapInto('orderMapBox', CAMPUS.lat, CAMPUS.lng, CAMPUS.name);
 }
 
 /* ── PRODUCTS TABLE ── */
