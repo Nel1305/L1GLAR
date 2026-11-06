@@ -9,10 +9,15 @@ let allSellers   = [];
 let promotedIds  = [];
 function sellerFiliere(sellerId) {
   const u = allSellers.find(x => x.id === sellerId);
-  return u && u.filiere ? getFiliereLabel(u.filiere) : '';
+  return u && u.filiere ? esc(getFiliereLabel(u.filiere)) : '';     // déjà échappé
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Session Supabase Auth + retour du lien « mot de passe oublié » / confirmation d'email
+  db.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') openModal('recoveryModal');
+  });
+  await initSession();
   initNav();
   await loadCategories();
   await loadFilieres();
@@ -46,7 +51,7 @@ function initNav() {
 async function loadProducts() {
   showLoader(true);
   allProducts = await dbGetProducts({ available: true });
-  if (!allSellers.length) allSellers = await dbGetAllUsers();
+  if (!allSellers.length) allSellers = await dbGetPublicSellers();
   promotedIds = await dbGetActivePromotedProductIds();
   showLoader(false);
   renderProducts();
@@ -56,7 +61,7 @@ async function loadProducts() {
 
 function populateReviewProductSelect() {
   document.getElementById('rvProduct').innerHTML =
-    allProducts.map(x => `<option value="${x.id}">${x.name} — ${x.sellerName}</option>`).join('');
+    allProducts.map(x => `<option value="${Number(x.id)}">${esc(x.name)} — ${esc(x.sellerName)}</option>`).join('');
 }
 
 function renderProducts() {
@@ -91,20 +96,20 @@ function renderProducts() {
 function productCardHtml(p, isSponsored) {
   return `
     <div class="card${isSponsored?' sponsored':''}">
-      <div class="card-img cat-${p.cat}" data-detail="${p.id}">${p.photo ? `<img src="${p.photo}" alt="${p.name}">` : (p.emoji || catEmoji(p.cat))}</div>
+      <div class="card-img cat-${esc(p.cat)}" data-detail="${p.id}">${thumbHtml(p, p.name)}</div>
       <div class="card-body">
         ${isSponsored ? `<div class="sponsored-badge">★ Sponsorisé</div>` : ''}
         ${catBadge(p.cat)}${stockBadgeHtml(p)}
-        <div class="card-name" data-detail="${p.id}" style="cursor:pointer">${p.name}</div>
-        ${p.desc ? `<div class="card-desc">${p.desc}</div>` : ''}
-        <div class="card-seller">Par <span class="shop-link" data-shop="${p.sellerId}">${p.sellerName}</span>${sellerFiliere(p.sellerId)?` <span class="seller-filiere">· ${sellerFiliere(p.sellerId)}</span>`:''}</div>
+        <div class="card-name" data-detail="${p.id}" style="cursor:pointer">${esc(p.name)}</div>
+        ${p.desc ? `<div class="card-desc">${esc(p.desc)}</div>` : ''}
+        <div class="card-seller">Par <span class="shop-link" data-shop="${p.sellerId}">${esc(p.sellerName)}</span>${sellerFiliere(p.sellerId)?` <span class="seller-filiere">· ${sellerFiliere(p.sellerId)}</span>`:''}</div>
         <div class="card-row">
           <div class="card-price">${p.price.toLocaleString()} FCFA</div>
           <div class="card-rating"><span style="color:var(--gold)">★</span> ${p.rating||'—'} ${p.votes?`<span style="color:var(--t3)">(${p.votes})</span>`:''}</div>
         </div>
         <div class="card-actions">
           <button class="btn-detail" data-detail="${p.id}">Détails & avis</button>
-          <button class="btn-order" data-id="${p.id}" data-name="${p.name}" ${isOutOfStock(p)?'disabled':''}>${isOutOfStock(p)?'Rupture':'🛒 Ajouter'}</button>
+          <button class="btn-order" data-id="${p.id}" data-name="${esc(p.name)}" ${isOutOfStock(p)?'disabled':''}>${isOutOfStock(p)?'Rupture':'🛒 Ajouter'}</button>
         </div>
       </div>
     </div>`;
@@ -134,20 +139,20 @@ async function loadAdBanners() {
   // Une seule bannière : affichage simple sans carousel
   if (banners.length === 1) {
     const b = banners[0];
-    const bgStyle = b.imageUrl ? `background-image:url('${b.imageUrl}')` : `background:${b.bgColor}`;
-    const inner = `<div class="ab-overlay"><div class="ab-title">${b.title}</div>${b.subtitle ? `<div class="ab-subtitle">${b.subtitle}</div>` : ''}</div><span class="ab-tag">Publicité</span>`;
-    wrap.innerHTML = b.linkUrl
-      ? `<a class="ad-banner" style="${bgStyle}" href="${b.linkUrl}" target="_blank" rel="noopener">${inner}</a>`
+    const bgStyle = safeImg(b.imageUrl) ? `background-image:url('${safeImg(b.imageUrl)}')` : `background:${safeColor(b.bgColor)}`;
+    const inner = `<div class="ab-overlay"><div class="ab-title">${esc(b.title)}</div>${b.subtitle ? `<div class="ab-subtitle">${esc(b.subtitle)}</div>` : ''}</div><span class="ab-tag">Publicité</span>`;
+    wrap.innerHTML = safeHref(b.linkUrl)
+      ? `<a class="ad-banner" style="${bgStyle}" href="${safeHref(b.linkUrl)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
       : `<div class="ad-banner" style="${bgStyle}">${inner}</div>`;
     return;
   }
 
   // Plusieurs bannières : carousel
   const slides = banners.map((b, i) => {
-    const bgStyle = b.imageUrl ? `background-image:url('${b.imageUrl}')` : `background:${b.bgColor}`;
-    const inner = `<div class="ab-overlay"><div class="ab-title">${b.title}</div>${b.subtitle ? `<div class="ab-subtitle">${b.subtitle}</div>` : ''}</div><span class="ab-tag">Publicité</span>`;
-    const el = b.linkUrl
-      ? `<a class="ad-banner ab-slide" style="${bgStyle}" href="${b.linkUrl}" target="_blank" rel="noopener">${inner}</a>`
+    const bgStyle = safeImg(b.imageUrl) ? `background-image:url('${safeImg(b.imageUrl)}')` : `background:${safeColor(b.bgColor)}`;
+    const inner = `<div class="ab-overlay"><div class="ab-title">${esc(b.title)}</div>${b.subtitle ? `<div class="ab-subtitle">${esc(b.subtitle)}</div>` : ''}</div><span class="ab-tag">Publicité</span>`;
+    const el = safeHref(b.linkUrl)
+      ? `<a class="ad-banner ab-slide" style="${bgStyle}" href="${safeHref(b.linkUrl)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
       : `<div class="ad-banner ab-slide" style="${bgStyle}">${inner}</div>`;
     return el;
   }).join('');
@@ -193,7 +198,7 @@ async function loadAdBanners() {
 
 /* ── FILIÈRES (sélecteurs dynamiques) ── */
 function populateFiliereSelects() {
-  const opts = '<option value="">— Sélectionner —</option>' + getFilieres().map(f => `<option value="${f.slug}">${f.label}</option>`).join('');
+  const opts = '<option value="">— Sélectionner —</option>' + getFilieres().map(f => `<option value="${esc(f.slug)}">${esc(f.label)}</option>`).join('');
   const rFiliere = document.getElementById('rFiliere');
   if (rFiliere) rFiliere.innerHTML = opts;
   const oFiliere = document.getElementById('oFiliere');
@@ -206,9 +211,9 @@ function initFilters() {
   const cats = getCategories();
 
   wrap.innerHTML = '<button class="filter-btn active" data-filter="all">Tout</button>' +
-    cats.map(c => `<button class="filter-btn" data-filter="${c.slug}">${c.emoji} ${c.label}</button>`).join('');
+    cats.map(c => `<button class="filter-btn" data-filter="${esc(c.slug)}">${esc(c.emoji)} ${esc(c.label)}</button>`).join('');
   select.innerHTML = '<option value="all">Toutes les catégories</option>' +
-    cats.map(c => `<option value="${c.slug}">${c.emoji} ${c.label}</option>`).join('');
+    cats.map(c => `<option value="${esc(c.slug)}">${esc(c.emoji)} ${esc(c.label)}</option>`).join('');
 
   function setFilter(val) {
     activeFilter = val;
@@ -290,10 +295,10 @@ function renderCart() {
   wrap.innerHTML = items.map(i => `
     <div class="cart-item">
       <div class="ci-main">
-        <div class="ci-img">${i.p.photo ? `<img src="${i.p.photo}" alt="">` : (i.p.emoji || catEmoji(i.p.cat))}</div>
+        <div class="ci-img">${thumbHtml(i.p, '')}</div>
         <div class="ci-info">
-          <div class="ci-name">${i.p.name}</div>
-          <div class="ci-seller">${i.p.sellerName}${sellerFiliere(i.p.sellerId)?` · ${sellerFiliere(i.p.sellerId)}`:''}</div>
+          <div class="ci-name">${esc(i.p.name)}</div>
+          <div class="ci-seller">${esc(i.p.sellerName)}${sellerFiliere(i.p.sellerId)?` · ${sellerFiliere(i.p.sellerId)}`:''}</div>
           <div class="ci-price">${i.p.price.toLocaleString()} FCFA</div>
         </div>
         <div class="ci-qty">
@@ -304,7 +309,7 @@ function renderCart() {
         <div class="ci-remove" data-act="rm" data-id="${i.p.id}" title="Retirer">✕</div>
       </div>
       <div class="ci-note-wrap">
-        <textarea class="ci-note" data-note="${i.p.id}" rows="1" placeholder="Précision pour ce produit (ex : sans sucre, sauce à part…)">${i.note||''}</textarea>
+        <textarea class="ci-note" data-note="${i.p.id}" rows="1" placeholder="Précision pour ce produit (ex : sans sucre, sauce à part…)">${esc(i.note||'')}</textarea>
       </div>
     </div>
   `).join('');
@@ -333,11 +338,11 @@ async function openProductDetail(id) {
   showLoader(false);
   const filiere = sellerFiliere(p.sellerId);
   document.getElementById('pdContent').innerHTML = `
-    <div class="pd-img cat-${p.cat}">${p.photo ? `<img src="${p.photo}" alt="${p.name}">` : (p.emoji || catEmoji(p.cat))}</div>
+    <div class="pd-img cat-${esc(p.cat)}">${thumbHtml(p, p.name)}</div>
     ${catBadge(p.cat)}${stockBadgeHtml(p)}
-    <div class="pd-title">${p.name}</div>
-    <div class="pd-seller">Par <span class="shop-link" id="pdShopLink">${p.sellerName}</span>${filiere?` <span class="seller-filiere">· ${filiere}</span>`:''}</div>
-    ${p.desc ? `<div class="pd-desc">${p.desc}</div>` : ''}
+    <div class="pd-title">${esc(p.name)}</div>
+    <div class="pd-seller">Par <span class="shop-link" id="pdShopLink">${esc(p.sellerName)}</span>${filiere?` <span class="seller-filiere">· ${filiere}</span>`:''}</div>
+    ${p.desc ? `<div class="pd-desc">${esc(p.desc)}</div>` : ''}
     <div class="pd-row">
       <div class="pd-price">${p.price.toLocaleString()} FCFA</div>
       <div class="pd-rating">★ ${p.rating||'—'} ${p.votes?`(${p.votes} avis)`:''}</div>
@@ -348,10 +353,10 @@ async function openProductDetail(id) {
       ${reviews.length ? reviews.map(r => `
         <div class="review-card">
           <div class="review-top">
-            <div><div class="review-name">${r.reviewerName}</div></div>
+            <div><div class="review-name">${esc(r.reviewerName)}</div></div>
             <div class="review-stars">${starsHtml(r.rating)}</div>
           </div>
-          <div class="review-text">${r.text}</div>
+          <div class="review-text">${esc(r.text)}</div>
         </div>`).join('') : '<div style="color:var(--t3);font-size:.78rem">Aucun avis pour ce produit pour l\'instant.</div>'}
     </div>
   `;
@@ -366,7 +371,7 @@ async function openShop(sellerId) {
   showLoader(true);
   const [products, seller] = await Promise.all([
     dbGetProducts({ sellerId, available: true }),
-    (async () => { if (!allSellers.length) allSellers = await dbGetAllUsers(); return allSellers.find(u=>u.id===sellerId); })()
+    (async () => { if (!allSellers.length) allSellers = await dbGetPublicSellers(); return allSellers.find(u=>u.id===sellerId); })()
   ]);
   showLoader(false);
   if (!seller) return;
@@ -381,10 +386,10 @@ async function openShop(sellerId) {
 
   document.getElementById('shopContent').innerHTML = `
     <div class="shop-header">
-      <div class="shop-avatar">${(seller.name||'?')[0].toUpperCase()}</div>
+      <div class="shop-avatar">${esc((seller.name||'?')[0].toUpperCase())}</div>
       <div class="shop-info">
-        <div class="shop-name">${seller.name}</div>
-        <div class="shop-meta">${filiere?filiere+' · ':''}${products.length} produit${products.length>1?'s':''}</div>
+        <div class="shop-name">${esc(seller.name)}</div>
+        <div class="shop-meta">${filiere?esc(filiere)+' · ':''}${products.length} produit${products.length>1?'s':''}</div>
         ${avgRating ? `<div class="shop-rating">★ ${avgRating.toFixed(1)} note moyenne</div>` : ''}
       </div>
       <div class="shop-actions">
@@ -419,9 +424,7 @@ async function submitSellerReport() {
   if (!reason) { showToast('Motif manquant', 'Décris le problème rencontré.', 'var(--red)'); return; }
 
   showLoader(true);
-  if (!allSellers.length) allSellers = await dbGetAllUsers();
-  const seller = allSellers.find(u=>u.id===sellerId);
-  const r = await dbInsertSellerReport({ sellerId, sellerName: seller?seller.name:'—', reporterName, reporterPhone, reason });
+  const r = await dbInsertSellerReport({ sellerId, reporterName, reporterPhone, reason });
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
   document.getElementById('reportSuccess').classList.add('show');
@@ -468,35 +471,35 @@ async function submitOrder() {
   const btn = document.getElementById('submitOrderBtn');
   btn.disabled = true; showLoader(true);
 
-  const orderGroup = `og_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
-  const createdOrders = [];
-  for (const i of items) {
-    const result = await dbInsertOrder({
-      sellerId:i.p.sellerId, sellerName:i.p.sellerName, productId:i.p.id, productName:i.p.name,
-      buyerName:name, buyerPhone:phone, qty:i.qty, total:i.p.price*i.qty, notes, itemNote:(i.note||'').trim(),
-      deliveryDate, deliveryTime, deliveryType, deliveryAddress: deliveryType==='external' ? deliveryAddress : '',
-      buyerClasse: deliveryType==='campus' ? classe : '', buyerFiliere: deliveryType==='campus' ? filiere : '',
-      orderGroup
-    });
-    if (result.error) { showLoader(false); btn.disabled = false; showToast('Erreur', result.error, 'var(--red)'); return; }
-    createdOrders.push({ order: result.order, p: i.p, qty: i.qty, note: (i.note||'').trim() });
-    if (i.p.trackStock) await dbUpdateProduct(i.p.id, { stock: Math.max(0, i.p.stock - i.qty) });
-  }
-
+  // UNE seule opération atomique côté serveur : prix recalculés, stock verrouillé,
+  // tout le panier est annulé si un article échoue (plus de commandes partielles ni de doublons).
+  const result = await dbPlaceOrder({
+    buyerName:name, buyerPhone:phone, notes, deliveryDate, deliveryTime, deliveryType,
+    deliveryAddress: deliveryType==='external' ? deliveryAddress : '',
+    buyerClasse: deliveryType==='campus' ? classe : '', buyerFiliere: deliveryType==='campus' ? filiere : '',
+    items: items.map(i => ({ productId:i.p.id, qty:i.qty, note:(i.note||'').trim() }))
+  });
   showLoader(false); btn.disabled = false;
+  if (result.error) { showToast('Commande impossible', result.error, 'var(--red)'); await loadProducts(); return; }
 
-  const grandTotal = createdOrders.reduce((s,o) => s + o.p.price*o.qty, 0);
+  // Reconstruit les lignes du ticket à partir des montants CALCULÉS PAR LE SERVEUR
+  const createdOrders = result.orders.map(o => ({
+    order: { id:o.id, createdAt:o.createdAt },
+    p: { name:o.productName, sellerName:o.sellerName, price:o.qty ? o.total/o.qty : o.total },
+    qty:o.qty, total:o.total, note:o.itemNote
+  }));
+
+  const grandTotal = result.grandTotal;
   const firstId = createdOrders[0].order.id;
   const ticketRef = createdOrders.length>1 ? `#${firstId}–#${createdOrders[createdOrders.length-1].order.id}` : `#${firstId}`;
   document.getElementById('orderSuccessText').innerHTML =
-    createdOrders.map(o => `${o.qty}× <strong>${o.p.name}</strong> — ${(o.p.price*o.qty).toLocaleString()} FCFA${o.note?`<br><span style="color:var(--t3);font-size:.85em">↳ ${o.note}</span>`:''}`).join('<br>') +
+    createdOrders.map(o => `${Number(o.qty)}× <strong>${esc(o.p.name)}</strong> — ${o.total.toLocaleString()} FCFA${o.note?`<br><span style="color:var(--t3);font-size:.85em">↳ ${esc(o.note)}</span>`:''}`).join('<br>') +
     `<br><strong>Total : ${grandTotal.toLocaleString()} FCFA</strong><br>` +
-    `<span style="color:var(--t3)">Numéro de commande : ${ticketRef}</span>`;
+    `<span style="color:var(--t3)">Numéro de commande : ${esc(ticketRef)}</span>`;
   document.getElementById('orderSuccess').style.display = '';
 
   // Remplit le ticket (hors écran) et le télécharge automatiquement
   fillTicket(createdOrders, { name, phone, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress, classe, filiere, grandTotal });
-  // On attend que le ticket soit réellement rendu dans le DOM avant de lancer html2canvas
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       setTimeout(() => downloadTicket(), 150);
@@ -514,17 +517,11 @@ async function submitOrder() {
   document.getElementById('oAddressField').style.display = 'none';
   document.getElementById('oCampusFields').style.display = '';
 
-  // Rafraîchit le catalogue (stock mis à jour)
+  // Rafraîchit le catalogue (stock mis à jour par le serveur)
   await loadProducts();
-
-  // Notifie chaque vendeur par email (il a fourni son email à l'inscription pour recevoir factures & notifications)
-  if (typeof sendSellerOrderNotifEmail !== 'undefined') {
-    const sellers = await dbGetAllUsers();
-    for (const o of createdOrders) {
-      const seller = sellers.find(u => u.id === o.p.sellerId);
-      if (seller) sendSellerOrderNotifEmail(seller, o.order, o.p);
-    }
-  }
+  // Les vendeurs sont prévenus par le centre de notifications (trigger serveur).
+  // Les emails vendeur ne sont plus envoyés depuis le navigateur du client : cela exigeait
+  // de publier l'email de chaque vendeur à tous les visiteurs.
 }
 
 /* ── TICKET / PREUVE DE COMMANDE ── */
@@ -541,9 +538,9 @@ function fillTicket(createdOrders, f) {
   else classeRow.style.display = 'none';
 
   document.getElementById('tkItems').innerHTML = createdOrders.map(o => `
-    <div class="ticket-row"><span class="k">#${o.order.id} · ${o.p.name} ×${o.qty}</span><span class="v">${(o.p.price*o.qty).toLocaleString()} FCFA</span></div>
-    <div class="ticket-row" style="font-size:.7rem"><span class="k">Vendeur</span><span class="v">${o.p.sellerName}</span></div>
-    ${o.note ? `<div class="ticket-row" style="font-size:.7rem"><span class="k">Précision</span><span class="v">${o.note}</span></div>` : ''}
+    <div class="ticket-row"><span class="k">#${Number(o.order.id)} · ${esc(o.p.name)} ×${Number(o.qty)}</span><span class="v">${o.total.toLocaleString()} FCFA</span></div>
+    <div class="ticket-row" style="font-size:.7rem"><span class="k">Vendeur</span><span class="v">${esc(o.p.sellerName)}</span></div>
+    ${o.note ? `<div class="ticket-row" style="font-size:.7rem"><span class="k">Précision</span><span class="v">${esc(o.note)}</span></div>` : ''}
   `).join('<div class="ticket-sep"></div>');
 
   document.getElementById('tkTotal').textContent    = `${f.grandTotal.toLocaleString()} FCFA`;
@@ -601,24 +598,15 @@ function downloadTicket() {
 /* ── RETOURS / LITIGES ── */
 async function submitReturn() {
   const orderId = parseInt(document.getElementById('rtOrderId').value);
-  const name  = document.getElementById('rtName').value.trim();
   const phone = document.getElementById('rtPhone').value.trim();
   const reason = document.getElementById('rtReason').value.trim();
-  if (!orderId || !name || !phone || !reason) { showToast('Champs manquants', 'Remplis tous les champs.', 'var(--red)'); return; }
+  if (!orderId || !phone || !reason) { showToast('Champs manquants', 'Remplis tous les champs.', 'var(--red)'); return; }
 
   showLoader(true);
-  const order = await dbGetOrderById(orderId);
-  if (!order) { showLoader(false); showToast('Commande introuvable', 'Vérifie le numéro de commande indiqué sur ton ticket.', 'var(--red)'); return; }
-  const phoneMatches = order.buyerPhone && order.buyerPhone.replace(/\s/g,'') === phone.replace(/\s/g,'');
-  const nameMatches  = order.buyerName && order.buyerName.toLowerCase().trim() === name.toLowerCase().trim();
-  if (!phoneMatches && !nameMatches) {
-    showLoader(false);
-    showToast('Vérification impossible', 'Le nom ou le téléphone ne correspond pas à cette commande.', 'var(--red)');
-    return;
-  }
-  const r = await dbInsertReturn({ orderId, sellerId:order.sellerId, buyerName:name, buyerPhone:phone, productName:order.productName, reason });
+  // La vérification (n° de commande + téléphone) est faite CÔTÉ SERVEUR
+  const r = await dbInsertReturn({ orderId, buyerPhone:phone, reason });
   showLoader(false);
-  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  if (r.error) { showToast('Demande refusée', r.error, 'var(--red)'); return; }
   document.getElementById('returnSuccess').classList.add('show');
   showToast('Demande envoyée', 'Le vendeur a été notifié de ta demande.', 'var(--green)');
   ['rtOrderId','rtName','rtPhone','rtReason'].forEach(id => document.getElementById(id).value='');
@@ -632,10 +620,10 @@ async function loadReviews() {
   el.innerHTML = reviews.map(r => `
     <div class="review-card">
       <div class="review-top">
-        <div><div class="review-name">${r.reviewerName}</div><div class="review-product">${r.productName} · ${r.sellerName||''}</div></div>
+        <div><div class="review-name">${esc(r.reviewerName)}</div><div class="review-product">${esc(r.productName)} · ${esc(r.sellerName||'')}</div></div>
         <div class="review-stars">${starsHtml(r.rating)}</div>
       </div>
-      <div class="review-text">${r.text}</div>
+      <div class="review-text">${esc(r.text)}</div>
     </div>`).join('');
 }
 
@@ -651,16 +639,11 @@ async function submitReview() {
   const star = document.querySelector('input[name="rv"]:checked');
   if (!name||!text||!star) { showToast('Champs manquants','Remplis tous les champs.','var(--red)'); return; }
 
-  const p = allProducts.find(x => x.id === pid);
   showLoader(true);
-  await dbInsertReview({ sellerId:p?.sellerId, productId:pid, productName:p?.name||'—', sellerName:p?.sellerName||'—', reviewerName:name, rating:parseInt(star.value), text });
-  if (p) {
-    const rv = await dbGetReviews({ productId:pid });
-    const avg = rv.reduce((s,r)=>s+r.rating,0)/rv.length;
-    await dbUpdateProduct(pid, { rating:Math.round(avg*10)/10, votes:rv.length });
-    allProducts = await dbGetProducts({ available:true });
-    renderProducts();
-  }
+  const rr = await dbInsertReview({ productId:pid, reviewerName:name, rating:parseInt(star.value), text });
+  if (rr.error) { showLoader(false); showToast('Avis refusé', rr.error, 'var(--red)'); return; }
+  allProducts = await dbGetProducts({ available:true });   // note moyenne recalculée par le serveur
+  renderProducts();
   showLoader(false);
   closeModal('reviewModal');
   showToast('Avis publié','Merci pour ton retour ! 🙏');
@@ -677,9 +660,10 @@ function initAuth() {
   document.getElementById('goLogin').addEventListener('click', () => { document.getElementById('viewRegister').style.display='none'; document.getElementById('viewLogin').style.display=''; });
   document.getElementById('userPill').addEventListener('click', () => { if (!getSession()) openModal('authModal'); });
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
-  document.getElementById('loginKeyBtn').addEventListener('click', handleLoginWithAccessKey);
-  document.getElementById('goAccessKey').addEventListener('click', () => { document.getElementById('loginFormEmail').style.display='none'; document.getElementById('loginFormKey').style.display=''; });
-  document.getElementById('goPasswordLogin').addEventListener('click', () => { document.getElementById('loginFormKey').style.display='none'; document.getElementById('loginFormEmail').style.display=''; });
+  document.getElementById('forgotBtn').addEventListener('click', handleForgot);
+  document.getElementById('goForgot').addEventListener('click', () => { document.getElementById('loginFormEmail').style.display='none'; document.getElementById('loginFormForgot').style.display=''; });
+  document.getElementById('goPasswordLogin').addEventListener('click', () => { document.getElementById('loginFormForgot').style.display='none'; document.getElementById('loginFormEmail').style.display=''; });
+  document.getElementById('saveNewPassBtn').addEventListener('click', handleSaveNewPassword);
   document.getElementById('registerBtn').addEventListener('click', handleRegister);
   document.getElementById('acceptTermsBtn').addEventListener('click', acceptTermsAndCreateAccount);
   document.getElementById('declineTermsBtn').addEventListener('click', declineTerms);
@@ -693,19 +677,33 @@ async function handleLogin() {
   const r = await dbLoginUser(email, pass);
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
-  setSession(r.user); closeModal('authModal'); syncSessionUI();
+  closeModal('authModal'); syncSessionUI();
   showToast('Connecté', `Bienvenue ${r.user.firstName} !`);
 }
 
-async function handleLoginWithAccessKey() {
-  const key = document.getElementById('lAccessKey').value.trim();
-  if (!key) { showToast('Champ manquant','Clé d\'accès requise.','var(--red)'); return; }
+async function handleForgot() {
+  const email = document.getElementById('fEmail').value.trim();
+  if (!email) { showToast('Champ manquant','Indique l\'email de ton compte.','var(--red)'); return; }
   showLoader(true);
-  const r = await dbLoginWithAccessKey(key);
+  const r = await dbRequestPasswordReset(email);
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
-  setSession(r.user); closeModal('authModal'); syncSessionUI();
-  showToast('Connecté', `Bienvenue ${r.user.firstName} !`);
+  // Message identique que le compte existe ou non (pas d'énumération d'emails)
+  showToast('Vérifie ta boîte mail', 'Si ce compte existe, un lien de réinitialisation vient d\'être envoyé.', 'var(--green)');
+  document.getElementById('loginFormForgot').style.display='none'; document.getElementById('loginFormEmail').style.display='';
+}
+
+async function handleSaveNewPassword() {
+  const pass = document.getElementById('newPass').value;
+  if (pass.length < 8) { showToast('Mot de passe trop court','Minimum 8 caractères.','var(--red)'); return; }
+  showLoader(true);
+  const r = await dbSetNewPassword(pass);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  document.getElementById('newPass').value = '';
+  closeModal('recoveryModal');
+  await initSession(); syncSessionUI();
+  showToast('Mot de passe mis à jour','Tu es connecté.','var(--green)');
 }
 
 /* Étape 1 : valide le formulaire, puis ouvre la popup des conditions vendeur.
@@ -718,7 +716,7 @@ function handleRegister() {
   const filiere = document.getElementById('rFiliere').value;
   const pass  = document.getElementById('rPass').value;
   if (!first||!email||!pass) { showToast('Champs manquants','Prénom, email et mot de passe requis.','var(--red)'); return; }
-  if (pass.length<6) { showToast('Mot de passe trop court','Minimum 6 caractères.','var(--red)'); return; }
+  if (pass.length<8) { showToast('Mot de passe trop court','Minimum 8 caractères.','var(--red)'); return; }
 
   pendingRegistration = { first, last, email, phone, filiere, pass };
 
@@ -741,7 +739,11 @@ async function acceptTermsAndCreateAccount() {
   pendingRegistration = null;
   closeModal('termsModal');
   closeModal('authModal');
-  setSession(r.user); syncSessionUI();
+  if (r.needsConfirmation) {
+    showToast('Confirme ton email 📧', 'Un lien de confirmation vient d\'être envoyé. Clique dessus, puis connecte-toi.', 'var(--green)');
+    return;
+  }
+  syncSessionUI();
   showToast('Compte créé !', `Bienvenue ${first} 🎉`);
   // Email de bienvenue
   if (typeof sendWelcomeEmail !== 'undefined') {

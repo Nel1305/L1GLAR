@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Super Admin · N Market</title>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <script src="../js/theme.js"></script>
   <link rel="stylesheet" href="../css/superadmin.css">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="flag-bar"></div>
@@ -16,7 +14,7 @@
 <div id="loginScreen" style="display:none">
   <div class="login-box">
     <div class="login-logo"><div style="font-size:1.5rem;margin-bottom:8px">◆</div><div style="font-size:.98rem;font-weight:600">Super Admin</div><div style="font-size:.7rem;color:var(--t3);margin-top:3px">N Market</div></div>
-    <div class="field"><label>Email admin</label><input type="email" id="aEmail" placeholder="admin@glar.com"></div>
+    <div class="field"><label>Email admin</label><input type="email" id="aEmail" placeholder="email administrateur" autocomplete="username"></div>
     <div class="field"><label>Mot de passe</label><input type="password" id="aPass" placeholder="••••••••"></div>
     <button class="btn-primary" id="adminLoginBtn">Se connecter</button>
     <a href="../index.html" style="display:block;text-align:center;font-size:.72rem;color:var(--t3);margin-top:10px;text-decoration:none">← Retour au site</a>
@@ -25,7 +23,7 @@
 
 <div class="mobile-topbar">
   <button class="hamburger-btn" id="hamburgerBtn" title="Menu">☰</button>
-  <div class="mt-title">★ Super Admin</div>
+  <div class="mt-title">Super Admin</div>
   <div style="width:38px"></div>
 </div>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -166,11 +164,11 @@
     </div>
 
     <div id="page-chat" class="page">
-      <div class="page-header"><div><div class="page-title">Messages vendeurs</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Chiffré E2E</span></div></div></div>
+      <div class="page-header"><div><div class="page-title">Messages vendeurs</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Accès restreint</span></div></div></div>
       <div class="chat-wrap">
         <div class="chat-sidebar"><div class="chat-sidebar-hd">Conversations</div><div class="chat-rooms" id="chatRooms"></div></div>
         <div class="chat-main">
-          <div class="chat-header"><div class="chat-header-info"><div class="chat-header-name" id="chatHeaderName">Canal général</div><div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div></div><span class="e2e-badge">🔒 Chiffré</span></div>
+          <div class="chat-header"><div class="chat-header-info"><div class="chat-header-name" id="chatHeaderName">Canal général</div><div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div></div><span class="e2e-badge">🔒 Privé</span></div>
           <div class="chat-messages" id="chatMessages"></div>
           <div class="chat-input-area"><textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1"></textarea><button class="chat-send" id="chatSendBtn">↑</button></div>
         </div>
@@ -187,7 +185,7 @@
       <div class="form-wrap">
         <div class="f-section"><span class="f-label">Commission</span><div class="field"><label>Taux global (%)</label><input type="number" id="globalRate" value="5" min="1" max="50" step="0.5" style="max-width:120px"><div class="hint">Appliqué lors de la génération des factures.</div></div></div>
         <div class="divider"></div>
-        <div class="f-section"><span class="f-label">Sécurité</span><div class="field"><label>Nouveau mot de passe admin</label><input type="password" id="newAdminPass" placeholder="Min. 6 caractères"></div></div>
+        <div class="f-section"><span class="f-label">Sécurité</span><div class="field"><label>Nouveau mot de passe admin</label><input type="password" id="newAdminPass" placeholder="Min. 12 caractères" autocomplete="new-password"></div></div>
         <button class="btn-primary" id="saveSettingsBtn">Sauvegarder</button>
       </div>
     </div>
@@ -203,7 +201,7 @@
       <div class="field"><label>Nom affiché</label><input type="text" id="catLabel" placeholder="Ex : Fournitures scolaires"></div>
       <div class="field-row">
         <div class="field"><label>Emoji</label><input type="text" id="catEmojiInput" placeholder="📚" style="max-width:100%"></div>
-        <div class="field"><label>Couleur du badge</label><input type="color" id="catColor" value="#1a7a4a" style="height:42px;padding:4px"></div>
+        <div class="field"><label>Couleur du badge</label><input type="color" id="catColor" value="#404040" style="height:42px;padding:4px"></div>
       </div>
       <div class="field"><label>Identifiant technique (slug)</label><input type="text" id="catSlug" placeholder="ex : fournitures"><div class="hint">Lettres minuscules, chiffres et tirets uniquement. Généré automatiquement si laissé vide.</div></div>
       <button class="btn-primary" id="saveCatBtn">Enregistrer</button>
@@ -273,7 +271,7 @@
         </div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Couleur de fond (si pas d'image)</label><input type="color" id="bannerColor" value="#1a7a4a" style="height:42px;padding:4px"></div>
+        <div class="field"><label>Couleur de fond (si pas d'image)</label><input type="color" id="bannerColor" value="#404040" style="height:42px;padding:4px"></div>
         <div class="field"><label>Lien (optionnel)</label><input type="text" id="bannerLink" placeholder="https://…"></div>
       </div>
       <div class="toggle-row"><div class="toggle-info"><strong>Bannière active</strong><span>Visible sur la marketplace</span></div><button class="toggle on" id="bannerActive"></button></div>
@@ -327,10 +325,10 @@
 </div>
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/vendor/supabase.js"></script>
 <script src="../js/config.js"></script><script src="../js/db.js"></script>
 <script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="../js/vendor/emailjs.min.js"></script>
 <script src="../js/email.js"></script>
 <script src="../js/superadmin.js"></script>
 </body></html>

@@ -3,10 +3,8 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mon espace · N Market</title>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <script src="../js/theme.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="flag-bar"></div>
@@ -140,7 +138,7 @@
     </div>
 
     <div id="page-chat" class="page">
-      <div class="page-header"><div><div class="page-title">Messages</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Chiffré E2E</span></div></div></div>
+      <div class="page-header"><div><div class="page-title">Messages</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Accès restreint</span></div></div></div>
       <div class="chat-wrap">
         <div class="chat-sidebar">
           <div class="chat-sidebar-hd">Conversations</div>
@@ -152,7 +150,7 @@
               <div class="chat-header-name" id="chatHeaderName">Canal général</div>
               <div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div>
             </div>
-            <span class="e2e-badge">🔒 Chiffré</span>
+            <span class="e2e-badge">🔒 Privé</span>
           </div>
           <div class="chat-messages" id="chatMessages"><div class="chat-empty"><span>💬</span><span>Sélectionne une conversation</span></div></div>
           <div class="chat-input-area">
@@ -186,17 +184,7 @@
           <div class="toggle-row"><div class="toggle-info"><strong>Boutique ouverte</strong><span>Tes produits sont visibles</span></div><button class="toggle on" id="pfToggle"></button></div>
         </div>
         <div class="divider"></div>
-        <div class="f-section"><span class="f-label">Sécurité</span><div class="field"><label>Nouveau mot de passe</label><input type="password" id="pfPass" placeholder="Laisser vide pour ne pas changer"></div></div>
-        <div class="divider"></div>
-        <div class="f-section">
-          <span class="f-label">Clé d'accès rapide</span>
-          <div class="hint">Utilise cette clé pour te connecter instantanément, sans ressaisir ton email et ton mot de passe.</div>
-          <div class="field-row" style="align-items:flex-end">
-            <div class="field" style="flex:1"><label>Ta clé</label><input type="text" id="pfAccessKey" readonly style="font-weight:600;letter-spacing:1px"></div>
-            <button class="btn-ghost" id="copyAccessKeyBtn" type="button" style="margin-bottom:14px">Copier</button>
-          </div>
-          <div class="modal-link"><a id="regenAccessKeyBtn">Générer une nouvelle clé (invalide l'ancienne)</a></div>
-        </div>
+        <div class="f-section"><span class="f-label">Sécurité</span><div class="field"><label>Nouveau mot de passe</label><input type="password" id="pfPass" placeholder="Laisser vide pour ne pas changer (min. 8 caractères)" autocomplete="new-password"></div></div>
         <button class="btn-primary" id="saveProfileBtn">Sauvegarder</button>
         <div class="modal-link" style="margin-top:14px"><a id="openTermsLink">Conditions vendeur — comment ça fonctionne, ce qu'il faut et ne faut pas faire</a></div>
       </div>
@@ -314,10 +302,10 @@
 
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/vendor/supabase.js"></script>
 <script src="../js/config.js"></script><script src="../js/db.js"></script>
 <script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="../js/vendor/emailjs.min.js"></script>
 <script src="../js/email.js"></script>
 <script src="../js/admin.js"></script>
 </body></html>

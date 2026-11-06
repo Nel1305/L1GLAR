@@ -4,13 +4,14 @@
 
 let adminSession = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   setTimeout(() => showLoader(false), 5000); // Safety
-  adminSession = JSON.parse(sessionStorage.getItem('glar_admin')||'null');
+  // Session Supabase Auth + vérification serveur (table admins). Rien n'est lu depuis le stockage du navigateur.
+  adminSession = await dbAdminLoadSession();
   if (adminSession) { showApp(); }
   else { document.getElementById('loginScreen').style.display=''; showLoader(false); }
   document.getElementById('adminLoginBtn').addEventListener('click', handleLogin);
-  document.getElementById('adminLogoutBtn').addEventListener('click', () => { sessionStorage.removeItem('glar_admin'); window.location.reload(); });
+  document.getElementById('adminLogoutBtn').addEventListener('click', async () => { await clearSession(); window.location.reload(); });
   document.getElementById('previewBtn').addEventListener('click', previewGen);
   document.getElementById('generateBtn').addEventListener('click', doGenerate);
   document.getElementById('savePaymentBtn').addEventListener('click', savePayment);
@@ -60,7 +61,6 @@ async function handleLogin() {
   const r=await dbAdminLogin(email,pass);
   showLoader(false);
   if(r.error){showToast('Erreur',r.error,'var(--red)');return;}
-  sessionStorage.setItem('glar_admin',JSON.stringify(r.admin));
   adminSession=r.admin; showApp();
 }
 
@@ -105,7 +105,7 @@ async function renderNotificationsPage() {
   list.innerHTML = notifs.map(n => `
     <div class="notif-item ${n.isRead?'':'unread'}" data-id="${n.id}">
       <div class="notif-ico">${notifIcon(n.type)}</div>
-      <div class="notif-body"><div class="notif-title">${n.title}</div><div class="notif-text">${n.body||''}</div><div class="notif-time">${timeAgo(n.createdAt)}</div></div>
+      <div class="notif-body"><div class="notif-title">${esc(n.title)}</div><div class="notif-text">${esc(n.body||'')}</div><div class="notif-time">${timeAgo(n.createdAt)}</div></div>
     </div>`).join('') || `<div class="table-empty">Aucune notification pour le moment.</div>`;
   list.querySelectorAll('.notif-item.unread').forEach(el => {
     el.addEventListener('click', async () => {
@@ -147,7 +147,7 @@ async function goPage(name) {
   if (name==='reports')     await renderReportsPage();
   if (name==='settings')    document.getElementById('globalRate').value = getCommissionRate();
   if (name==='chat' && !chatInited) {
-    await initChat({ id: adminSession.id, name: adminSession.name||'Admin', firstName: 'Admin' }, true);
+    await initChat({ id: adminSession.id, name: adminSession.name||'Admin', firstName: 'Admin', isAdmin: true }, true);
   }
 }
 
@@ -181,7 +181,7 @@ async function renderDashboard() {
     alert.style.display='';
     document.getElementById('alertList').innerHTML = overdueC.map(c=>`
       <div class="alert-row">
-        <div><span class="alert-name">${c.seller_name}</span> <span style="color:var(--t3);font-size:.72rem">${c.period_label}</span></div>
+        <div><span class="alert-name">${esc(c.seller_name)}</span> <span style="color:var(--t3);font-size:.72rem">${esc(c.period_label)}</span></div>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="alert-amount">${(c.amount_due-c.amount_paid).toLocaleString()} FCFA</span>
           <button class="btn-ghost" style="font-size:.72rem;padding:4px 10px" onclick="openPayment(${c.id})">Enregistrer paiement</button>
@@ -191,7 +191,7 @@ async function renderDashboard() {
 
   document.getElementById('recentOrders').innerHTML = orders.slice(0,5).map(o=>`
     <div class="mini-row">
-      <div><div style="font-weight:500;font-size:.78rem">${o.buyerName}</div><div style="font-size:.68rem;color:var(--t3)">${o.productName}</div></div>
+      <div><div style="font-weight:500;font-size:.78rem">${esc(o.buyerName)}</div><div style="font-size:.68rem;color:var(--t3)">${esc(o.productName)}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:.78rem;font-weight:500">${o.total.toLocaleString()} FCFA</span>
         <span class="status-badge status-${o.status}" style="font-size:.65rem">${statusLabel(o.status)}</span>
@@ -201,7 +201,7 @@ async function renderDashboard() {
   const pending = commissions.filter(c=>c.status!=='paid').slice(0,4);
   document.getElementById('recentCommissions').innerHTML = pending.map(c=>`
     <div class="mini-row">
-      <div><div style="font-weight:500;font-size:.78rem">${c.seller_name}</div><div style="font-size:.68rem;color:var(--t3)">${c.period_label}</div></div>
+      <div><div style="font-weight:500;font-size:.78rem">${esc(c.seller_name)}</div><div style="font-size:.68rem;color:var(--t3)">${esc(c.period_label)}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:.78rem;font-weight:500;color:var(--orange)">${c.amount_due.toLocaleString()} FCFA</span>
         <button class="icon-btn edit" onclick="openPayment(${c.id})" title="Enregistrer">💳</button>
@@ -221,8 +221,8 @@ async function renderCommissions() {
     const reste=c.amount_due-c.amount_paid;
     const pct=c.amount_due>0?Math.min(100,Math.round(c.amount_paid/c.amount_due*100)):0;
     return `<tr>
-      <td style="font-weight:500">${c.seller_name}</td>
-      <td style="font-size:.72rem;color:var(--t2)">${c.period_label}</td>
+      <td style="font-weight:500">${esc(c.seller_name)}</td>
+      <td style="font-size:.72rem;color:var(--t2)">${esc(c.period_label)}</td>
       <td>${c.revenue.toLocaleString()} FCFA</td>
       <td>${c.rate}%</td>
       <td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td>
@@ -254,7 +254,7 @@ async function previewGen() {
   const pLabel = new Date(start).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   const tbody = document.getElementById('genPreviewBody');
   if (!preview.length) { tbody.innerHTML=`<tr><td colspan="4" class="table-empty">Aucun vendeur avec des ventes sur cette période</td></tr>`; document.getElementById('genPreview').style.display=''; document.getElementById('generateBtn').disabled=true; return; }
-  tbody.innerHTML = preview.map(p=>`<tr><td style="font-weight:500">${p.sellerName}</td><td style="color:var(--t2);font-size:.74rem">${pLabel}</td><td>${p.revenue.toLocaleString()} FCFA</td><td style="font-weight:500;color:var(--orange)">${p.amountDue.toLocaleString()} FCFA</td></tr>`).join('');
+  tbody.innerHTML = preview.map(p=>`<tr><td style="font-weight:500">${esc(p.sellerName)}</td><td style="color:var(--t2);font-size:.74rem">${pLabel}</td><td>${p.revenue.toLocaleString()} FCFA</td><td style="font-weight:500;color:var(--orange)">${p.amountDue.toLocaleString()} FCFA</td></tr>`).join('');
   const total=preview.reduce((s,p)=>s+p.amountDue,0);
   document.getElementById('genTotal').innerHTML=`<span>${preview.length} vendeur(s) · <span style="color:var(--t2)">${pLabel}</span></span><strong>${total.toLocaleString()} FCFA</strong>`;
   document.getElementById('genPreview').style.display='';
@@ -354,8 +354,8 @@ async function renderSellers() {
       <div class="seller-top">
         <div class="seller-av">${u.firstName[0].toUpperCase()}</div>
         <div>
-          <div class="seller-name">${u.name}${u.isBlocked?`<span class="blocked-tag">Bloqué</span>`:''}</div>
-          <div class="seller-email">${u.email}</div>
+          <div class="seller-name">${esc(u.name)}${u.isBlocked?`<span class="blocked-tag">Bloqué</span>`:''}</div>
+          <div class="seller-email">${esc(u.email)}</div>
           <div class="period-tag period-${period}">${period==='monthly'?'Mensuel':'Hebdomadaire'}</div>
         </div>
       </div>
@@ -373,8 +373,8 @@ async function renderSellers() {
       </div>
       <div class="seller-actions">
         ${!u.isBlocked
-          ?`<button class="btn-ghost" style="font-size:.72rem;padding:6px;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="openBlock(${u.id},'${u.name.replace(/'/g,"\\'")}',true)">Bloquer</button>`
-          :`<button class="btn-ghost" style="font-size:.72rem;padding:6px;color:var(--green);border-color:rgba(34,197,94,.3)" onclick="openBlock(${u.id},'${u.name.replace(/'/g,"\\'")}',false)">Débloquer</button>`}
+          ?`<button class="btn-ghost" style="font-size:.72rem;padding:6px;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="openBlock(${Number(u.id)},${jsArg(u.name)},true)">Bloquer</button>`
+          :`<button class="btn-ghost" style="font-size:.72rem;padding:6px;color:var(--green);border-color:rgba(34,197,94,.3)" onclick="openBlock(${Number(u.id)},${jsArg(u.name)},false)">Débloquer</button>`}
         <button class="btn-ghost" style="font-size:.72rem;padding:6px" onclick="viewSellerComm(${u.id})">Commissions</button>
       </div>
     </div>`;
@@ -382,7 +382,8 @@ async function renderSellers() {
 }
 
 async function changeBilling(id, period) {
-  await dbUpdateUserBilling(id, period);
+  const rb = await dbUpdateUserBilling(id, period);
+  if (rb.error) { showToast('Erreur', rb.error, 'var(--red)'); return; }
   showToast('Période mise à jour', period==='monthly'?'Mensuel':'Hebdomadaire');
 }
 
@@ -395,7 +396,7 @@ async function viewSellerComm(sellerId) {
   if (!comms.length) { tbody.innerHTML=`<tr><td colspan="9" class="table-empty">Aucune commission pour ce vendeur</td></tr>`; return; }
   tbody.innerHTML=comms.map(c=>{
     const reste=c.amount_due-c.amount_paid;
-    return `<tr><td style="font-weight:500">${c.seller_name}</td><td style="font-size:.72rem;color:var(--t2)">${c.period_label}</td><td>${c.revenue.toLocaleString()} FCFA</td><td>${c.rate}%</td><td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td><td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td><td style="color:${reste>0?'var(--red)':'var(--green)'}; font-weight:500">${reste.toLocaleString()} FCFA</td><td><span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span></td><td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>`:'✓'}</td></tr>`;
+    return `<tr><td style="font-weight:500">${esc(c.seller_name)}</td><td style="font-size:.72rem;color:var(--t2)">${esc(c.period_label)}</td><td>${c.revenue.toLocaleString()} FCFA</td><td>${c.rate}%</td><td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td><td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td><td style="color:${reste>0?'var(--red)':'var(--green)'}; font-weight:500">${reste.toLocaleString()} FCFA</td><td><span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span></td><td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>`:'✓'}</td></tr>`;
   }).join('');
 }
 
@@ -413,10 +414,10 @@ async function confirmBlock() {
   const block=document.getElementById('blockAction').value==='block';
   const reason=document.getElementById('blockReason').value.trim();
   showLoader(true);
-  const products=await dbGetProducts({ sellerId:id });
-  await Promise.all(products.map(p=>dbUpdateProduct(p.id,{ available:!block })));
-  await dbBlockUser(id, block, reason);
+  // Blocage atomique côté serveur : masque les produits ET coupe les sessions Auth du vendeur
+  const rbk = await dbBlockUser(id, block, reason);
   showLoader(false);
+  if (rbk.error) { showToast('Erreur', rbk.error, 'var(--red)'); return; }
   closeModal('blockModal');
   showToast(block?'Vendeur bloqué':'Vendeur débloqué', block?'Ses produits sont masqués':'Ses produits sont à nouveau visibles', block?'var(--red)':'var(--green)');
   await renderSellers();
@@ -433,8 +434,8 @@ async function renderNetwork() {
   tbody.innerHTML = conns.length
     ? conns.map(c=>`
         <tr>
-          <td style="font-weight:500">${c.seller_a_name}</td>
-          <td style="font-weight:500">${c.seller_b_name}</td>
+          <td style="font-weight:500">${esc(c.seller_a_name)}</td>
+          <td style="font-weight:500">${esc(c.seller_b_name)}</td>
           <td><span class="conn-badge">En contact</span></td>
           <td style="color:var(--t3);font-size:.74rem">${formatDate(c.last_contact)}</td>
         </tr>`).join('')
@@ -489,7 +490,7 @@ async function renderNetwork() {
 async function renderAllProducts() {
   showLoader(true); const products=await dbGetProducts(); showLoader(false);
   const tbody=document.getElementById('allProductsBody');
-  tbody.innerHTML=products.map(p=>`<tr><td><div class="prod-thumb">${p.photo?`<img src="${p.photo}" alt="">`:p.emoji}</div></td><td><div style="font-weight:500">${p.name}</div><div style="font-size:.7rem;color:var(--t2);margin-top:1px">${(p.desc||'').substring(0,50)}${(p.desc||'').length>50?'…':''}</div></td><td style="color:var(--t2)">${p.sellerName}</td><td>${catBadge(p.cat,'margin-bottom:0')}</td><td style="font-weight:500">${p.price.toLocaleString()} FCFA</td><td>${p.votes?starsHtml(p.rating,'.74rem'):'—'}</td><td><span class="status-badge ${p.available?'status-done':'status-cancel'}" style="font-size:.65rem">${p.available?'Disponible':'Indispo'}</span></td></tr>`).join('')||`<tr><td colspan="7" class="table-empty">Aucun produit</td></tr>`;
+  tbody.innerHTML=products.map(p=>`<tr><td><div class="prod-thumb">${safeImg(p.photo)?`<img src="${safeImg(p.photo)}" alt="">`:esc(p.emoji)}</div></td><td><div style="font-weight:500">${esc(p.name)}</div><div style="font-size:.7rem;color:var(--t2);margin-top:1px">${esc((p.desc||'').substring(0,50))}${(p.desc||'').length>50?'…':''}</div></td><td style="color:var(--t2)">${esc(p.sellerName)}</td><td>${catBadge(p.cat,'margin-bottom:0')}</td><td style="font-weight:500">${p.price.toLocaleString()} FCFA</td><td>${p.votes?starsHtml(p.rating,'.74rem'):'—'}</td><td><span class="status-badge ${p.available?'status-done':'status-cancel'}" style="font-size:.65rem">${p.available?'Disponible':'Indispo'}</span></td></tr>`).join('')||`<tr><td colspan="7" class="table-empty">Aucun produit</td></tr>`;
 }
 
 /* ── CATALOGUE (CLASSES) ── */
@@ -502,14 +503,14 @@ async function renderCatalog() {
   if (!cats.length) { grid.innerHTML = '<div class="table-empty">Aucune classe pour le moment. Clique sur « + Ajouter une classe ».</div>'; return; }
   grid.innerHTML = cats.map(c => `
     <div class="cat-card">
-      <div class="cat-emoji" style="background:${hexToRgba(c.color,0.15)}">${c.emoji}</div>
+      <div class="cat-emoji" style="background:${hexToRgba(safeColor(c.color),0.15)}">${esc(c.emoji)}</div>
       <div class="cat-info">
-        <div class="cat-name"><span class="cat-color-dot" style="background:${c.color}"></span>${c.label}</div>
-        <div class="cat-slug">${c.slug}</div>
+        <div class="cat-name"><span class="cat-color-dot" style="background:${safeColor(c.color)}"></span>${esc(c.label)}</div>
+        <div class="cat-slug">${esc(c.slug)}</div>
       </div>
       <div class="cat-actions">
         <button class="icon-btn edit" onclick="openCatModal(${c.id})" title="Modifier">✏</button>
-        <button class="icon-btn del" onclick="deleteCategory(${c.id},'${c.label.replace(/'/g,"\\'")}')" title="Supprimer">✕</button>
+        <button class="icon-btn del" onclick="deleteCategory(${Number(c.id)},${jsArg(c.label)})" title="Supprimer">✕</button>
       </div>
     </div>`).join('');
 }
@@ -527,13 +528,13 @@ function openCatModal(id) {
     document.getElementById('catModalTitle').textContent = 'Modifier la classe';
     document.getElementById('catLabel').value = c?.label||'';
     document.getElementById('catEmojiInput').value = c?.emoji||'';
-    document.getElementById('catColor').value = c?.color||'#1a7a4a';
+    document.getElementById('catColor').value = c?.color||'#404040';
     document.getElementById('catSlug').value = c?.slug||'';
   } else {
     document.getElementById('catModalTitle').textContent = 'Ajouter une classe';
     document.getElementById('catLabel').value = '';
     document.getElementById('catEmojiInput').value = '🛍️';
-    document.getElementById('catColor').value = '#1a7a4a';
+    document.getElementById('catColor').value = '#404040';
     document.getElementById('catSlug').value = '';
   }
   openModal('catModal');
@@ -588,12 +589,12 @@ async function renderFilieres() {
     <div class="cat-card">
       <div class="cat-emoji" style="background:var(--violet-dim)">🎓</div>
       <div class="cat-info">
-        <div class="cat-name">${f.label}</div>
-        <div class="cat-slug">${f.slug}</div>
+        <div class="cat-name">${esc(f.label)}</div>
+        <div class="cat-slug">${esc(f.slug)}</div>
       </div>
       <div class="cat-actions">
         <button class="icon-btn edit" onclick="openFiliereModal(${f.id})" title="Modifier">✏</button>
-        <button class="icon-btn del" onclick="deleteFiliere(${f.id},'${f.label.replace(/'/g,"\\'")}')" title="Supprimer">✕</button>
+        <button class="icon-btn del" onclick="deleteFiliere(${Number(f.id)},${jsArg(f.label)})" title="Supprimer">✕</button>
       </div>
     </div>`).join('');
 }
@@ -656,10 +657,10 @@ async function renderReturns() {
   tbody.innerHTML = returns.map(r => `
     <tr>
       <td style="color:var(--t3);font-size:.7rem">#${r.orderId}</td>
-      <td><span style="font-weight:500">${r.buyerName||'—'}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${r.buyerPhone||'—'}</div></td>
+      <td><span style="font-weight:500">${esc(r.buyerName||'—')}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${esc(r.buyerPhone||'—')}</div></td>
       <td style="color:var(--t2)">${sellerName(r.sellerId)}</td>
-      <td>${r.productName||'—'}</td>
-      <td style="max-width:200px;font-size:.78rem">${r.reason}</td>
+      <td>${esc(r.productName||'—')}</td>
+      <td style="max-width:200px;font-size:.78rem">${esc(r.reason)}</td>
       <td><span class="status-badge ${r.status==='accepted'?'status-done':r.status==='rejected'?'status-cancel':'status-new'}" style="font-size:.65rem">${r.status==='accepted'?'Acceptée':r.status==='rejected'?'Rejetée':'En attente'}</span></td>
       <td style="font-size:.72rem;color:var(--t3)">${formatDate(r.createdAt)}</td>
     </tr>`).join('');
@@ -677,12 +678,12 @@ async function renderPromoPage() {
     <div class="cat-card">
       <div class="cat-emoji" style="background:var(--gold-dim)">📣</div>
       <div class="cat-info">
-        <div class="cat-name">${pl.label}${pl.active?'':' <span style="color:var(--t3);font-size:.65rem">(inactive)</span>'}</div>
+        <div class="cat-name">${esc(pl.label)}${pl.active?'':' <span style="color:var(--t3);font-size:.65rem">(inactive)</span>'}</div>
         <div class="cat-slug">${pl.durationDays} jour${pl.durationDays>1?'s':''} · ${pl.price.toLocaleString()} FCFA</div>
       </div>
       <div class="cat-actions">
         <button class="icon-btn edit" onclick="openPlanModal(${pl.id})" title="Modifier">✏</button>
-        <button class="icon-btn del" onclick="deletePromoPlan(${pl.id},'${pl.label.replace(/'/g,"\\'")}')" title="Supprimer">✕</button>
+        <button class="icon-btn del" onclick="deletePromoPlan(${Number(pl.id)},${jsArg(pl.label)})" title="Supprimer">✕</button>
       </div>
     </div>`).join('') : '<div class="table-empty">Aucune formule. Clique sur « + Ajouter une formule ».</div>';
 
@@ -692,8 +693,8 @@ async function renderPromoPage() {
   pendingWrap.innerHTML = pending.length ? pending.map(pr => `
     <div class="promo-item">
       <div class="pi-info">
-        <div class="pi-name">${pr.productName}</div>
-        <div class="pi-meta">${pr.sellerName} · ${pr.planLabel||''} · ${formatDate(pr.createdAt)}</div>
+        <div class="pi-name">${esc(pr.productName)}</div>
+        <div class="pi-meta">${esc(pr.sellerName)} · ${esc(pr.planLabel||'')} · ${formatDate(pr.createdAt)}</div>
       </div>
       <div class="pi-price">${pr.price.toLocaleString()} FCFA</div>
       <button class="btn-primary sm" onclick="openPromoReview(${pr.id})">Examiner</button>
@@ -705,9 +706,9 @@ async function renderPromoPage() {
   const tbody = document.getElementById('promoHistoryBody');
   tbody.innerHTML = history.length ? history.map(pr => `
     <tr>
-      <td>${pr.sellerName}</td>
-      <td>${pr.productName}</td>
-      <td>${pr.planLabel||'—'}</td>
+      <td>${esc(pr.sellerName)}</td>
+      <td>${esc(pr.productName)}</td>
+      <td>${esc(pr.planLabel||'—')}</td>
       <td style="font-weight:500">${pr.price.toLocaleString()} FCFA</td>
       <td><span class="status-badge ${pr.status==='active'?'status-done':pr.status==='rejected'?'status-cancel':'status-new'}">${pr.status==='active'?'Active':pr.status==='rejected'?'Refusée':'Terminée'}</span></td>
       <td style="font-size:.72rem;color:var(--t3)">${pr.startsAt?`${formatDate(pr.startsAt)} → ${formatDate(pr.endsAt)}`:'—'}</td>
@@ -770,8 +771,8 @@ async function openPromoReview(id) {
   document.getElementById('promoReviewId').value = pr.id;
   document.getElementById('promoReviewSub').textContent = `${pr.sellerName} · ${formatDate(pr.createdAt)}`;
   document.getElementById('promoReviewContent').innerHTML = `
-    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Produit :</strong> ${pr.productName}</div>
-    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Formule :</strong> ${pr.planLabel} (${pr.durationDays} jour${pr.durationDays>1?'s':''})</div>
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Produit :</strong> ${esc(pr.productName)}</div>
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Formule :</strong> ${esc(pr.planLabel)} (${pr.durationDays} jour${pr.durationDays>1?'s':''})</div>
     <div style="font-size:.78rem;color:var(--t2)"><strong>Montant :</strong> ${pr.price.toLocaleString()} FCFA</div>`;
   openModal('promoReviewModal');
 }
@@ -806,12 +807,12 @@ async function renderBannersPage() {
   wrap.innerHTML = banners.map(b => `
     <div class="promo-item">
       <div class="pi-info">
-        <div class="pi-name">${b.title}${b.active?'':' <span style="color:var(--t3);font-size:.65rem">(inactive)</span>'}</div>
-        <div class="pi-meta">${b.subtitle||''}${b.linkUrl?` · ${b.linkUrl}`:''}</div>
+        <div class="pi-name">${esc(b.title)}${b.active?'':' <span style="color:var(--t3);font-size:.65rem">(inactive)</span>'}</div>
+        <div class="pi-meta">${esc(b.subtitle||'')}${b.linkUrl?` · ${esc(b.linkUrl)}`:''}</div>
       </div>
       <div class="cat-actions">
         <button class="icon-btn edit" onclick="openBannerModal(${b.id})" title="Modifier">✏</button>
-        <button class="icon-btn del" onclick="deleteBanner(${b.id},'${b.title.replace(/'/g,"\\'")}')" title="Supprimer">✕</button>
+        <button class="icon-btn del" onclick="deleteBanner(${Number(b.id)},${jsArg(b.title)})" title="Supprimer">✕</button>
       </div>
     </div>`).join('');
 }
@@ -848,7 +849,7 @@ function openBannerModal(id) {
       document.getElementById('bannerTitle').value = b?.title||'';
       document.getElementById('bannerSubtitle').value = b?.subtitle||'';
       document.getElementById('bannerImage').value = b?.imageUrl||'';
-      document.getElementById('bannerColor').value = b?.bgColor||'#1a7a4a';
+      document.getElementById('bannerColor').value = b?.bgColor||'#404040';
       document.getElementById('bannerLink').value = b?.linkUrl||'';
       b?.active ? document.getElementById('bannerActive').classList.add('on') : document.getElementById('bannerActive').classList.remove('on');
       // Réinitialise l'onglet image
@@ -861,7 +862,7 @@ function openBannerModal(id) {
     document.getElementById('bannerTitle').value = '';
     document.getElementById('bannerSubtitle').value = '';
     document.getElementById('bannerImage').value = '';
-    document.getElementById('bannerColor').value = '#1a7a4a';
+    document.getElementById('bannerColor').value = '#404040';
     document.getElementById('bannerLink').value = '';
     document.getElementById('bannerActive').classList.add('on');
     switchBannerImgTab('url');
@@ -925,9 +926,9 @@ async function renderReportsPage() {
   pendingWrap.innerHTML = pending.length ? pending.map(r => `
     <div class="promo-item">
       <div class="pi-info">
-        <div class="pi-name">${r.sellerName}</div>
-        <div class="pi-meta">${r.reporterName||'Anonyme'}${r.reporterPhone?` · 📞 ${r.reporterPhone}`:''} · ${formatDate(r.createdAt)}</div>
-        <div class="pi-meta" style="font-style:italic;margin-top:3px">${r.reason}</div>
+        <div class="pi-name">${esc(r.sellerName)}</div>
+        <div class="pi-meta">${esc(r.reporterName||'Anonyme')}${r.reporterPhone?` · 📞 ${esc(r.reporterPhone)}`:''} · ${formatDate(r.createdAt)}</div>
+        <div class="pi-meta" style="font-style:italic;margin-top:3px">${esc(r.reason)}</div>
       </div>
       <button class="btn-primary sm" onclick="openReportReview(${r.id})">Examiner</button>
     </div>`).join('') : '<div class="table-empty">Aucun signalement en attente</div>';
@@ -937,9 +938,9 @@ async function renderReportsPage() {
   const tbody = document.getElementById('reportsHistoryBody');
   tbody.innerHTML = history.length ? history.map(r => `
     <tr>
-      <td>${r.sellerName}</td>
-      <td style="max-width:240px;font-size:.78rem">${r.reason}</td>
-      <td style="font-size:.78rem;color:var(--t2)">${r.reporterName||'Anonyme'}${r.reporterPhone?`<br>📞 ${r.reporterPhone}`:''}</td>
+      <td>${esc(r.sellerName)}</td>
+      <td style="max-width:240px;font-size:.78rem">${esc(r.reason)}</td>
+      <td style="font-size:.78rem;color:var(--t2)">${esc(r.reporterName||'Anonyme')}${r.reporterPhone?`<br>📞 ${esc(r.reporterPhone)}`:''}</td>
       <td><span class="status-badge ${r.status==='validated'?'status-cancel':'status-done'}">${r.status==='validated'?'Validé':'Rejeté'}</span></td>
       <td style="font-size:.72rem;color:var(--t3)">${formatDate(r.createdAt)}</td>
     </tr>`).join('') : `<tr><td colspan="5" class="table-empty">Aucun historique</td></tr>`;
@@ -955,8 +956,8 @@ async function openReportReview(id) {
   document.getElementById('reportReviewSellerId').value = r.sellerId;
   document.getElementById('reportReviewSub').textContent = `${r.sellerName} · ${formatDate(r.createdAt)}`;
   document.getElementById('reportReviewContent').innerHTML = `
-    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Signalé par :</strong> ${r.reporterName||'Anonyme'}${r.reporterPhone?` · 📞 ${r.reporterPhone}`:''}</div>
-    <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;margin-top:8px">${r.reason}</div>
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Signalé par :</strong> ${esc(r.reporterName||'Anonyme')}${r.reporterPhone?` · 📞 ${esc(r.reporterPhone)}`:''}</div>
+    <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;margin-top:8px">${esc(r.reason)}</div>
     <div style="font-size:.74rem;color:var(--t3);margin-top:10px">Signalements déjà validés pour ce vendeur : ${validatedCount-1} / ${getReportThreshold()}</div>`;
 
   const threshold = getReportThreshold();
@@ -1001,7 +1002,7 @@ async function renderAllOrders() {
   showLoader(true); const f=document.getElementById('allOrdersFilter').value; let orders=await dbGetOrders(); showLoader(false);
   if(f!=='all') orders=orders.filter(o=>o.status===f);
   const tbody=document.getElementById('allOrdersBody');
-  tbody.innerHTML=orders.map(o=>`<tr><td style="color:var(--t3);font-size:.7rem">#${o.id}</td><td><span style="font-weight:500">${o.buyerName}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${o.buyerPhone||'—'}</div></td><td>${o.productName}</td><td style="color:var(--t2)">${o.sellerName||'—'}</td><td style="font-weight:500">${o.total.toLocaleString()} FCFA</td><td style="font-size:.72rem"><div style="font-weight:500">${formatDeliveryDateTime(o)}</div><div style="color:var(--t3)">${o.deliveryType==='external'?`📍 ${(o.deliveryAddress||'Hors campus').substring(0,30)}${(o.deliveryAddress||'').length>30?'…':''}`:'🏫 Sur le campus'}</div></td><td><span class="status-badge status-${o.status}" style="font-size:.65rem">${statusLabel(o.status)}</span></td><td style="font-size:.72rem;color:var(--t3)">${formatDate(o.createdAt)}</td></tr>`).join('')||`<tr><td colspan="8" class="table-empty">Aucune commande</td></tr>`;
+  tbody.innerHTML=orders.map(o=>`<tr><td style="color:var(--t3);font-size:.7rem">#${o.id}</td><td><span style="font-weight:500">${esc(o.buyerName)}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${esc(o.buyerPhone||'—')}</div></td><td>${esc(o.productName)}</td><td style="color:var(--t2)">${esc(o.sellerName||'—')}</td><td style="font-weight:500">${o.total.toLocaleString()} FCFA</td><td style="font-size:.72rem"><div style="font-weight:500">${formatDeliveryDateTime(o)}</div><div style="color:var(--t3)">${o.deliveryType==='external'?`📍 ${(o.deliveryAddress||'Hors campus').substring(0,30)}${(o.deliveryAddress||'').length>30?'…':''}`:'🏫 Sur le campus'}</div></td><td><span class="status-badge status-${o.status}" style="font-size:.65rem">${statusLabel(o.status)}</span></td><td style="font-size:.72rem;color:var(--t3)">${formatDate(o.createdAt)}</td></tr>`).join('')||`<tr><td colspan="8" class="table-empty">Aucune commande</td></tr>`;
 }
 
 /* ── SETTINGS ── */
@@ -1013,9 +1014,9 @@ async function saveSettings() {
   document.getElementById('genRate').value = rate;
 
   const pass=document.getElementById('newAdminPass').value;
-  if(pass&&pass.length<6){showToast('Trop court','Min. 6 caractères.','var(--red)');return;}
+  if(pass&&pass.length<12){showToast('Trop court','Min. 12 caractères.','var(--red)');return;}
   if(pass){
-    const r2 = await dbAdminUpdatePassword(adminSession.id, pass);
+    const r2 = await dbAdminUpdatePassword(pass);
     if (r2.error) { showToast('Erreur', r2.error, 'var(--red)'); return; }
     document.getElementById('newAdminPass').value='';
   }

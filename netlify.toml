@@ -6,3 +6,11 @@
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), payment=(), usb=()"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains"
+    # Scripts uniquement depuis ce site (bibliothèques hébergées dans js/vendor).
+    # 'unsafe-inline' reste nécessaire tant que le code utilise des onclick="…" inline ;
+    # la protection XSS repose donc d'abord sur l'échappement (esc()) — la CSP limite surtout
+    # l'exfiltration (connect-src), l'embarquement (frame-ancestors) et les formulaires piratés.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https:; connect-src 'self' https://qknoqmwmvqlcejbpkkgt.supabase.co wss://qknoqmwmvqlcejbpkkgt.supabase.co https://api.emailjs.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"

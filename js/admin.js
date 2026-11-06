@@ -7,7 +7,7 @@ let addPhoto     = null;
 let editPhoto    = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  currentUser = getSession();
+  currentUser = await initSession();      // session Supabase Auth (JWT) + profil
   if (!currentUser) {
     document.getElementById('lockedScreen').style.display = '';
     showLoader(false); return;
@@ -22,14 +22,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   populateCategorySelects();
   populateFiliereSelect();
   bindNav();
-  document.getElementById('logoutBtn').addEventListener('click', () => { clearSession(); window.location.href='../index.html'; });
+  document.getElementById('logoutBtn').addEventListener('click', async () => { await clearSession(); window.location.href='../index.html'; });
   document.getElementById('apPhoto').addEventListener('change', function() { handlePhoto(this,'apPhotoPreview','apPhotoPlaceholder', d=>{ addPhoto=d; }); });
   document.getElementById('editPhoto').addEventListener('change', function() { handlePhoto(this,'editPhotoPreview','editPhotoPlaceholder', d=>{ editPhoto=d; }); });
   document.getElementById('saveProductBtn').addEventListener('click', saveNewProduct);
   document.getElementById('saveEditBtn').addEventListener('click', saveEditProduct);
   document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
-  document.getElementById('copyAccessKeyBtn').addEventListener('click', copyAccessKey);
-  document.getElementById('regenAccessKeyBtn').addEventListener('click', regenerateAccessKey);
   document.getElementById('openTermsLink').addEventListener('click', (e) => { e.preventDefault(); openModal('termsModal'); });
   document.getElementById('acceptReturnBtn').addEventListener('click', () => respondReturn('accepted'));
   document.getElementById('rejectReturnBtn').addEventListener('click', () => respondReturn('rejected'));
@@ -66,7 +64,7 @@ async function renderNotificationsPage() {
   list.innerHTML = notifs.map(n => `
     <div class="notif-item ${n.isRead?'':'unread'}" data-id="${n.id}">
       <div class="notif-ico">${notifIcon(n.type)}</div>
-      <div class="notif-body"><div class="notif-title">${n.title}</div><div class="notif-text">${n.body||''}</div><div class="notif-time">${timeAgo(n.createdAt)}</div></div>
+      <div class="notif-body"><div class="notif-title">${esc(n.title)}</div><div class="notif-text">${esc(n.body||'')}</div><div class="notif-time">${timeAgo(n.createdAt)}</div></div>
     </div>`).join('') || `<div class="table-empty">Aucune notification pour le moment.</div>`;
   list.querySelectorAll('.notif-item.unread').forEach(el => {
     el.addEventListener('click', async () => {
@@ -84,14 +82,14 @@ async function markAllNotificationsRead() {
 
 /* ── CATEGORIES ── */
 function populateCategorySelects() {
-  const opts = getCategories().map(c => `<option value="${c.slug}">${c.emoji} ${c.label}</option>`).join('');
+  const opts = getCategories().map(c => `<option value="${esc(c.slug)}">${esc(c.emoji)} ${esc(c.label)}</option>`).join('');
   document.getElementById('apCat').innerHTML  = opts;
   document.getElementById('editCat').innerHTML = opts;
 }
 
 /* ── FILIÈRES ── */
 function populateFiliereSelect() {
-  const opts = '<option value="">— Sélectionner —</option>' + getFilieres().map(f => `<option value="${f.slug}">${f.label}</option>`).join('');
+  const opts = '<option value="">— Sélectionner —</option>' + getFilieres().map(f => `<option value="${esc(f.slug)}">${esc(f.label)}</option>`).join('');
   document.getElementById('pfFiliere').innerHTML = opts;
   document.getElementById('pfFiliere').value = currentUser.filiere || '';
 }
@@ -145,8 +143,8 @@ async function renderDashboard() {
 
   document.getElementById('dashOrders').innerHTML = orders.slice(0,5).map(o=>`
     <tr>
-      <td><span style="font-weight:500">${o.buyerName}</span></td>
-      <td>${o.productName}</td>
+      <td><span style="font-weight:500">${esc(o.buyerName)}</span></td>
+      <td>${esc(o.productName)}</td>
       <td>${o.qty}</td>
       <td style="font-weight:500">${o.total.toLocaleString()} FCFA</td>
       <td><span class="status-badge status-${o.status}">${statusLabel(o.status)}</span></td>
@@ -156,11 +154,11 @@ async function renderDashboard() {
     ? products.slice(0,6).map(p=>`
         <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r2);overflow:hidden">
           <div style="height:72px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1.8rem;position:relative;overflow:hidden">
-            ${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" alt="">`:p.emoji}
+            ${safeImg(p.photo)?`<img src="${safeImg(p.photo)}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" alt="">`:esc(p.emoji)}
             ${!p.available?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--red);font-weight:600;letter-spacing:.04em">INDISPO</div>`:''}
           </div>
           <div style="padding:10px">
-            <div style="font-size:.78rem;font-weight:500;margin-bottom:2px">${p.name}</div>
+            <div style="font-size:.78rem;font-weight:500;margin-bottom:2px">${esc(p.name)}</div>
             <div style="font-size:.68rem;color:var(--t3)">${p.price.toLocaleString()} FCFA</div>
           </div>
         </div>`).join('')
@@ -178,18 +176,18 @@ async function renderOrders() {
   tbody.innerHTML = orders.map(o=>`
     <tr>
       <td style="color:var(--t3);font-size:.7rem">#${o.id}</td>
-      <td><span style="font-weight:500">${o.buyerName}</span><div style="font-size:.68rem;color:var(--t3)">${formatDate(o.createdAt)}</div></td>
-      <td style="font-size:.72rem;color:var(--t2)">📞 ${o.buyerPhone||'—'}</td>
-      <td>${o.productName}</td>
+      <td><span style="font-weight:500">${esc(o.buyerName)}</span><div style="font-size:.68rem;color:var(--t3)">${formatDate(o.createdAt)}</div></td>
+      <td style="font-size:.72rem;color:var(--t2)">📞 ${esc(o.buyerPhone||'—')}</td>
+      <td>${esc(o.productName)}</td>
       <td>${o.qty}</td>
       <td style="font-weight:500">${o.total.toLocaleString()} FCFA</td>
       <td style="font-size:.72rem">
         <div style="font-weight:500">${formatDeliveryDateTime(o)}</div>
         <div style="color:var(--t3)">${o.deliveryType==='external'?'📍 Hors campus':'🏫 Sur le campus'}</div>
       </td>
-      <td style="max-width:120px">${o.itemNote?`<span style="font-size:.72rem;color:var(--t2);font-style:italic">${o.itemNote.substring(0,45)}${o.itemNote.length>45?'…':''}</span>`:`<span style="color:var(--t4)">—</span>`}</td>
+      <td style="max-width:120px">${o.itemNote?`<span style="font-size:.72rem;color:var(--t2);font-style:italic">${esc(o.itemNote.substring(0,45))}${o.itemNote.length>45?'…':''}</span>`:`<span style="color:var(--t4)">—</span>`}</td>
       <td>
-        <select class="select-sm" style="font-size:.72rem" onchange="updateStatus(${o.id},this.value)">
+        <select class="select-sm" style="font-size:.72rem" ${o.status==='cancel'?'disabled title="Une commande annulée est définitive"':''} onchange="updateStatus(${Number(o.id)},this.value)">
           <option value="new"    ${o.status==='new'   ?'selected':''}>Nouvelle</option>
           <option value="done"   ${o.status==='done'  ?'selected':''}>Livrée</option>
           <option value="cancel" ${o.status==='cancel'?'selected':''}>Annulée</option>
@@ -202,11 +200,9 @@ async function renderOrders() {
 async function updateStatus(id, status) {
   const orders = await dbGetOrders({ sellerId: currentUser.id });
   const o = orders.find(x => x.id === id);
-  await dbUpdateOrderStatus(id, status);
-  // Si la commande est annulée (et ne l'était pas déjà), on recrédite le stock du produit
-  if (o && status === 'cancel' && o.status !== 'cancel' && o.productId) {
-    await restockProduct(o.productId, o.qty);
-  }
+  const res = await dbUpdateOrderStatus(id, status);
+  if (res.error) { showToast('Erreur', res.error, 'var(--red)'); await renderOrders(); return; }
+  // Le recrédit du stock à l'annulation est fait par la base (trigger) — une annulation est définitive.
   showToast('Statut mis à jour', status==='done'?'Commande livrée ✓':status==='cancel'?'Commande annulée — stock recrédité':'En attente', status==='done'?'var(--green)':status==='cancel'?'var(--red)':null);
   await renderDashboard();
 }
@@ -221,9 +217,9 @@ async function renderReturnsPage() {
   tbody.innerHTML = returns.map(r => `
     <tr>
       <td style="color:var(--t3);font-size:.7rem">#${r.orderId}</td>
-      <td><span style="font-weight:500">${r.buyerName||'—'}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${r.buyerPhone||'—'}</div></td>
-      <td>${r.productName||'—'}</td>
-      <td style="max-width:220px;font-size:.78rem">${r.reason}</td>
+      <td><span style="font-weight:500">${esc(r.buyerName||'—')}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${esc(r.buyerPhone||'—')}</div></td>
+      <td>${esc(r.productName||'—')}</td>
+      <td style="max-width:220px;font-size:.78rem">${esc(r.reason)}</td>
       <td><span class="status-badge ${r.status==='accepted'?'status-done':r.status==='rejected'?'status-cancel':'status-new'}" style="font-size:.65rem">${r.status==='accepted'?'Acceptée':r.status==='rejected'?'Refusée':'En attente'}</span></td>
       <td style="font-size:.72rem;color:var(--t3)">${formatDate(r.createdAt)}</td>
       <td>${r.status==='pending'?`<button class="icon-btn edit" onclick="openReturnModal(${r.id})" title="Répondre">↩</button>`:`<span style="font-size:.7rem;color:var(--t3)">Traitée</span>`}</td>
@@ -238,9 +234,9 @@ async function openReturnModal(id) {
   document.getElementById('returnId').value = r.id;
   document.getElementById('returnModalSub').textContent = `Commande #${r.orderId} · ${formatDate(r.createdAt)}`;
   document.getElementById('returnModalContent').innerHTML = `
-    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Client :</strong> ${r.buyerName||'—'} · 📞 ${r.buyerPhone||'—'}</div>
-    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Produit :</strong> ${r.productName||'—'}</div>
-    <div style="background:var(--g1);border:1px solid var(--gb1);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;margin-top:8px">${r.reason}</div>`;
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Client :</strong> ${esc(r.buyerName||'—')} · 📞 ${esc(r.buyerPhone||'—')}</div>
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Produit :</strong> ${esc(r.productName||'—')}</div>
+    <div style="background:var(--g1);border:1px solid var(--gb1);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;margin-top:8px">${esc(r.reason)}</div>`;
   document.getElementById('returnResponse').value = '';
   openModal('returnModal');
 }
@@ -270,14 +266,14 @@ async function renderPromotePage() {
 
   // Sélecteur de produit
   document.getElementById('promoProduct').innerHTML =
-    products.length ? products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+    products.length ? products.map(p => `<option value="${Number(p.id)}">${esc(p.name)}</option>`).join('')
                      : '<option value="">Aucun produit publié</option>';
 
   // Formules
   selectedPromoPlanId = plans.length ? plans[0].id : null;
   document.getElementById('promoPlans').innerHTML = plans.map(pl => `
     <div class="promo-plan-card${pl.id===selectedPromoPlanId?' selected':''}" data-plan="${pl.id}">
-      <div class="pp-label">${pl.label}</div>
+      <div class="pp-label">${esc(pl.label)}</div>
       <div class="pp-price">${pl.price.toLocaleString()} FCFA</div>
       <div class="pp-duration">${pl.durationDays} jour${pl.durationDays>1?'s':''}</div>
     </div>`).join('') || '<div class="table-empty">Aucune formule disponible pour le moment.</div>';
@@ -297,8 +293,8 @@ async function renderPromotePage() {
     wrap.innerHTML = myPromos.map(pr => `
       <div class="promo-item">
         <div class="pi-info">
-          <div class="pi-name">${pr.productName}</div>
-          <div class="pi-meta">${pr.planLabel||''} · ${formatDate(pr.createdAt)}${pr.status==='active'&&pr.endsAt?` · jusqu'au ${formatDate(pr.endsAt)}`:''}</div>
+          <div class="pi-name">${esc(pr.productName)}</div>
+          <div class="pi-meta">${esc(pr.planLabel||'')} · ${formatDate(pr.createdAt)}${pr.status==='active'&&pr.endsAt?` · jusqu'au ${formatDate(pr.endsAt)}`:''}</div>
         </div>
         <div class="pi-price">${pr.price.toLocaleString()} FCFA</div>
         <span class="status-badge ${pr.status==='active'?'status-done':pr.status==='rejected'||pr.status==='expired'?'status-cancel':'status-new'}">${pr.status==='active'?'Active':pr.status==='rejected'?'Refusée':pr.status==='expired'?'Terminée':'En attente'}</span>
@@ -338,17 +334,17 @@ async function viewOrder(id) {
   document.getElementById('orderDetailSub').textContent = `Commande #${o.id} · ${formatDate(o.createdAt)}`;
   const row = (k,v) => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:.78rem"><span style="color:var(--t2)">${k}</span><span style="font-weight:500">${v}</span></div>`;
   document.getElementById('orderDetailContent').innerHTML =
-    row('Client', o.buyerName) + row('Téléphone', o.buyerPhone||'—') +
-    row('Produit', o.productName) + row('Quantité', o.qty) +
+    row('Client', esc(o.buyerName)) + row('Téléphone', esc(o.buyerPhone||'—')) +
+    row('Produit', esc(o.productName)) + row('Quantité', Number(o.qty)) +
     row('Total', `<span style="color:var(--green);font-weight:600">${o.total.toLocaleString()} FCFA</span>`) +
     row('Statut', `<span class="status-badge status-${o.status}">${statusLabel(o.status)}</span>`) +
     row('Date/heure souhaitées', formatDeliveryDateTime(o)) +
     row('Lieu de livraison', deliveryTypeLabel(o.deliveryType)) +
-    (o.deliveryType==='external' && o.deliveryAddress ? row('Adresse', o.deliveryAddress) : '') +
-    (o.deliveryType==='external' && o.deliveryLat && o.deliveryLng ? row('Position GPS', `<a href="https://maps.apple.com/?ll=${o.deliveryLat},${o.deliveryLng}&q=${encodeURIComponent(o.deliveryPlaceName||'Livraison')}" target="_blank" style="color:var(--green)">📍 Ouvrir dans Apple Maps</a>`) : '') +
-    (o.deliveryType==='campus' && (o.buyerClasse||o.buyerFiliere) ? row('Classe / Filière', `${o.buyerClasse||'—'} · ${getFiliereLabel(o.buyerFiliere)||'—'}`) : '') +
-    (o.notes?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Instructions générales</div><div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;border:1px solid var(--b1)">${o.notes}</div></div>`:'') +
-    (o.itemNote?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Précision pour ce produit</div><div style="background:var(--accent-dim);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t1);font-style:italic;border:1px solid var(--accent-bdr)">${o.itemNote}</div></div>`:'');
+    (o.deliveryType==='external' && o.deliveryAddress ? row('Adresse', esc(o.deliveryAddress)) : '') +
+    (o.deliveryType==='external' && o.deliveryLat && o.deliveryLng ? row('Position GPS', `<a href="https://maps.apple.com/?ll=${Number(o.deliveryLat)},${Number(o.deliveryLng)}&q=${encodeURIComponent(o.deliveryPlaceName||'Livraison')}" target="_blank" rel="noopener noreferrer" style="color:var(--green)">📍 Ouvrir dans Apple Maps</a>`) : '') +
+    (o.deliveryType==='campus' && (o.buyerClasse||o.buyerFiliere) ? row('Classe / Filière', `${esc(o.buyerClasse||'—')} · ${esc(getFiliereLabel(o.buyerFiliere)||'—')}`) : '') +
+    (o.notes?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Instructions générales</div><div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;border:1px solid var(--b1)">${esc(o.notes)}</div></div>`:'') +
+    (o.itemNote?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Précision pour ce produit</div><div style="background:var(--accent-dim);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t1);font-style:italic;border:1px solid var(--accent-bdr)">${esc(o.itemNote)}</div></div>`:'');
   openModal('orderDetailModal');
 }
 
@@ -361,13 +357,13 @@ async function renderProductsTable() {
   if (!products.length) { tbody.innerHTML=`<tr><td colspan="8" class="table-empty">Aucun produit. <a style="color:var(--t1);cursor:pointer;text-decoration:underline" onclick="goPage('addproduct')">Ajouter →</a></td></tr>`; return; }
   tbody.innerHTML = products.map(p=>`
     <tr>
-      <td><div class="prod-thumb">${p.photo?`<img src="${p.photo}" alt="">`:p.emoji}</div></td>
-      <td><div style="font-weight:500">${p.name}</div><div style="font-size:.7rem;color:var(--t2);margin-top:2px">${(p.desc||'').substring(0,50)}${(p.desc||'').length>50?'…':''}</div></td>
+      <td><div class="prod-thumb">${safeImg(p.photo)?`<img src="${safeImg(p.photo)}" alt="">`:esc(p.emoji)}</div></td>
+      <td><div style="font-weight:500">${esc(p.name)}</div><div style="font-size:.7rem;color:var(--t2);margin-top:2px">${esc((p.desc||'').substring(0,50))}${(p.desc||'').length>50?'…':''}</div></td>
       <td>${catBadge(p.cat)}</td>
       <td style="font-weight:500">${p.price.toLocaleString()} FCFA</td>
       <td>${p.trackStock ? (p.stock<=0?`<span class="stock-badge out" style="margin:0">Rupture</span>`:`<span style="font-weight:500">${p.stock}</span>`) : `<span style="color:var(--t4)">Illimité</span>`}</td>
       <td>${p.votes?`<div style="display:flex;align-items:center;gap:3px">${starsHtml(p.rating,'.74rem')}<span style="font-size:.68rem;color:var(--t3);margin-left:2px">(${p.votes})</span></div>`:`<span style="color:var(--t4)">—</span>`}</td>
-      <td><button class="toggle ${p.available?'on':''}" onclick="toggleAvail(${p.id},${p.available})"></button></td>
+      <td><button class="toggle ${p.available?'on':''}" onclick="toggleAvail(${Number(p.id)},${p.available?'true':'false'})"></button></td>
       <td><div class="td-actions"><button class="icon-btn edit" onclick="openEditProduct(${p.id})" title="Modifier">✏</button><button class="icon-btn del" onclick="deleteProd(${p.id})" title="Supprimer">✕</button></div></td>
     </tr>`).join('');
 }
@@ -475,25 +471,6 @@ function loadProfile() {
   document.getElementById('pfBio').value      = currentUser.bio||'';
   populateFiliereSelect();
   currentUser.shopOpen!==false ? document.getElementById('pfToggle').classList.add('on') : document.getElementById('pfToggle').classList.remove('on');
-  document.getElementById('pfAccessKey').value = currentUser.accessKey || '—';
-}
-
-async function copyAccessKey() {
-  const key = document.getElementById('pfAccessKey').value;
-  if (!key || key === '—') return;
-  try { await navigator.clipboard.writeText(key); showToast('Copié','Ta clé d\'accès est dans le presse-papier.','var(--green)'); }
-  catch { showToast('Erreur','Copie impossible, sélectionne et copie manuellement.','var(--red)'); }
-}
-
-async function regenerateAccessKey() {
-  if (!confirm('Générer une nouvelle clé rendra l\'ancienne invalide immédiatement. Continuer ?')) return;
-  showLoader(true);
-  const r = await dbRegenerateAccessKey(currentUser.id);
-  showLoader(false);
-  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
-  currentUser.accessKey = r.accessKey; setSession(currentUser);
-  document.getElementById('pfAccessKey').value = r.accessKey;
-  showToast('Nouvelle clé générée','','var(--green)');
 }
 
 async function saveProfile() {
@@ -507,7 +484,7 @@ async function saveProfile() {
   const shopOpen = document.getElementById('pfToggle').classList.contains('on');
   const filiere  = document.getElementById('pfFiliere').value;
   if (!first||!email) { showToast('Champs manquants','Prénom et email requis.','var(--red)'); return; }
-  if (pass&&pass.length<6) { showToast('Mot de passe trop court','Min. 6 caractères.','var(--red)'); return; }
+  if (pass&&pass.length<8) { showToast('Mot de passe trop court','Min. 8 caractères.','var(--red)'); return; }
   const name   = shopName||(first+(last?' '+last[0]+'.':''));
   const fields = { firstName:first, lastName:last, name, email, phone, bio, shopOpen, filiere };
   if (pass) fields.password = pass;
@@ -516,12 +493,11 @@ async function saveProfile() {
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error,'var(--red)'); return; }
   currentUser = r.user; setSession(currentUser);
+  if (r.notice) showToast('Email à confirmer', r.notice, 'var(--orange)');
   document.getElementById('shopName').textContent   = currentUser.name;
   document.getElementById('shopNameMobile').textContent = currentUser.name;
   document.getElementById('userAvatar').textContent = currentUser.firstName[0].toUpperCase();
   document.getElementById('userName').textContent   = currentUser.name;
-  const products = await dbGetProducts({ sellerId: currentUser.id });
-  await Promise.all(products.map(p => dbUpdateProduct(p.id, { sellerName: currentUser.name })));
   showToast('Profil sauvegardé','','var(--green)');
   document.getElementById('pfPass').value='';
 }

@@ -3,52 +3,109 @@
 ═══════════════════════════════════════════════════ */
 
 const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+});
 
-/* ── SESSION ── */
-function getSession()     { return JSON.parse(localStorage.getItem('glar_session') || 'null'); }
-function setSession(u)    { localStorage.setItem('glar_session', JSON.stringify(u)); }
-function clearSession()   { localStorage.removeItem('glar_session'); }
+/* ── ÉCHAPPEMENT HTML (anti-XSS) ──
+   TOUTE donnée venant de la base (noms, descriptions, messages, adresses…) doit
+   passer par esc() avant d'être insérée dans du HTML. safeImg/safeHref/safeColor
+   valident les valeurs utilisées dans src / href / style. */
+function esc(v) {
+  return String(v === null || v === undefined ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/`/g, '&#96;');
+}
+/* URL d'image : https:// ou data:image/(png|jpeg|webp|gif) uniquement, sinon '' */
+function safeImg(u) {
+  u = String(u || '').trim();
+  return (/^https:\/\/[^\s"'<>]+$/i.test(u) || /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i.test(u)) ? esc(u) : '';
+}
+/* Lien cliquable : http(s) uniquement */
+function safeHref(u) {
+  u = String(u || '').trim();
+  return /^https?:\/\/[^\s"'<>]+$/i.test(u) ? esc(u) : '';
+}
+/* Couleur : #rgb / #rrggbb uniquement */
+function safeColor(c, fallback) {
+  c = String(c || '').trim();
+  return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(c) ? c : (fallback || '#404040');
+}
+/* Vignette produit : image validée, sinon emoji (échappé) */
+function thumbHtml(p, alt) {
+  const src = safeImg(p.photo);
+  return src ? `<img src="${src}" alt="${esc(alt || '')}">` : (esc(p.emoji) || catEmoji(p.cat));
+}
+/* Pour un argument JS dans un attribut onclick="…" : jamais de concaténation brute */
+function jsArg(v) { return esc(JSON.stringify(v === undefined ? null : v)); }
 
-/* ── USERS ──
-   Authentification durcie : toute vérification de mot de passe passe désormais
-   par des fonctions RPC Postgres (SECURITY DEFINER) qui seules peuvent lire
-   la colonne password_hash (bcrypt). Le client (anon/authenticated) n'a plus
-   aucun accès en lecture à password / password_hash. Voir backend_hardening_v7.sql
-   et v8 (clé d'accès vendeur) pour le détail des fonctions. */
+/* ── SESSION ──
+   L'identité est portée par Supabase Auth (JWT signé, vérifié par la base via RLS).
+   Le profil vendeur ci-dessous n'est QU'UN CACHE D'AFFICHAGE : le modifier dans la
+   console du navigateur ne donne aucun droit supplémentaire. */
+let _profile = null;
+function getSession()   { return _profile; }
+function setSession(u)  { _profile = u; }
+async function clearSession() { _profile = null; try { await db.auth.signOut(); } catch (e) {} }
+
+const USER_COLS = 'id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at';
+
+/* Charge la session Auth courante + le profil vendeur. À appeler au démarrage de chaque page. */
+async function initSession() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { _profile = null; return null; }
+  const { data, error } = await db.from('users').select(USER_COLS).eq('auth_id', session.user.id).maybeSingle();
+  if (error || !data) { _profile = null; return null; }          // compte Auth sans profil vendeur (ex. admin)
+  if (data.is_blocked) { await clearSession(); return null; }
+  _profile = nu(data);
+  return _profile;
+}
+
+function authErrMsg(error) {
+  const m = (error && error.message) || '';
+  if (/invalid login credentials/i.test(m)) return 'Email ou mot de passe incorrect.';
+  if (/email not confirmed/i.test(m))       return 'Confirme d\'abord ton email (lien reçu par mail).';
+  if (/already registered|already been registered|déjà utilisé|Database error saving new user/i.test(m)) return 'Cet email est déjà utilisé.';
+  if (/rate limit|too many/i.test(m))       return 'Trop de tentatives. Réessaie dans quelques minutes.';
+  if (/banned|suspend/i.test(m))            return 'Ton compte est actuellement suspendu. Contacte l\'administrateur.';
+  if (/password/i.test(m) && /(short|least|weak)/i.test(m)) return 'Mot de passe trop faible (8 caractères minimum).';
+  return m || 'Erreur inconnue.';
+}
+
+/* ── USERS ── */
 async function dbCreateUser(first, last, email, phone, pass, filiere) {
-  const name = first + (last ? ' ' + last[0].toUpperCase() + '.' : '');
-  const { data, error } = await db.rpc('fn_register_user', {
-    p_first: first, p_last: last, p_email: email, p_phone: phone, p_pass: pass, p_filiere: filiere || null
+  const { data, error } = await db.auth.signUp({
+    email: email.trim(), password: pass,
+    options: { data: { first_name: first, last_name: last || '', phone: phone || '', filiere: filiere || '' },
+               emailRedirectTo: location.origin + '/index.html' }
   });
-  if (error) return { error: error.message };
-  if (data && data.error) return { error: data.error };
-  return { user: nu(data.user) };
+  if (error) return { error: authErrMsg(error) };
+  // Supabase renvoie un faux succès (sans session) si l'email existe déjà et que la confirmation est activée
+  if (!data.session) return { needsConfirmation: true };
+  const u = await initSession();
+  if (!u) return { error: 'Compte créé mais profil introuvable. Réessaie de te connecter.' };
+  return { user: u };
 }
 async function dbLoginUser(email, pass) {
-  const { data, error } = await db.rpc('fn_login_user', { p_email: email.trim(), p_pass: pass });
-  if (error) return { error: error.message };
-  if (data && data.error) return { error: data.error };
-  return { user: nu(data.user) };
+  const { error } = await db.auth.signInWithPassword({ email: email.trim(), password: pass });
+  if (error) return { error: authErrMsg(error) };
+  const u = await initSession();
+  if (!u) { await clearSession(); return { error: 'Ton compte est suspendu ou introuvable. Contacte l\'administrateur.' }; }
+  return { user: u };
 }
-async function dbLoginWithAccessKey(accessKey) {
-  const { data, error } = await db.rpc('fn_login_with_access_key', { p_key: (accessKey||'').trim() });
-  if (error) return { error: error.message };
-  if (data && data.error) return { error: data.error };
-  return { user: nu(data.user) };
+async function dbRequestPasswordReset(email) {
+  const { error } = await db.auth.resetPasswordForEmail(email.trim(), { redirectTo: location.origin + '/index.html' });
+  return error ? { error: authErrMsg(error) } : { ok: true };
 }
-async function dbRegenerateAccessKey(userId) {
-  const { data, error } = await db.rpc('fn_regenerate_access_key', { p_user_id: userId });
-  if (error) return { error: error.message };
-  if (data && data.error) return { error: data.error };
-  return { accessKey: data.access_key };
+async function dbSetNewPassword(pass) {
+  const { error } = await db.auth.updateUser({ password: pass });
+  return error ? { error: authErrMsg(error) } : { ok: true };
 }
 async function dbUpdateUser(id, f) {
   const p = {};
   if (f.firstName !== undefined) p.first_name  = f.firstName;
   if (f.lastName  !== undefined) p.last_name   = f.lastName;
   if (f.name      !== undefined) p.name        = f.name;
-  if (f.email     !== undefined) p.email       = f.email;
   if (f.phone     !== undefined) p.phone       = f.phone;
   if (f.bio       !== undefined) p.bio         = f.bio;
   if (f.shopOpen  !== undefined) p.shop_open   = f.shopOpen;
@@ -57,24 +114,34 @@ async function dbUpdateUser(id, f) {
     const { error } = await db.from('users').update(p).eq('id', id);
     if (error) return { error: error.message };
   }
-  if (f.password) {
-    const { data: pwData, error: pwErr } = await db.rpc('fn_update_password', { p_user_id: id, p_new_pass: f.password });
-    if (pwErr) return { error: pwErr.message };
-    if (pwData && pwData.error) return { error: pwData.error };
+  let notice = '';
+  if (f.email && _profile && f.email.trim().toLowerCase() !== (_profile.email || '').toLowerCase()) {
+    const { error } = await db.auth.updateUser({ email: f.email.trim() });
+    if (error) return { error: authErrMsg(error) };
+    notice = 'Un lien de confirmation a été envoyé à ta nouvelle adresse email.';
   }
-  const { data, error } = await db.from('users').select('id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at, access_key').eq('id', id).single();
+  if (f.password) {
+    const { error } = await db.auth.updateUser({ password: f.password });
+    if (error) return { error: authErrMsg(error) };
+  }
+  const { data, error } = await db.from('users').select(USER_COLS).eq('id', id).single();
   if (error) return { error: error.message };
-  return { user: nu(data) };
+  return { user: nu(data), notice };
 }
+/* Super Admin uniquement (RLS : un vendeur n'obtient que sa propre ligne) */
 async function dbGetAllUsers() {
-  const { data, error } = await db.from('users')
-    .select('id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at, access_key')
-    .order('created_at', { ascending: false });
+  const { data, error } = await db.from('users').select(USER_COLS).order('created_at', { ascending: false });
+  if (error) { console.error(error); return []; }
+  return (data || []).map(nu);
+}
+/* Vitrine publique : aucun email / téléphone */
+async function dbGetPublicSellers() {
+  const { data, error } = await db.from('public_sellers').select('id, name, bio, shop_open, filiere').order('name');
   if (error) { console.error(error); return []; }
   return (data || []).map(nu);
 }
 function nu(r) {
-  return { id:r.id, firstName:r.first_name, lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, isBlocked:r.is_blocked||false, blockedReason:r.blocked_reason||'', billingPeriod:r.billing_period||'monthly', filiere:r.filiere||'', createdAt:r.created_at, accessKey:r.access_key||'' };
+  return { id:r.id, firstName:r.first_name||(r.name||'?'), lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, isBlocked:r.is_blocked||false, blockedReason:r.blocked_reason||'', billingPeriod:r.billing_period||'monthly', filiere:r.filiere||'', createdAt:r.created_at };
 }
 
 /* ── PRODUCTS ── */
@@ -87,7 +154,7 @@ async function dbGetProducts(f = {}) {
   return (data || []).map(np);
 }
 async function dbInsertProduct(sellerId, sellerName, f) {
-  const { data, error } = await db.from('products').insert({ seller_id:sellerId, seller_name:sellerName, name:f.name, description:f.desc||'', category:f.cat, price:f.price, emoji:f.emoji||'🛍️', photo_url:f.photo||null, available:true, track_stock:f.trackStock||false, stock:f.trackStock?(f.stock||0):0, show_stock:f.showStock!==false }).select().single();
+  const { data, error } = await db.from('products').insert({ seller_id:sellerId, name:f.name, description:f.desc||'', category:f.cat, price:f.price, emoji:f.emoji||'🛍️', photo_url:f.photo||null, available:true, track_stock:f.trackStock||false, stock:f.trackStock?(f.stock||0):0, show_stock:f.showStock!==false }).select().single();
   if (error) return { error: error.message };
   return { product: np(data) };
 }
@@ -100,9 +167,6 @@ async function dbUpdateProduct(id, f) {
   if (f.emoji     !== undefined) p.emoji       = f.emoji;
   if (f.photo     !== undefined) p.photo_url   = f.photo;
   if (f.available !== undefined) p.available   = f.available;
-  if (f.rating    !== undefined) p.rating      = f.rating;
-  if (f.votes     !== undefined) p.votes       = f.votes;
-  if (f.sellerName!== undefined) p.seller_name = f.sellerName;
   if (f.trackStock!== undefined) p.track_stock = f.trackStock;
   if (f.stock     !== undefined) p.stock       = f.stock;
   if (f.showStock !== undefined) p.show_stock  = f.showStock;
@@ -122,7 +186,7 @@ function isOutOfStock(p)  { return !!(p.trackStock && p.stock <= 0); }
 function stockBadgeHtml(p) {
   if (!p.trackStock) return '';
   if (p.stock <= 0) return `<div class="stock-badge out">Rupture de stock</div>`;
-  if (p.showStock)  return `<div class="stock-badge ok">En stock · ${p.stock} restant${p.stock>1?'s':''}</div>`;
+  if (p.showStock)  return `<div class="stock-badge ok">En stock · ${Number(p.stock)||0} restant${p.stock>1?'s':''}</div>`;
   return `<div class="stock-badge ok">En stock</div>`;
 }
 
@@ -133,7 +197,7 @@ async function dbGetCategories() {
   return (data || []).map(ncat);
 }
 async function dbInsertCategory(f) {
-  const { data, error } = await db.from('categories').insert({ slug:f.slug, label:f.label, emoji:f.emoji||'🛍️', color:f.color||'#1a7a4a', sort_order:f.sortOrder||0 }).select().single();
+  const { data, error } = await db.from('categories').insert({ slug:f.slug, label:f.label, emoji:f.emoji||'🛍️', color:f.color||'#404040', sort_order:f.sortOrder||0 }).select().single();
   if (error) return { error: error.message };
   return { category: ncat(data) };
 }
@@ -153,7 +217,7 @@ async function dbDeleteCategory(id) {
   return error ? { error: error.message } : { ok: true };
 }
 function ncat(r) {
-  return { id:r.id, slug:r.slug, label:r.label, emoji:r.emoji||'🛍️', color:r.color||'#1a7a4a', sortOrder:r.sort_order||0 };
+  return { id:r.id, slug:r.slug, label:r.label, emoji:r.emoji||'🛍️', color:r.color||'#404040', sortOrder:r.sort_order||0 };
 }
 
 /* Cache local des catégories — chargée au démarrage de chaque page via loadCategories() */
@@ -164,7 +228,7 @@ async function loadCategories() {
     // Fallback si la table est vide / pas encore créée
     _categoriesCache = [
       { id:0, slug:'food',  label:'Nourriture', emoji:'🥞', color:'#3de8a0', sortOrder:1 },
-      { id:0, slug:'drink', label:'Boissons',   emoji:'🥤', color:'#b8902a', sortOrder:2 },
+      { id:0, slug:'drink', label:'Boissons',   emoji:'🥤', color:'#8a8a85', sortOrder:2 },
       { id:0, slug:'other', label:'Autres',     emoji:'✨', color:'#9b6dff', sortOrder:3 },
     ];
   }
@@ -239,18 +303,21 @@ async function dbGetOrders(f = {}) {
   if (error) { console.error(error); return []; }
   return (data || []).map(no);
 }
-async function dbInsertOrder(f) {
-  const { data, error } = await db.from('orders').insert({
-    seller_id:f.sellerId, seller_name:f.sellerName||'', product_id:f.productId, product_name:f.productName,
-    buyer_name:f.buyerName, buyer_email:f.buyerEmail||null, buyer_phone:f.buyerPhone||'',
-    qty:f.qty, total:f.total, notes:f.notes||'', item_note:f.itemNote||null, status:'new',
-    delivery_date:f.deliveryDate||null, delivery_time:f.deliveryTime||null,
-    delivery_type:f.deliveryType||'campus', delivery_address:f.deliveryAddress||null,
-    delivery_lat:f.deliveryLat||null, delivery_lng:f.deliveryLng||null, delivery_place_name:f.deliveryPlaceName||null,
-    buyer_classe:f.buyerClasse||null, buyer_filiere:f.buyerFiliere||null, order_group:f.orderGroup||null
-  }).select().single();
+/* Création de commande : UNE seule RPC atomique côté serveur.
+   Le serveur recalcule les prix, vérifie et décrémente le stock (verrou de ligne),
+   et annule tout le panier si un article échoue. Le client n'envoie ni prix ni total. */
+async function dbPlaceOrder(f) {
+  const { data, error } = await db.rpc('fn_place_order', {
+    p_buyer_name: f.buyerName, p_buyer_phone: f.buyerPhone, p_notes: f.notes || '',
+    p_delivery_date: f.deliveryDate, p_delivery_time: f.deliveryTime, p_delivery_type: f.deliveryType,
+    p_delivery_address: f.deliveryAddress || null, p_buyer_classe: f.buyerClasse || null, p_buyer_filiere: f.buyerFiliere || null,
+    p_items: f.items.map(i => ({ product_id: i.productId, qty: i.qty, note: i.note || '' }))
+  });
   if (error) return { error: error.message };
-  return { order: no(data) };
+  return { orderGroup: data.order_group, grandTotal: Number(data.grand_total), orders: (data.orders || []).map(o => ({
+    id:o.id, createdAt:o.created_at, productId:o.product_id, productName:o.product_name, sellerId:o.seller_id,
+    sellerName:o.seller_name, qty:o.qty, total:Number(o.total), itemNote:o.item_note || ''
+  })) };
 }
 async function dbGetOrderById(id) {
   const { data, error } = await db.from('orders').select('*').eq('id', id).maybeSingle();
@@ -260,14 +327,6 @@ async function dbGetOrderById(id) {
 async function dbUpdateOrderStatus(id, status) {
   const { error } = await db.from('orders').update({ status }).eq('id', id);
   return error ? { error: error.message } : { ok: true };
-}
-/* Recrédite le stock d'un produit (ex: lors de l'annulation d'une commande) */
-async function restockProduct(productId, qty) {
-  const { data: p, error: e1 } = await db.from('products').select('track_stock, stock').eq('id', productId).maybeSingle();
-  if (e1 || !p || !p.track_stock) return { ok: true };
-  const newStock = (p.stock || 0) + (qty || 0);
-  const { error } = await db.from('products').update({ stock: newStock }).eq('id', productId);
-  return error ? { error: error.message } : { ok: true, stock: newStock };
 }
 function no(r) {
   return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'', productId:r.product_id, productName:r.product_name, buyerName:r.buyer_name, buyerEmail:r.buyer_email, buyerPhone:r.buyer_phone, qty:r.qty, total:r.total, notes:r.notes, itemNote:r.item_note||'', status:r.status, createdAt:r.created_at,
@@ -315,10 +374,7 @@ async function dbGetPromotions(f = {}) {
   return (data || []).map(npromo);
 }
 async function dbInsertPromotion(f) {
-  const { data, error } = await db.from('promotions').insert({
-    product_id:f.productId, seller_id:f.sellerId, seller_name:f.sellerName, product_name:f.productName,
-    plan_id:f.planId, plan_label:f.planLabel, duration_days:f.durationDays, price:f.price, status:'pending'
-  }).select().single();
+  const { data, error } = await db.rpc('fn_request_promotion', { p_product_id: f.productId, p_plan_id: f.planId });
   if (error) return { error: error.message };
   return { promotion: npromo(data) };
 }
@@ -339,10 +395,9 @@ function npromo(r) {
 }
 /* Retourne l'ensemble des productId actuellement "sponsorisés" (promotion active et non expirée) */
 async function dbGetActivePromotedProductIds() {
-  const nowIso = new Date().toISOString();
-  const { data, error } = await db.from('promotions').select('product_id, ends_at').eq('status','active');
+  const { data, error } = await db.rpc('fn_active_promoted_product_ids');
   if (error) { console.error(error); return []; }
-  return (data || []).filter(r => !r.ends_at || r.ends_at > nowIso).map(r => r.product_id);
+  return (data || []).map(Number);
 }
 
 /* ── SIGNALEMENTS DE VENDEURS ── */
@@ -355,12 +410,9 @@ async function dbGetSellerReports(f = {}) {
   return (data || []).map(nsr);
 }
 async function dbInsertSellerReport(f) {
-  const { data, error } = await db.from('seller_reports').insert({
-    seller_id:f.sellerId, seller_name:f.sellerName, reporter_name:f.reporterName||null,
-    reporter_phone:f.reporterPhone||null, reason:f.reason, status:'pending'
-  }).select().single();
-  if (error) return { error: error.message };
-  return { report: nsr(data) };
+  const { error } = await db.rpc('fn_report_seller', {
+    p_seller_id: f.sellerId, p_name: f.reporterName || null, p_phone: f.reporterPhone || null, p_reason: f.reason });
+  return error ? { error: error.message } : { ok: true };
 }
 async function dbUpdateSellerReport(id, status) {
   const { data, error } = await db.from('seller_reports').update({ status }).eq('id', id).select().single();
@@ -383,7 +435,7 @@ async function dbGetAdBanners(activeOnly) {
 async function dbInsertAdBanner(f) {
   const { data, error } = await db.from('ad_banners').insert({
     title:f.title, subtitle:f.subtitle||null, image_url:f.imageUrl||null, link_url:f.linkUrl||null,
-    bg_color:f.bgColor||'#1a7a4a', active:f.active!==false, sort_order:f.sortOrder||0
+    bg_color:f.bgColor||'#404040', active:f.active!==false, sort_order:f.sortOrder||0
   }).select().single();
   if (error) return { error: error.message };
   return { banner: nab(data) };
@@ -406,7 +458,7 @@ async function dbDeleteAdBanner(id) {
   return error ? { error: error.message } : { ok: true };
 }
 function nab(r) {
-  return { id:r.id, title:r.title, subtitle:r.subtitle||'', imageUrl:r.image_url||'', linkUrl:r.link_url||'', bgColor:r.bg_color||'#1a7a4a', active:r.active!==false, sortOrder:r.sort_order||0 };
+  return { id:r.id, title:r.title, subtitle:r.subtitle||'', imageUrl:r.image_url||'', linkUrl:r.link_url||'', bgColor:r.bg_color||'#404040', active:r.active!==false, sortOrder:r.sort_order||0 };
 }
 
 /* ── RETOURS / LITIGES ── */
@@ -417,13 +469,10 @@ async function dbGetReturns(f = {}) {
   if (error) { console.error(error); return []; }
   return (data || []).map(nret);
 }
+/* Création vérifiée côté serveur : n° de commande + téléphone doivent correspondre */
 async function dbInsertReturn(f) {
-  const { data, error } = await db.from('returns').insert({
-    order_id:f.orderId, seller_id:f.sellerId, buyer_name:f.buyerName, buyer_phone:f.buyerPhone,
-    product_name:f.productName, reason:f.reason, status:'pending'
-  }).select().single();
-  if (error) return { error: error.message };
-  return { return: nret(data) };
+  const { error } = await db.rpc('fn_create_return', { p_order_id: f.orderId, p_phone: f.buyerPhone, p_reason: f.reason });
+  return error ? { error: error.message } : { ok: true };
 }
 async function dbUpdateReturn(id, f) {
   const p = {};
@@ -448,9 +497,8 @@ async function dbGetReviews(f = {}) {
   return (data || []).map(nr);
 }
 async function dbInsertReview(f) {
-  const { data, error } = await db.from('reviews').insert({ seller_id:f.sellerId, product_id:f.productId, product_name:f.productName, seller_name:f.sellerName, reviewer_name:f.reviewerName, rating:f.rating, text:f.text }).select().single();
-  if (error) return { error: error.message };
-  return { review: nr(data) };
+  const { error } = await db.rpc('fn_add_review', { p_product_id: f.productId, p_name: f.reviewerName, p_rating: f.rating, p_text: f.text });
+  return error ? { error: error.message } : { ok: true };
 }
 function nr(r) {
   return { id:r.id, sellerId:r.seller_id, productId:r.product_id, productName:r.product_name, sellerName:r.seller_name, reviewerName:r.reviewer_name, rating:r.rating, text:r.text, createdAt:r.created_at };
@@ -476,58 +524,70 @@ async function dbUpdateCommission(id, f) {
 }
 
 /* ── ADMIN ── */
-async function dbAdminLogin(email, pass) {
-  const { data, error } = await db.rpc('fn_admin_login', { p_email: email.trim(), p_pass: pass });
-  if (error) return { error: error.message };
-  if (data && data.error) return { error: data.error };
-  return { admin: data.admin };
+/* Connexion Super Admin : Supabase Auth, PUIS vérification que le compte figure dans `admins`
+   (le droit réel est de toute façon contrôlé par is_admin() dans chaque politique RLS). */
+async function dbAdminLoadSession() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) return null;
+  const { data } = await db.from('admins').select('id, name, email').eq('auth_id', session.user.id).maybeSingle();
+  return data || null;
 }
-async function dbAdminUpdatePassword(adminId, newPass) {
-  const { data, error } = await db.rpc('fn_admin_update_password', { p_admin_id: adminId, p_new_pass: newPass });
-  if (error) return { error: error.message };
-  if (data && data.error) return { error: data.error };
-  return { ok: true };
+async function dbAdminLogin(email, pass) {
+  const { error } = await db.auth.signInWithPassword({ email: email.trim(), password: pass });
+  if (error) return { error: authErrMsg(error) };
+  const admin = await dbAdminLoadSession();
+  if (!admin) { await clearSession(); return { error: 'Ce compte n\'a pas les droits administrateur.' }; }
+  return { admin };
+}
+async function dbAdminUpdatePassword(newPass) {
+  const { error } = await db.auth.updateUser({ password: newPass });
+  return error ? { error: authErrMsg(error) } : { ok: true };
 }
 async function dbBlockUser(id, block, reason) {
-  const { error } = await db.from('users').update({ is_blocked: block, blocked_reason: reason||null }).eq('id', id);
+  const { error } = await db.rpc('admin_set_block', { p_user_id: id, p_block: block, p_reason: reason || null });
   return error ? { error: error.message } : { ok: true };
 }
 async function dbUpdateUserBilling(id, period) {
-  const { error } = await db.from('users').update({ billing_period: period }).eq('id', id);
+  const { error } = await db.rpc('admin_set_billing', { p_user_id: id, p_period: period });
   return error ? { error: error.message } : { ok: true };
 }
-/* Supprime définitivement un compte vendeur (et ses produits, via ON DELETE CASCADE) */
+/* Supprime définitivement un compte vendeur (Auth + profil + produits) */
 async function dbDeleteSeller(id) {
-  const { error } = await db.from('users').delete().eq('id', id);
+  const { error } = await db.rpc('admin_delete_seller', { p_user_id: id });
   return error ? { error: error.message } : { ok: true };
 }
 
 /* ── CHAT ── */
+/* Chat : l'expéditeur (id, nom, rôle) est IMPOSÉ par le serveur d'après le JWT ;
+   le client ne choisit que le destinataire et le contenu. */
 async function dbSendMessage(f) {
-  const { data, error } = await db.from('messages').insert({ sender_id:f.senderId, sender_name:f.senderName, sender_role:f.senderRole, receiver_id:f.receiverId||null, content:f.content, is_general:f.isGeneral||false }).select().single();
-  if (error) return { error: error.message };
-  return { message: data };
+  const { error } = await db.from('messages').insert({
+    sender_id: 0, sender_name: '-', sender_role: 'seller',       // écrasés par le trigger serveur
+    receiver_role: f.isGeneral ? null : f.receiverRole, receiver_id: f.isGeneral ? null : (f.receiverId || null),
+    content: f.content, is_general: !!f.isGeneral
+  });
+  return error ? { error: error.message } : { ok: true };
 }
-async function dbGetMessages(f = {}) {
+/* room: {general:true} | {support:true} (vendeur ↔ admin) | {sellerId} (vendeur ↔ vendeur) ;
+   me = { id, isAdmin } */
+async function dbGetMessages(room, me) {
   let q = db.from('messages').select('*').order('created_at', { ascending: true }).limit(100);
-  if (f.isGeneral) { q = q.eq('is_general', true); }
-  else if (f.userA && f.userB) {
-    q = q.eq('is_general', false).or(`and(sender_id.eq.${f.userA},receiver_id.eq.${f.userB}),and(sender_id.eq.${f.userB},receiver_id.eq.${f.userA})`);
+  const n = x => parseInt(x, 10);
+  if (room.general) {
+    q = q.eq('is_general', true);
+  } else if (me.isAdmin) {            // admin ↔ vendeur X
+    const x = n(room.sellerId);
+    q = q.eq('is_general', false).or(`and(sender_role.eq.seller,sender_id.eq.${x},receiver_role.eq.admin),and(sender_role.eq.admin,receiver_role.eq.seller,receiver_id.eq.${x})`);
+  } else if (room.support) {          // vendeur ↔ admin
+    const m = n(me.id);
+    q = q.eq('is_general', false).or(`and(sender_role.eq.seller,sender_id.eq.${m},receiver_role.eq.admin),and(sender_role.eq.admin,receiver_role.eq.seller,receiver_id.eq.${m})`);
+  } else {                            // vendeur ↔ vendeur
+    const m = n(me.id), x = n(room.sellerId);
+    q = q.eq('is_general', false).or(`and(sender_role.eq.seller,sender_id.eq.${m},receiver_role.eq.seller,receiver_id.eq.${x}),and(sender_role.eq.seller,sender_id.eq.${x},receiver_role.eq.seller,receiver_id.eq.${m})`);
   }
   const { data, error } = await q;
   if (error) { console.error(error); return []; }
   return data || [];
-}
-async function dbUpsertConnection(aId, aName, bId, bName) {
-  const minId = Math.min(aId, bId), maxId = Math.max(aId, bId);
-  const minName = minId === aId ? aName : bName;
-  const maxName = maxId === aId ? aName : bName;
-  const { data: ex } = await db.from('seller_connections').select('id, message_count').eq('seller_a_id', minId).eq('seller_b_id', maxId).maybeSingle();
-  if (ex) {
-    await db.from('seller_connections').update({ message_count: ex.message_count + 1, last_contact: new Date().toISOString() }).eq('id', ex.id);
-  } else {
-    await db.from('seller_connections').insert({ seller_a_id:minId, seller_a_name:minName, seller_b_id:maxId, seller_b_name:maxName });
-  }
 }
 async function dbGetConnections() {
   const { data } = await db.from('seller_connections').select('*').order('last_contact', { ascending: false });
@@ -606,16 +666,16 @@ function starsHtml(r, sz) {
   sz = sz || '.85rem';
   return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--gold)':'var(--t4)'};font-size:${sz}">★</span>`).join('');
 }
-function catLabel(c)     { const cat = getCategory(c); return cat ? cat.label : (c==='food'?'Nourriture':c==='drink'?'Boisson':'Autre'); }
-function catEmoji(c)     { const cat = getCategory(c); return cat ? cat.emoji : '🛍️'; }
+function catLabel(c)     { const cat = getCategory(c); return cat ? cat.label : (c==='food'?'Nourriture':c==='drink'?'Boisson':'Autre'); }  /* texte brut : échapper à l'affichage */
+function catEmoji(c)     { const cat = getCategory(c); return esc(cat ? cat.emoji : '🛍️'); }
 function catBadge(c, extraStyle) {
   const cat = getCategory(c);
-  const color = cat ? cat.color : '#1a7a4a';
-  const label = catLabel(c);
+  const color = safeColor(cat ? cat.color : '#404040');
+  const label = esc(catLabel(c));
   return `<div class="badge" style="background:${hexToRgba(color,0.12)};color:${color};border:1px solid ${hexToRgba(color,0.25)};${extraStyle||''}">${label}</div>`;
 }
 function hexToRgba(hex, alpha) {
-  hex = (hex||'#1a7a4a').replace('#','');
+  hex = (hex||'#404040').replace('#','');
   if (hex.length===3) hex = hex.split('').map(c=>c+c).join('');
   const r = parseInt(hex.substring(0,2),16), g = parseInt(hex.substring(2,4),16), b = parseInt(hex.substring(4,6),16);
   return `rgba(${r},${g},${b},${alpha})`;

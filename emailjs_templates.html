@@ -22,7 +22,7 @@
 
   ═══════════════════════════════════════════════════════
   TEMPLATE 1 : template_welcome
-  Sujet : Bienvenue sur {{platform_name}} 🎉
+  Sujet : Bienvenue sur {{platform_name}}
   ═══════════════════════════════════════════════════════
 -->
 
@@ -33,21 +33,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { margin:0; padding:0; background:#f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  body { margin:0; padding:0; background:#f6f6f4; font-family:'Poppins','Helvetica Neue',Helvetica,Arial,sans-serif; color:#151515; }
   .wrapper { max-width:560px; margin:40px auto; }
-  .card { background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08); }
-  .header { background:#0a0a0a; padding:32px 40px; }
-  .logo { color:#ffffff; font-size:18px; font-weight:700; letter-spacing:-0.5px; }
-  .logo span { color:#888; font-size:12px; font-weight:400; display:block; margin-top:2px; }
+  .card { background:#ffffff; border-radius:20px; overflow:hidden; border:1px solid #e8e8e4; }
+  .header { background:#ffffff; padding:32px 40px 0; }
+  .logo { color:#151515; font-size:16px; font-weight:600; letter-spacing:-0.02em; }
+  .logo span { color:#8a8a85; font-size:12px; font-weight:400; display:block; margin-top:2px; }
   .body { padding:36px 40px; }
-  h1 { font-size:22px; font-weight:700; color:#111; margin:0 0 8px; letter-spacing:-0.5px; }
-  p { font-size:14px; color:#555; line-height:1.7; margin:0 0 16px; }
-  .highlight { background:#f9f9f9; border:1px solid #eee; border-radius:8px; padding:20px 24px; margin:20px 0; }
-  .highlight p { margin:0; font-size:13px; color:#333; }
+  h1 { font-size:24px; font-weight:600; color:#151515; margin:0 0 10px; letter-spacing:-0.025em; line-height:1.2; }
+  p { font-size:14px; color:#6b6b66; line-height:1.7; margin:0 0 16px; }
+  .highlight { background:#f6f6f4; border:1px solid #e8e8e4; border-radius:14px; padding:20px 24px; margin:20px 0; }
+  .highlight p { margin:0; font-size:13px; color:#3d3d3a; }
   .highlight strong { color:#111; }
-  .btn { display:inline-block; background:#0a0a0a; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:8px; font-size:14px; font-weight:600; margin:8px 0 20px; }
-  .footer { background:#f9f9f9; padding:20px 40px; border-top:1px solid #eee; }
-  .footer p { font-size:12px; color:#999; margin:0; line-height:1.6; }
+  .btn { display:inline-block; background:#151515; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:999px; font-size:14px; font-weight:500; margin:8px 0 20px; }
+  .footer { background:#ffffff; padding:20px 40px; border-top:1px solid #e8e8e4; }
+  .footer p { font-size:12px; color:#8a8a85; margin:0; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -57,7 +57,7 @@
       <div class="logo">{{platform_name}}<span>Plateforme interne · </span></div>
     </div>
     <div class="body">
-      <h1>Bienvenue, {{to_name}} 👋</h1>
+      <h1>Bienvenue, {{to_name}}</h1>
       <p>Ton compte vendeur a été créé avec succès sur <strong>{{platform_name}}</strong>. Tu peux maintenant publier tes produits et recevoir des commandes de tes camarades.</p>
       <div class="highlight">
         <p><strong>Ton compte</strong><br>
@@ -70,7 +70,7 @@
     </div>
     <div class="footer">
       <p>{{platform_name}} · Marketplace  · {{year}}<br>
-      Contact : <a href="mailto:{{platform_email}}" style="color:#555">{{platform_email}}</a></p>
+      Contact : <a href="mailto:{{platform_email}}" style="color:#6b6b66">{{platform_email}}</a></p>
     </div>
   </div>
 </div>
@@ -81,7 +81,7 @@
 <!--
   ═══════════════════════════════════════════════════════
   TEMPLATE 2 : template_invoice
-  Sujet : 💰 Commission due — {{period_label}} · {{platform_name}}
+  Sujet : Commission due — {{period_label}} · {{platform_name}}
   ═══════════════════════════════════════════════════════
 -->
 
@@ -92,35 +92,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { margin:0; padding:0; background:#f5f5f5; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  body { margin:0; padding:0; background:#f6f6f4; font-family:'Poppins','Helvetica Neue',Helvetica,Arial,sans-serif; color:#151515; }
   .wrapper { max-width:560px; margin:40px auto; }
-  .card { background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08); }
-  .header { background:#0a0a0a; padding:32px 40px; }
-  .logo { color:#ffffff; font-size:18px; font-weight:700; letter-spacing:-0.5px; }
-  .logo span { color:#888; font-size:12px; font-weight:400; display:block; margin-top:2px; }
+  .card { background:#ffffff; border-radius:20px; overflow:hidden; border:1px solid #e8e8e4; }
+  .header { background:#ffffff; padding:32px 40px 0; }
+  .logo { color:#151515; font-size:16px; font-weight:600; letter-spacing:-0.02em; }
+  .logo span { color:#8a8a85; font-size:12px; font-weight:400; display:block; margin-top:2px; }
   .body { padding:36px 40px; }
-  h1 { font-size:22px; font-weight:700; color:#111; margin:0 0 8px; letter-spacing:-0.5px; }
-  p { font-size:14px; color:#555; line-height:1.7; margin:0 0 14px; }
-  .invoice-box { background:#0a0a0a; border-radius:10px; padding:24px 28px; margin:20px 0; color:#fff; }
-  .invoice-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:13px; }
+  h1 { font-size:24px; font-weight:600; color:#151515; margin:0 0 10px; letter-spacing:-0.025em; line-height:1.2; }
+  p { font-size:14px; color:#6b6b66; line-height:1.7; margin:0 0 14px; }
+  .invoice-box { background:#f6f6f4; border:1px solid #e8e8e4; border-radius:14px; padding:20px 24px; margin:20px 0; color:#151515; }
+  .invoice-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #e8e8e4; font-size:13px; }
   .invoice-row:last-child { border-bottom:none; padding-top:14px; }
-  .invoice-row .label { color:#888; }
-  .invoice-row .value { font-weight:600; color:#fff; }
-  .invoice-row.total .value { font-size:20px; font-weight:800; color:#3dd68c; letter-spacing:-0.5px; }
-  .invoice-row.total .label { color:#ccc; font-weight:500; }
-  .wave-box { background:#f0fdf6; border:1px solid #bbf7d0; border-radius:10px; padding:20px 24px; margin:20px 0; }
-  .wave-box h3 { font-size:14px; font-weight:700; color:#166534; margin:0 0 10px; }
-  .wave-number { font-size:22px; font-weight:800; color:#166534; letter-spacing:0.5px; margin:6px 0; }
-  .wave-name { font-size:13px; color:#166534; }
-  .wave-box p { font-size:13px; color:#166534; margin:8px 0 0; line-height:1.6; }
+  .invoice-row .label { color:#8a8a85; }
+  .invoice-row .value { font-weight:500; color:#151515; }
+  .invoice-row.total .value { font-size:20px; font-weight:600; color:#151515; letter-spacing:-0.02em; }
+  .invoice-row.total .label { color:#151515; font-weight:500; }
+  .wave-box { background:#ffffff; border:1px solid #d8d8d2; border-radius:14px; padding:20px 24px; margin:20px 0; }
+  .wave-box h3 { font-size:14px; font-weight:600; color:#151515; margin:0 0 10px; }
+  .wave-number { font-size:22px; font-weight:600; color:#151515; letter-spacing:0.02em; margin:6px 0; }
+  .wave-name { font-size:13px; color:#6b6b66; }
+  .wave-box p { font-size:13px; color:#6b6b66; margin:8px 0 0; line-height:1.6; }
   .steps { counter-reset:step; }
   .step { display:flex; gap:12px; margin-bottom:12px; align-items:flex-start; }
-  .step-num { width:22px; height:22px; border-radius:50%; background:#111; color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
-  .step p { margin:0; font-size:13px; color:#333; line-height:1.5; }
-  .chat-note { background:#fff8e6; border:1px solid #fde68a; border-radius:8px; padding:14px 18px; margin:16px 0; }
-  .chat-note p { margin:0; font-size:13px; color:#92400e; line-height:1.6; }
-  .footer { background:#f9f9f9; padding:20px 40px; border-top:1px solid #eee; }
-  .footer p { font-size:12px; color:#999; margin:0; line-height:1.6; }
+  .step-num { width:22px; height:22px; border-radius:50%; background:#151515; color:#fff; font-size:11px; font-weight:500; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .step p { margin:0; font-size:13px; color:#3d3d3a; line-height:1.5; }
+  .chat-note { background:#f6f6f4; border:1px solid #e8e8e4; border-radius:14px; padding:14px 18px; margin:16px 0; }
+  .chat-note p { margin:0; font-size:13px; color:#3d3d3a; line-height:1.6; }
+  .footer { background:#ffffff; padding:20px 40px; border-top:1px solid #e8e8e4; }
+  .footer p { font-size:12px; color:#8a8a85; margin:0; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -130,7 +130,7 @@
       <div class="logo">{{platform_name}}<span>Commission · {{period_label}}</span></div>
     </div>
     <div class="body">
-      <h1>Commission due 💰</h1>
+      <h1>Commission due</h1>
       <p>Bonjour <strong>{{to_name}}</strong>, voici le récapitulatif de ta commission pour la période <strong>{{period_label}}</strong>.</p>
 
       <div class="invoice-box">
@@ -153,13 +153,13 @@
       </div>
 
       <div class="wave-box">
-        <h3>💚 Payer par Wave</h3>
+        <h3>Payer par Wave</h3>
         <div class="wave-number">{{wave_number}}</div>
         <div class="wave-name">{{wave_name}}</div>
         <p>Envoie exactement <strong>{{amount_due}}</strong> à ce numéro Wave avant le <strong>{{due_date}}</strong>.</p>
       </div>
 
-      <p style="font-weight:600;color:#111;margin-bottom:10px;">Comment procéder :</p>
+      <p style="font-weight:500;color:#151515;margin-bottom:10px;">Comment procéder :</p>
       <div class="steps">
         <div class="step">
           <div class="step-num">1</div>
@@ -176,12 +176,12 @@
       </div>
 
       <div class="chat-note">
-        <p>⚠️ <strong>Important :</strong> Le paiement ne sera validé qu'après réception de la confirmation dans le chat. Sans capture envoyée, ton compte peut être suspendu.</p>
+        <p><strong>Important :</strong> Le paiement ne sera validé qu'après réception de la confirmation dans le chat. Sans capture envoyée, ton compte peut être suspendu.</p>
       </div>
     </div>
     <div class="footer">
       <p>{{platform_name}} · Marketplace  · {{year}}<br>
-      Contact : <a href="mailto:{{platform_email}}" style="color:#555">{{platform_email}}</a></p>
+      Contact : <a href="mailto:{{platform_email}}" style="color:#6b6b66">{{platform_email}}</a></p>
     </div>
   </div>
 </div>
@@ -191,7 +191,7 @@
 <!--
   ═══════════════════════════════════════════════════════
   TEMPLATE 3 : template_seller_notif
-  Sujet : 🛎️ Nouvelle commande — {{product_name}} · {{platform_name}}
+  Sujet : Nouvelle commande — {{product_name}} · {{platform_name}}
   ═══════════════════════════════════════════════════════
 -->
 
@@ -202,33 +202,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { margin:0; padding:0; background:#f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  body { margin:0; padding:0; background:#f6f6f4; font-family:'Poppins','Helvetica Neue',Helvetica,Arial,sans-serif; color:#151515; }
   .wrapper { max-width:560px; margin:40px auto; }
-  .card { background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08); }
-  .header { background:#0a0a0a; padding:32px 40px; }
-  .logo { color:#ffffff; font-size:18px; font-weight:700; letter-spacing:-0.5px; }
-  .logo span { color:#888; font-size:12px; font-weight:400; display:block; margin-top:2px; }
+  .card { background:#ffffff; border-radius:20px; overflow:hidden; border:1px solid #e8e8e4; }
+  .header { background:#ffffff; padding:32px 40px 0; }
+  .logo { color:#151515; font-size:16px; font-weight:600; letter-spacing:-0.02em; }
+  .logo span { color:#8a8a85; font-size:12px; font-weight:400; display:block; margin-top:2px; }
   .body { padding:36px 40px; }
-  h1 { font-size:22px; font-weight:700; color:#111; margin:0 0 8px; letter-spacing:-0.5px; }
-  p { font-size:14px; color:#555; line-height:1.7; margin:0 0 16px; }
-  .order-box { background:#0a0a0a; border-radius:10px; padding:24px 28px; margin:20px 0; color:#fff; }
-  .order-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:13px; }
+  h1 { font-size:24px; font-weight:600; color:#151515; margin:0 0 10px; letter-spacing:-0.025em; line-height:1.2; }
+  p { font-size:14px; color:#6b6b66; line-height:1.7; margin:0 0 16px; }
+  .order-box { background:#f6f6f4; border:1px solid #e8e8e4; border-radius:14px; padding:20px 24px; margin:20px 0; color:#151515; }
+  .order-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #e8e8e4; font-size:13px; }
   .order-row:last-child { border-bottom:none; padding-top:14px; }
-  .order-row .label { color:#888; }
-  .order-row .value { font-weight:600; color:#fff; }
-  .order-row.total .value { font-size:20px; font-weight:800; color:#3dd68c; letter-spacing:-0.5px; }
-  .order-row.total .label { color:#ccc; font-weight:500; }
-  .buyer-box { background:#f9f9f9; border:1px solid #eee; border-radius:10px; padding:18px 22px; margin:20px 0; }
-  .buyer-box h3 { font-size:14px; font-weight:700; color:#111; margin:0 0 10px; }
-  .buyer-box p { font-size:13px; color:#333; margin:4px 0; }
-  .delivery-box { background:#eef4ff; border:1px solid #c9ddff; border-radius:10px; padding:20px 24px; margin:20px 0; }
-  .delivery-box h3 { font-size:14px; font-weight:700; color:#1d4ed8; margin:0 0 10px; }
-  .delivery-box p { font-size:13px; color:#1d4ed8; margin:4px 0; line-height:1.6; }
-  .note-box { background:#fff8e6; border:1px solid #fde68a; border-radius:8px; padding:14px 18px; margin:16px 0; }
-  .note-box p { margin:0; font-size:13px; color:#92400e; line-height:1.6; }
-  .btn { display:inline-block; background:#0a0a0a; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:8px; font-size:14px; font-weight:600; margin:8px 0 20px; }
-  .footer { background:#f9f9f9; padding:20px 40px; border-top:1px solid #eee; }
-  .footer p { font-size:12px; color:#999; margin:0; line-height:1.6; }
+  .order-row .label { color:#8a8a85; }
+  .order-row .value { font-weight:500; color:#151515; }
+  .order-row.total .value { font-size:20px; font-weight:600; color:#151515; letter-spacing:-0.02em; }
+  .order-row.total .label { color:#151515; font-weight:500; }
+  .buyer-box { background:#f6f6f4; border:1px solid #e8e8e4; border-radius:14px; padding:18px 22px; margin:20px 0; }
+  .buyer-box h3 { font-size:14px; font-weight:600; color:#151515; margin:0 0 10px; }
+  .buyer-box p { font-size:13px; color:#3d3d3a; margin:4px 0; }
+  .delivery-box { background:#f6f6f4; border:1px solid #e8e8e4; border-radius:14px; padding:20px 24px; margin:20px 0; }
+  .delivery-box h3 { font-size:14px; font-weight:600; color:#151515; margin:0 0 10px; }
+  .delivery-box p { font-size:13px; color:#3d3d3a; margin:4px 0; line-height:1.6; }
+  .note-box { background:#f6f6f4; border:1px solid #e8e8e4; border-radius:14px; padding:14px 18px; margin:16px 0; }
+  .note-box p { margin:0; font-size:13px; color:#3d3d3a; line-height:1.6; }
+  .btn { display:inline-block; background:#151515; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:999px; font-size:14px; font-weight:500; margin:8px 0 20px; }
+  .footer { background:#ffffff; padding:20px 40px; border-top:1px solid #e8e8e4; }
+  .footer p { font-size:12px; color:#8a8a85; margin:0; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -238,7 +238,7 @@
       <div class="logo">{{platform_name}}<span>Nouvelle commande #{{order_id}}</span></div>
     </div>
     <div class="body">
-      <h1>🛎️ Nouvelle commande, {{to_name}} !</h1>
+      <h1>Nouvelle commande, {{to_name}}</h1>
       <p>Tu viens de recevoir une nouvelle commande sur <strong>{{platform_name}}</strong>.</p>
 
       <div class="order-box">
@@ -257,13 +257,13 @@
       </div>
 
       <div class="buyer-box">
-        <h3>👤 Client</h3>
+        <h3>Client</h3>
         <p><strong>Nom :</strong> {{buyer_name}}</p>
         <p><strong>Téléphone :</strong> {{buyer_phone}}</p>
       </div>
 
       <div class="delivery-box">
-        <h3>📅 Livraison souhaitée</h3>
+        <h3>Livraison souhaitée</h3>
         <p><strong>Date :</strong> {{delivery_date}}</p>
         <p><strong>Heure :</strong> {{delivery_time}}</p>
         <p><strong>Lieu :</strong> {{delivery_type}}</p>
@@ -271,14 +271,14 @@
       </div>
 
       <div class="note-box">
-        <p>📝 <strong>Modifications demandées :</strong> {{notes}}</p>
+        <p><strong>Modifications demandées :</strong> {{notes}}</p>
       </div>
 
       <a href="{{admin_url}}" class="btn">Voir la commande →</a>
     </div>
     <div class="footer">
       <p>{{platform_name}} · Marketplace  · {{year}}<br>
-      Contact : <a href="mailto:{{platform_email}}" style="color:#555">{{platform_email}}</a></p>
+      Contact : <a href="mailto:{{platform_email}}" style="color:#6b6b66">{{platform_email}}</a></p>
     </div>
   </div>
 </div>

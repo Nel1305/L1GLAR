@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>N Market</title>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <script src="js/theme.js"></script>
 </head>
 <body>
@@ -13,7 +11,7 @@
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
 <div class="mobile-topbar">
   <button class="hamburger-btn" id="hamburgerBtn" title="Menu">☰</button>
-  <div class="mt-title">★ N Market ★</div>
+  <div class="mt-title">N Market</div>
   <button class="mobile-cart-btn" data-page="cart" title="Panier">🛒<span class="cart-count" id="cartCountMobile" style="display:none">0</span></button>
 </div>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -178,15 +176,15 @@
         <div class="field"><label>Email</label><input type="email" id="lEmail" placeholder="ton@email.com"></div>
         <div class="field"><label>Mot de passe</label><input type="password" id="lPass" placeholder="••••••••"></div>
         <button class="btn-primary" id="loginBtn">Se connecter</button>
-        <div class="modal-link" style="margin-top:4px"><a id="goAccessKey">Se connecter avec ma clé d'accès</a></div>
+        <div class="modal-link" style="margin-top:4px"><a id="goForgot">Mot de passe oublié ?</a></div>
         <div class="modal-sep">ou</div>
         <div class="modal-link">Pas de compte ? <a id="goRegister">S'inscrire</a></div>
       </div>
-      <div class="modal-form" id="loginFormKey" style="display:none">
-        <div class="field"><label>Clé d'accès</label><input type="text" id="lAccessKey" placeholder="Ex : A1B2C3D4E5" style="text-transform:uppercase;letter-spacing:1px"></div>
-        <div class="hint">Ta clé d'accès personnelle se trouve dans ton espace vendeur, section Profil. Elle te permet de te connecter sans mot de passe.</div>
-        <button class="btn-primary" id="loginKeyBtn">Se connecter</button>
-        <div class="modal-link" style="margin-top:4px"><a id="goPasswordLogin">Se connecter avec mon email</a></div>
+      <div class="modal-form" id="loginFormForgot" style="display:none">
+        <div class="field"><label>Email du compte</label><input type="email" id="fEmail" placeholder="ton@email.com"></div>
+        <div class="hint">Nous t'envoyons un lien sécurisé pour choisir un nouveau mot de passe.</div>
+        <button class="btn-primary" id="forgotBtn">Envoyer le lien</button>
+        <div class="modal-link" style="margin-top:4px"><a id="goPasswordLogin">Retour à la connexion</a></div>
       </div>
     </div>
     <div id="viewRegister" style="display:none">
@@ -199,10 +197,21 @@
         <div class="field"><label>Email</label><input type="email" id="rEmail" placeholder="ton@email.com"></div>
         <div class="field"><label>Téléphone</label><input type="tel" id="rPhone" placeholder="+221 77 …"></div>
         <div class="field"><label>Filière</label><select id="rFiliere"><option value="">— Sélectionner —</option></select></div>
-        <div class="field"><label>Mot de passe</label><input type="password" id="rPass" placeholder="Min. 6 caractères"></div>
+        <div class="field"><label>Mot de passe</label><input type="password" id="rPass" placeholder="Min. 8 caractères" autocomplete="new-password"></div>
         <button class="btn-primary" id="registerBtn">Créer mon compte</button>
         <div class="modal-link">Déjà inscrit ? <a id="goLogin">Se connecter</a></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="recoveryModal">
+  <div class="modal">
+    <button class="modal-x" data-close="recoveryModal">✕</button>
+    <div class="modal-title">Nouveau mot de passe</div><div class="modal-sub">Choisis un mot de passe d'au moins 8 caractères</div>
+    <div class="modal-form">
+      <div class="field"><label>Nouveau mot de passe</label><input type="password" id="newPass" autocomplete="new-password"></div>
+      <button class="btn-primary" id="saveNewPassBtn">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -317,9 +326,9 @@
 </div>
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/config.js"></script><script src="js/db.js"></script><script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="js/vendor/supabase.js"></script>
+<script src="js/config.js"></script><script src="js/db.js"></script><script src="js/vendor/emailjs.min.js"></script>
 <script src="js/email.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="js/vendor/html2canvas.min.js"></script>
 <script src="js/main.js"></script>
 </body></html>
