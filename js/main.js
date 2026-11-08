@@ -3,6 +3,7 @@
 ═══════════════════════════════════════════════════ */
 
 let activeFilter = 'all';
+let sortKey = 'reco', fPriceMin = null, fPriceMax = null, fStock = false, fRating = false;
 let searchQ      = '';
 let allProducts  = [];
 let allSellers   = [];
@@ -67,23 +68,88 @@ function populateReviewProductSelect() {
     allProducts.map(x => `<option value="${Number(x.id)}">${esc(x.name)} — ${esc(x.sellerName)}</option>`).join('');
 }
 
+function matchesFilters(p, skipCat) {
+  if (!skipCat && activeFilter !== 'all' && p.cat !== activeFilter) return false;
+  if (searchQ && !(p.name.toLowerCase().includes(searchQ) || p.sellerName.toLowerCase().includes(searchQ) || (p.desc||'').toLowerCase().includes(searchQ))) return false;
+  if (fPriceMin != null && p.price < fPriceMin) return false;
+  if (fPriceMax != null && p.price > fPriceMax) return false;
+  if (fStock && isOutOfStock(p)) return false;
+  if (fRating && !(p.rating >= 4)) return false;
+  return true;
+}
+function activeFilterCount() { return (fPriceMin != null || fPriceMax != null ? 1 : 0) + (fStock ? 1 : 0) + (fRating ? 1 : 0); }
+
+function sortProducts(list) {
+  const byReco = (a, b) => (b.rating - a.rating) || ((b.votes||0) - (a.votes||0));
+  const fns = {
+    reco: byReco,
+    rating: byReco,
+    new: (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+    priceAsc: (a, b) => a.price - b.price,
+    priceDesc: (a, b) => b.price - a.price,
+  };
+  return [...list].sort(fns[sortKey] || byReco);
+}
+
+function resetAllFilters() {
+  fPriceMin = fPriceMax = null; fStock = false; fRating = false; searchQ = ''; activeFilter = 'all';
+  const set = (id, v) => { const e = document.getElementById(id); if (e) { if (e.type === 'checkbox') e.checked = v; else e.value = v; } };
+  set('fPriceMin', ''); set('fPriceMax', ''); set('fStock', false); set('fRating', false); set('searchInput', ''); set('filterSelect', 'all');
+  document.querySelectorAll('#filterButtons .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+  renderProducts();
+}
+
+function renderActiveChips() {
+  const box = document.getElementById('activeFilters'); if (!box) return;
+  const chips = [];
+  if (activeFilter !== 'all') { const c = getCategories().find(x => x.slug === activeFilter); chips.push(['cat', c ? c.label : activeFilter]); }
+  if (searchQ) chips.push(['q', '« ' + searchQ + ' »']);
+  if (fPriceMin != null || fPriceMax != null) chips.push(['price', (fPriceMin != null ? fPriceMin.toLocaleString() : '0') + ' – ' + (fPriceMax != null ? fPriceMax.toLocaleString() : '∞') + ' FCFA']);
+  if (fStock) chips.push(['stock', 'En stock']);
+  if (fRating) chips.push(['rating', '4 ★ et plus']);
+  box.innerHTML = chips.map(([k, t]) => `<button type="button" class="chip" data-rm="${k}">${esc(t)} <span aria-hidden="true">✕</span><span class="sr">retirer</span></button>`).join('') +
+    (chips.length > 1 ? '<button type="button" class="chip-clear" data-rm="all">Tout effacer</button>' : '');
+  box.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.rm;
+    if (k === 'all') return resetAllFilters();
+    if (k === 'cat') { activeFilter = 'all'; document.getElementById('filterSelect').value = 'all'; document.querySelectorAll('#filterButtons .filter-btn').forEach(x => x.classList.toggle('active', x.dataset.filter === 'all')); }
+    if (k === 'q') { searchQ = ''; document.getElementById('searchInput').value = ''; }
+    if (k === 'price') { fPriceMin = fPriceMax = null; document.getElementById('fPriceMin').value = ''; document.getElementById('fPriceMax').value = ''; }
+    if (k === 'stock') { fStock = false; document.getElementById('fStock').checked = false; }
+    if (k === 'rating') { fRating = false; document.getElementById('fRating').checked = false; }
+    renderProducts();
+  }));
+}
+
 function renderProducts() {
   const grid = document.getElementById('productsGrid');
-  const list = allProducts.filter(p =>
-    (activeFilter === 'all' || p.cat === activeFilter) &&
-    (p.name.toLowerCase().includes(searchQ) || p.sellerName.toLowerCase().includes(searchQ) || (p.desc||'').toLowerCase().includes(searchQ))
-  );
+  const list = allProducts.filter(p => matchesFilters(p, false));
 
-  if (!list.length) { grid.innerHTML = '<div class="empty">Aucun produit disponible.</div>'; bindProductGridEvents(grid); return; }
-
-  // Tri : les produits les mieux notés sont mis en avant dans le catalogue
-  const sorted = [...list].sort((a,b) => {
-    if (b.rating !== a.rating) return b.rating - a.rating;
-    return (b.votes||0) - (a.votes||0);
+  // compteurs par catégorie (en tenant compte des autres filtres)
+  const counts = {}; let totalAll = 0;
+  allProducts.forEach(p => { if (matchesFilters(p, true)) { counts[p.cat] = (counts[p.cat] || 0) + 1; totalAll++; } });
+  document.querySelectorAll('#filterButtons .filter-btn').forEach(b => {
+    const n = b.dataset.filter === 'all' ? totalAll : (counts[b.dataset.filter] || 0);
+    let c = b.querySelector('.cnt'); if (!c) { c = document.createElement('span'); c.className = 'cnt'; b.appendChild(c); }
+    c.textContent = n;
   });
+  const fc = document.getElementById('fCount'), n = activeFilterCount();
+  if (fc) { fc.hidden = !n; fc.textContent = n; }
+  const rc = document.getElementById('resultCount');
+  if (rc) rc.textContent = list.length + ' produit' + (list.length > 1 ? 's' : '');
+  const apply = document.getElementById('fpApply'); if (apply) apply.textContent = 'Voir ' + list.length + ' résultat' + (list.length > 1 ? 's' : '');
+  renderActiveChips();
 
-  // Section "Sponsorisé" : produits dont une promotion est active, parmi la liste filtrée
-  const sponsored = activeFilter === 'all' && !searchQ ? sorted.filter(p => promotedIds.includes(p.id)) : [];
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty">Aucun produit ne correspond.<br><button type="button" class="btn-ghost" id="emptyReset" style="margin-top:12px">Effacer les filtres</button></div>`;
+    const r = document.getElementById('emptyReset'); if (r) r.addEventListener('click', resetAllFilters);
+    return;
+  }
+
+  const sorted = sortProducts(list);
+  // Section « Sponsorisé » : seulement en tri recommandé, sans filtre
+  const noFilter = activeFilter === 'all' && !searchQ && !activeFilterCount() && sortKey === 'reco';
+  const sponsored = noFilter ? sorted.filter(p => promotedIds.includes(p.id)) : [];
   const rest = sponsored.length ? sorted.filter(p => !promotedIds.includes(p.id)) : sorted;
 
   let html = '';
@@ -97,31 +163,30 @@ function renderProducts() {
 }
 
 function productCardHtml(p, isSponsored) {
+  const out = isOutOfStock(p);
+  const low = p.trackStock && p.stock > 0 && p.stock <= 3;
+  const cat = getCategories().find(c => c.slug === p.cat);
   return `
-    <div class="card${isSponsored?' sponsored':''}">
-      <div class="card-img cat-${esc(p.cat)}" data-detail="${p.id}">${thumbHtml(p, p.name)}</div>
+    <article class="card${isSponsored?' sponsored':''}${out?' is-out':''}">
+      <div class="card-img cat-${esc(p.cat)}" data-detail="${p.id}" role="button" tabindex="0" aria-label="Voir ${esc(p.name)}">${thumbHtml(p, p.name)}${out?'<span class="img-flag">Rupture de stock</span>':''}</div>
       <div class="card-body">
-        ${isSponsored ? `<div class="sponsored-badge">★ Sponsorisé</div>` : ''}
-        ${catBadge(p.cat)}${stockBadgeHtml(p)}
-        <div class="card-name" data-detail="${p.id}" style="cursor:pointer">${esc(p.name)}</div>
-        ${p.desc ? `<div class="card-desc">${esc(p.desc)}</div>` : ''}
-        <div class="card-seller">Par <span class="shop-link" data-shop="${p.sellerId}">${esc(p.sellerName)}</span>${sellerFiliere(p.sellerId)?` <span class="seller-filiere">· ${sellerFiliere(p.sellerId)}</span>`:''}</div>
+        <div class="card-meta">${isSponsored ? '<span class="sp-tag">Sponsorisé</span>' : ''}${cat ? esc(cat.label) : ''}${low ? `<span class="card-low">Plus que ${p.stock}</span>` : ''}</div>
+        <h3 class="card-name" data-detail="${p.id}" role="button" tabindex="0">${esc(p.name)}</h3>
+        <div class="card-seller">${esc(p.sellerName)}<span class="shop-link" data-shop="${p.sellerId}">Voir la boutique</span></div>
         <div class="card-row">
-          <div class="card-price">${p.price.toLocaleString()} FCFA</div>
-          <div class="card-rating"><span style="color:var(--gold)">★</span> ${p.rating||'—'} ${p.votes?`<span style="color:var(--t3)">(${p.votes})</span>`:''}</div>
+          <div class="card-price">${p.price.toLocaleString()} <small>FCFA</small></div>
+          <div class="card-rating" title="Note moyenne">${p.rating ? '★ ' + p.rating + (p.votes ? ` <span>(${p.votes})</span>` : '') : '<span>Pas encore noté</span>'}</div>
         </div>
-        <div class="card-actions">
-          <button class="btn-detail" data-detail="${p.id}">Détails & avis</button>
-          <button class="btn-order" data-id="${p.id}" data-name="${esc(p.name)}" ${isOutOfStock(p)?'disabled':''}>${isOutOfStock(p)?'Rupture':'🛒 Ajouter'}</button>
-        </div>
+        <button class="btn-order" data-id="${p.id}" data-name="${esc(p.name)}" ${out?'disabled':''}>${out?'Indisponible':'Ajouter au panier'}</button>
       </div>
-    </div>`;
+    </article>`;
 }
 
 function bindProductGridEvents(grid) {
-  grid.querySelectorAll('[data-detail]').forEach(el =>
-    el.addEventListener('click', () => openProductDetail(parseInt(el.dataset.detail)))
-  );
+  grid.querySelectorAll('[data-detail]').forEach(el => {
+    el.addEventListener('click', () => openProductDetail(parseInt(el.dataset.detail)));
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProductDetail(parseInt(el.dataset.detail)); } });
+  });
   grid.querySelectorAll('.btn-order:not(:disabled)').forEach(btn =>
     btn.addEventListener('click', () => addToCart(parseInt(btn.dataset.id)))
   );
@@ -234,6 +299,21 @@ function initFilters() {
     searchQ = e.target.value.toLowerCase().trim();
     renderProducts();
   });
+
+  document.getElementById('sortSelect').addEventListener('change', e => { sortKey = e.target.value; renderProducts(); });
+  const num = v => { const n = parseInt(v, 10); return isNaN(n) || n < 0 ? null : n; };
+  document.getElementById('fPriceMin').addEventListener('input', e => { fPriceMin = num(e.target.value); renderProducts(); });
+  document.getElementById('fPriceMax').addEventListener('input', e => { fPriceMax = num(e.target.value); renderProducts(); });
+  document.getElementById('fStock').addEventListener('change', e => { fStock = e.target.checked; renderProducts(); });
+  document.getElementById('fRating').addEventListener('change', e => { fRating = e.target.checked; renderProducts(); });
+  document.getElementById('fpReset').addEventListener('click', resetAllFilters);
+  const panel = document.getElementById('filtersPanel'), ov = document.getElementById('fpOverlay');
+  const openP = () => { panel.classList.add('open'); ov.classList.add('show'); document.body.classList.add('fp-open'); };
+  const closeP = () => { panel.classList.remove('open'); ov.classList.remove('show'); document.body.classList.remove('fp-open'); };
+  document.getElementById('openFilters').addEventListener('click', openP);
+  document.getElementById('fpClose').addEventListener('click', closeP);
+  document.getElementById('fpApply').addEventListener('click', closeP);
+  ov.addEventListener('click', closeP);
 }
 
 /* ── CART (PANIER) ── */
@@ -264,16 +344,17 @@ function updateCartBadge() {
     else el.style.display = 'none';
   });
 }
-function addToCart(productId) {
+function addToCart(productId, addQty) {
+  addQty = Math.max(1, parseInt(addQty, 10) || 1);
   const p = allProducts.find(x => x.id === productId);
   if (!p) return;
   const existing = cart.find(i => i.productId === productId);
-  const wantQty = (existing ? existing.qty : 0) + 1;
+  const wantQty = (existing ? existing.qty : 0) + addQty;
   if (p.trackStock && wantQty > p.stock) { showToast('Stock insuffisant', `Il ne reste que ${p.stock} unité(s) de ce produit.`, 'var(--red)'); return; }
-  if (existing) existing.qty++;
-  else cart.push({ productId, qty: 1, note: '' });
+  if (existing) existing.qty += addQty;
+  else cart.push({ productId, qty: addQty, note: '' });
   saveCart();
-  showCartPopup(p, existing ? existing.qty : 1);
+  showCartPopup(p, addQty);
   if (document.getElementById('page-cart').classList.contains('active')) renderCart();
 }
 /* Popup « Ajouté au panier » */
@@ -368,15 +449,24 @@ async function openProductDetail(id) {
   const filiere = sellerFiliere(p.sellerId);
   document.getElementById('pdContent').innerHTML = `
     <div class="pd-img cat-${esc(p.cat)}">${thumbHtml(p, p.name)}</div>
-    ${catBadge(p.cat)}${stockBadgeHtml(p)}
     <div class="pd-title">${esc(p.name)}</div>
-    <div class="pd-seller">Par <span class="shop-link" id="pdShopLink">${esc(p.sellerName)}</span>${filiere?` <span class="seller-filiere">· ${filiere}</span>`:''}</div>
-    ${p.desc ? `<div class="pd-desc">${esc(p.desc)}</div>` : ''}
+    <div class="pd-seller">Vendu par <span class="shop-link" id="pdShopLink">${esc(p.sellerName)}</span>${filiere?` <span class="seller-filiere">· ${filiere}</span>`:''}</div>
     <div class="pd-row">
-      <div class="pd-price">${p.price.toLocaleString()} FCFA</div>
-      <div class="pd-rating">★ ${p.rating||'—'} ${p.votes?`(${p.votes} avis)`:''}</div>
+      <div class="pd-price">${p.price.toLocaleString()} <small>FCFA</small></div>
+      <div class="pd-rating">${p.rating ? '★ ' + p.rating + (p.votes ? ` (${p.votes} avis)` : '') : 'Pas encore noté'}</div>
     </div>
-    <button class="btn-primary" id="pdAddBtn" ${isOutOfStock(p)?'disabled':''}>${isOutOfStock(p)?'Rupture de stock':'🛒 Ajouter au panier'}</button>
+    ${stockBadgeHtml(p)}
+    ${p.desc ? `<div class="pd-desc">${esc(p.desc)}</div>` : ''}
+    <div class="pd-buy">
+      <div class="qty" ${isOutOfStock(p)?'hidden':''}>
+        <button type="button" id="pdMinus" aria-label="Moins">−</button><span id="pdQty">1</span><button type="button" id="pdPlus" aria-label="Plus">+</button>
+      </div>
+      <button class="btn-primary" id="pdAddBtn" ${isOutOfStock(p)?'disabled':''}>${isOutOfStock(p)?'Rupture de stock':'Ajouter au panier'}</button>
+    </div>
+    <ul class="pd-info">
+      <li><strong>Livraison</strong><span>Sur le campus ou à l'adresse de ton choix, à la date que tu indiques. Le vendeur te contacte pour confirmer.</span></li>
+      <li><strong>Retour</strong><span>Demande un retour avec le code de ton reçu (NM-…).</span></li>
+    </ul>
     <div class="pd-reviews">
       <h4>Avis sur ce produit (${reviews.length})</h4>
       ${reviews.length ? reviews.map(r => `
@@ -390,7 +480,13 @@ async function openProductDetail(id) {
     </div>
   `;
   const addBtn = document.getElementById('pdAddBtn');
-  if (addBtn && !addBtn.disabled) addBtn.addEventListener('click', () => { addToCart(id); closeModal('productDetailModal'); });
+  let q = 1; const maxQ = p.trackStock ? Math.max(1, p.stock) : 99;
+  const qEl = document.getElementById('pdQty');
+  const setQ = v => { q = Math.min(maxQ, Math.max(1, v)); if (qEl) qEl.textContent = q; };
+  const mi = document.getElementById('pdMinus'), pl = document.getElementById('pdPlus');
+  if (mi) mi.addEventListener('click', () => setQ(q - 1));
+  if (pl) pl.addEventListener('click', () => setQ(q + 1));
+  if (addBtn && !addBtn.disabled) addBtn.addEventListener('click', () => { addToCart(id, q); closeModal('productDetailModal'); });
   document.getElementById('pdShopLink').addEventListener('click', () => { closeModal('productDetailModal'); openShop(p.sellerId); });
   openModal('productDetailModal');
 }

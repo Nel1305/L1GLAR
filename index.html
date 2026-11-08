@@ -36,14 +36,50 @@
     <div id="page-products" class="page active">
       <div class="page-header"><div><div class="page-title">Produits</div><div class="page-desc">Parcourez les offres de vos camarades</div></div></div>
       <div class="ad-banners-list" id="adBannersList"></div>
-      <div class="toolbar">
-        <div class="search-wrap"><span class="s-icon">🔍</span><input type="text" id="searchInput" placeholder="Rechercher…"></div>
-        <div class="filters" id="filterButtons">
-          <button class="filter-btn active" data-filter="all">Tout</button>
+      <ul class="assure" aria-label="Comment ça marche">
+        <li><strong>Commande simple</strong><span>Sans compte, en quelques champs</span></li>
+        <li><strong>Livraison</strong><span>Sur le campus ou à une adresse</span></li>
+        <li><strong>Le vendeur te rappelle</strong><span>Il confirme avec toi</span></li>
+        <li><strong>Retour par code</strong><span>Avec le code de ton reçu</span></li>
+      </ul>
+      <div class="shop-layout">
+        <aside class="filters-panel" id="filtersPanel" aria-label="Filtres">
+          <div class="fp-head"><strong>Filtres</strong><button type="button" class="fp-close" id="fpClose" aria-label="Fermer">✕</button></div>
+          <div class="fp-group">
+            <div class="fp-title">Prix (FCFA)</div>
+            <div class="fp-price"><input type="number" inputmode="numeric" min="0" id="fPriceMin" placeholder="Min"><span>–</span><input type="number" inputmode="numeric" min="0" id="fPriceMax" placeholder="Max"></div>
+          </div>
+          <div class="fp-group">
+            <div class="fp-title">Disponibilité</div>
+            <label class="fp-check"><input type="checkbox" id="fStock"><span>En stock uniquement</span></label>
+          </div>
+          <div class="fp-group">
+            <div class="fp-title">Note</div>
+            <label class="fp-check"><input type="checkbox" id="fRating"><span>4 ★ et plus</span></label>
+          </div>
+          <div class="fp-foot"><button type="button" class="btn-ghost" id="fpReset">Tout effacer</button><button type="button" class="btn-primary" id="fpApply">Voir les résultats</button></div>
+        </aside>
+        <div class="shop-main">
+          <div class="toolbar">
+            <div class="search-wrap"><span class="s-icon">🔍</span><input type="search" id="searchInput" placeholder="Rechercher un produit ou un vendeur" autocomplete="off"></div>
+            <select class="select-sm sort-select" id="sortSelect" aria-label="Trier">
+              <option value="reco">Recommandés</option>
+              <option value="new">Plus récents</option>
+              <option value="priceAsc">Prix croissant</option>
+              <option value="priceDesc">Prix décroissant</option>
+              <option value="rating">Mieux notés</option>
+            </select>
+            <button type="button" class="btn-filter" id="openFilters">Filtres<span class="fcount" id="fCount" hidden></span></button>
+          </div>
+          <div class="filters" id="filterButtons">
+            <button class="filter-btn active" data-filter="all">Tout</button>
+          </div>
+          <select class="select-sm filter-select" id="filterSelect"></select>
+          <div class="result-line"><span id="resultCount" aria-live="polite"></span><div class="chips" id="activeFilters"></div></div>
+          <div id="productsGrid"></div>
         </div>
-        <select class="select-sm filter-select" id="filterSelect"></select>
       </div>
-      <div id="productsGrid"></div>
+      <div class="fp-overlay" id="fpOverlay"></div>
     </div>
     <div id="page-cart" class="page">
       <div class="page-header"><div><div class="page-title">Panier</div><div class="page-desc">Vérifie ta commande avant de valider</div></div></div>
