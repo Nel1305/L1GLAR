@@ -650,14 +650,10 @@ async function submitOrder() {
     document.getElementById('waContactP').hidden = false;
   }
 
-  // Remplit le ticket (hors écran) et le télécharge automatiquement
+  // Affiche le ticket, puis demande au client s'il veut le télécharger
   fillTicket(createdOrders, { name, phone, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress, classe, filiere, grandTotal });
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      setTimeout(() => downloadTicket(), 150);
-    });
-  });
   document.getElementById('orderSuccess').scrollIntoView({ behavior:'smooth' });
+  setTimeout(() => openModal('ticketAsk'), 700);
 
   // Vide le panier et réinitialise le formulaire
   cart = []; saveCart(); renderCart();
@@ -956,4 +952,10 @@ document.addEventListener('DOMContentLoaded', () => {
     else { if (grp.parentNode) grp.remove(); anchor.parentNode.insertBefore(chips, anchor.nextSibling); chips.classList.remove('in-rail'); }
   };
   place(); (mq.addEventListener ? mq.addEventListener('change', place) : mq.addListener(place));
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const yes = document.getElementById('ticketAskYes'), no = document.getElementById('ticketAskNo');
+  if (yes) yes.addEventListener('click', () => { closeModal('ticketAsk'); setTimeout(downloadTicket, 150); });
+  if (no) no.addEventListener('click', () => closeModal('ticketAsk'));
 });
