@@ -1,3 +1,5 @@
+> **Base neuve ? Voir NOUVELLE_BASE_LISEZMOI.md (ordre : 00 → 01 → 04 → 05 → 06 → 07).**
+
 # N Market — refonte sécurité : mode d'emploi
 
 ## Ce qui change

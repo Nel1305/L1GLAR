@@ -4,7 +4,9 @@
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  // Le Super Admin a sa PROPRE session : s'y connecter ou en sortir ne touche plus la session vendeur/client
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true,
+          storageKey: /superadmin/i.test(location.pathname) ? 'nm-admin-auth' : 'nm-user-auth' }
 });
 
 /* ── ÉCHAPPEMENT HTML (anti-XSS) ──
@@ -46,7 +48,7 @@ function jsArg(v) { return esc(JSON.stringify(v === undefined ? null : v)); }
 let _profile = null;
 function getSession()   { return _profile; }
 function setSession(u)  { _profile = u; }
-async function clearSession() { _profile = null; try { await db.auth.signOut(); } catch (e) {} }
+async function clearSession() { _profile = null; try { await db.auth.signOut({ scope: 'local' }); } catch (e) {} }   // local : ne déconnecte pas les autres appareils / sessions
 
 const USER_COLS = 'id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at, verified, verification_status, verif_deadline, verif_submitted_at';
 
@@ -65,7 +67,11 @@ function authErrMsg(error) {
   const m = (error && error.message) || '';
   if (/invalid login credentials/i.test(m)) return 'Email ou mot de passe incorrect.';
   if (/email not confirmed/i.test(m))       return 'Confirme d\'abord ton email (lien reçu par mail).';
-  if (/already registered|already been registered|déjà utilisé|Database error saving new user/i.test(m)) return 'Cet email est déjà utilisé.';
+  if (/already registered|already been registered|déjà utilisé/i.test(m)) return 'Cet email est déjà utilisé.';
+  if (/Database error saving new user/i.test(m)) return 'Création impossible : email déjà utilisé, ou erreur du serveur. Si cet email est nouveau, préviens l\'administrateur (erreur base de données).';
+  if (/email.*(rate|limit)|over_email_send_rate_limit/i.test(m)) return 'Trop d\'emails envoyés pour le moment. Réessaie dans une heure.';
+  if (/signups? (not allowed|disabled)/i.test(m)) return 'Les inscriptions sont désactivées pour le moment.';
+  if (/redirect/i.test(m) && /not allowed|invalid/i.test(m)) return 'Adresse de redirection non autorisée (réglage Supabase).';
   if (/rate limit|too many/i.test(m))       return 'Trop de tentatives. Réessaie dans quelques minutes.';
   if (/banned|suspend/i.test(m))            return 'Ton compte est actuellement suspendu. Contacte l\'administrateur.';
   if (/password/i.test(m) && /(short|least|weak)/i.test(m)) return 'Mot de passe trop faible (8 caractères minimum).';
