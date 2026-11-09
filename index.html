@@ -13,8 +13,7 @@
 <div class="app">
   <aside class="sidebar">
     <div class="logo-row">
-      <div class="logo"><div class="logo-name">N Market</div><div class="logo-sub">Université ESTM Dakar</div></div>
-      <button class="theme-toggle" title="Changer de thème">🌙</button>
+      <div class="logo"><div class="logo-name">N Market</div><div class="logo-under"><span class="logo-sub">Université ESTM Dakar</span></div></div>
     </div>
     <nav class="nav">
       <span class="nav-label">Catalogue</span>
@@ -28,20 +27,14 @@
         <div class="avatar" id="userAvatar">?</div>
         <div class="user-info"><div class="user-name" id="userName">Se connecter</div><div class="user-role" id="userRole">Visiteur</div></div>
       </div>
-      <a href="pages/admin.html" class="admin-btn highlight" id="adminBtn" style="display:none"><span class="icon">⚙</span>Mon espace vendeur</a>
       <a href="pages/superadmin.html" class="credit">codé par BUABEY Nel'si</a>
-    </div>
+      <a href="pages/admin.html" class="admin-btn highlight" id="adminBtn" style="display:none"><span class="icon">⚙</span>Mon espace vendeur</a>
+          </div>
   </aside>
   <main class="main">
     <div id="page-products" class="page active">
-      <div class="page-header"><div><div class="page-title">Produits</div><div class="page-desc">Parcourez les offres de vos camarades</div></div></div>
+      <div class="page-header"><div><div class="page-title">Produits</div><div class="page-desc">Parcourez les offres de vos camarades · <button type="button" class="link-btn" id="howBtn">Comment ça marche ?</button></div></div></div>
       <div class="ad-banners-list" id="adBannersList"></div>
-      <ul class="assure" aria-label="Comment ça marche">
-        <li><strong>Commande simple</strong><span>Sans compte, en quelques champs</span></li>
-        <li><strong>Livraison</strong><span>Sur le campus ou à une adresse</span></li>
-        <li><strong>Le vendeur te rappelle</strong><span>Il confirme avec toi</span></li>
-        <li><strong>Retour par code</strong><span>Avec le code de ton reçu</span></li>
-      </ul>
       <div class="shop-layout">
         <aside class="filters-panel" id="filtersPanel" aria-label="Filtres">
           <div class="fp-head"><strong>Filtres</strong><button type="button" class="fp-close" id="fpClose" aria-label="Fermer">✕</button></div>
@@ -147,7 +140,8 @@
             <p id="orderSuccessText"></p>
             <p style="margin-top:8px" id="waContactP" hidden><a class="btn-ghost" id="waContactLink" target="_blank" rel="noopener noreferrer">💬 Écrire sur WhatsApp</a></p>
             <p class="order-contact-note">🤝 <strong>Le vendeur te contactera dans peu de temps</strong> pour confirmer ta commande et la livraison. Garde ton téléphone à portée de main.</p>
-            <p style="margin-top:8px">📥 Ton ticket a été téléchargé automatiquement — conserve-le (le code de reçu sert pour un retour).</p>
+            <p class="order-contact-note">💳 <strong>Paiement</strong> : à la remise de la commande ou par Wave, comme convenu avec le vendeur.</p>
+            <p style="margin-top:8px">🧾 Ton ticket est affiché ci-dessous. Conserve-le : le code de reçu sert pour un retour.</p>
           </div>
           <div class="ticket-wrap" id="ticketWrap" style="display:none">
             <div class="ticket" id="ticketCard">
@@ -174,7 +168,7 @@
               <div class="ticket-foot">Conserve ce ticket (téléchargement ou capture d'écran) comme preuve de ta commande. Le <strong>code de reçu</strong> (NM-XXXX-XXXX) te permettra de signaler un retour si besoin.</div>
             </div>
             <div class="ticket-actions">
-              <button class="btn-ghost" id="downloadTicketBtn">⬇ Télécharger à nouveau</button>
+              <button class="btn-ghost" id="downloadTicketBtn">⬇ Télécharger mon ticket</button>
             </div>
           </div>
         </div>
@@ -330,6 +324,30 @@
       <div class="field"><label>Commentaire</label><textarea id="rvText" placeholder="C'était délicieux…"></textarea></div>
       <button class="btn-primary" id="submitReviewBtn">Publier l'avis</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="ticketAsk">
+  <div class="modal">
+    <h2 class="how-title">Télécharger ton ticket ?</h2>
+    <p class="how-sub">Il contient ton code de reçu (NM-…), utile pour un retour, et prouve ta commande. Tu peux aussi le télécharger plus tard depuis cette page.</p>
+    <div class="ask-actions"><button class="btn-ghost" id="ticketAskNo">Plus tard</button><button class="btn-primary" id="ticketAskYes">Oui, télécharger</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="howModal">
+  <div class="modal">
+    <button class="modal-x" data-close="howModal" aria-label="Fermer">✕</button>
+    <h2 class="how-title">Bienvenue sur N Market</h2>
+    <p class="how-sub">Comment ça marche, en 5 points :</p>
+    <ol class="how-list">
+      <li><strong>Commande simple</strong><span>Sans compte, en quelques champs.</span></li>
+      <li><strong>Livraison</strong><span>Sur le campus ou à une adresse.</span></li>
+      <li><strong>Le vendeur te rappelle</strong><span>Il confirme la commande avec toi.</span></li>
+      <li><strong>Paiement</strong><span>À la remise de la commande ou par Wave, comme convenu avec le vendeur.</span></li>
+      <li><strong>Retour par code</strong><span>Avec le code de ton reçu (NM-…).</span></li>
+    </ol>
+    <button class="btn-primary" id="howOk">J'ai compris</button>
   </div>
 </div>
 
