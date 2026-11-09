@@ -57,9 +57,14 @@ async function initSession() {
   const { data: { session } } = await db.auth.getSession();
   if (!session) { _profile = null; return null; }
   const { data, error } = await db.from('users').select(USER_COLS).eq('auth_id', session.user.id).maybeSingle();
-  if (error || !data) { _profile = null; return null; }          // compte Auth sans profil vendeur (ex. admin)
-  if (data.is_blocked) { await clearSession(); return null; }
-  _profile = nu(data);
+  let row = data;
+  if (!error && !row) {                 // compte Auth sans profil (ancien compte) : on le recrée côté serveur
+    const { data: pid } = await db.rpc('fn_ensure_profile');
+    if (pid) { const r2 = await db.from('users').select(USER_COLS).eq('auth_id', session.user.id).maybeSingle(); row = r2.data; }
+  }
+  if (error || !row) { _profile = null; return null; }          // compte Auth sans profil vendeur (ex. admin)
+  if (row.is_blocked) { await clearSession(); return null; }
+  _profile = nu(row);
   return _profile;
 }
 

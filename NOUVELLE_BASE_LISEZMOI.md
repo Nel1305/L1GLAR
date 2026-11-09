@@ -24,7 +24,8 @@ Non testé : Auth réel de Supabase (mails, confirmation), Edge Function WhatsAp
 | 4 | `secure_05_maps_whatsapp.sql` | carte, codes de reçu, WhatsApp (« bientôt ») |
 | 5 | `secure_06_verification.sql` | vérification vendeur (pièce d'identité + visage), badge, limites |
 | 6 | `secure_08_auto_confirm.sql` | plus de confirmation par email : comptes confirmés automatiquement |
-| 7 | `secure_07_repair_grants.sql` | droits d'exécution des fonctions — **toujours en dernier** |
+| 7 | `secure_09_orphan_auth.sql` | libère les emails d'anciens comptes restés dans Authentication |
+| 8 | `secure_07_repair_grants.sql` | droits d'exécution des fonctions — **toujours en dernier** |
 
 Ne saute pas `secure_02` : il ne sert que pour d'anciens comptes, inutile sur une base neuve.
 
