@@ -87,7 +87,14 @@ async function dbCreateUser(first, last, email, phone, pass, filiere) {
   });
   if (error) return { error: authErrMsg(error) };
   // Supabase renvoie un faux succès (sans session) si l'email existe déjà et que la confirmation est activée
-  if (!data.session) return { needsConfirmation: true };
+  if (!data.session) {
+    // Pas de confirmation par email : on ouvre la session aussitôt (si l'email existait déjà, le mot de passe sera refusé)
+    const { error: e2 } = await db.auth.signInWithPassword({ email: email.trim(), password: pass });
+    if (e2) {
+      if (/not confirmed/i.test(e2.message || '')) return { error: 'Confirmation par email encore active dans Supabase : désactive « Confirm email » (Authentication → Providers → Email) ou exécute secure_08_auto_confirm.sql.' };
+      return { error: 'Cet email est déjà utilisé. Connecte-toi ou réinitialise ton mot de passe.' };
+    }
+  }
   const u = await initSession();
   if (!u) return { error: 'Compte créé mais profil introuvable. Réessaie de te connecter.' };
   return { user: u };

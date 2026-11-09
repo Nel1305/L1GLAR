@@ -11,9 +11,8 @@ Non testé : Auth réel de Supabase (mails, confirmation), Edge Function WhatsAp
 2. **Authentication → URL Configuration** :
    - Site URL : `https://n-market-sigma.vercel.app`
    - Redirect URLs : `https://n-market-sigma.vercel.app/**`
-3. **Authentication → Providers → Email** : « Confirm email » activé ou non, au choix.
-   (Désactivé = inscription immédiate. Activé = limite d'envoi de mails de Supabase très basse
-   sans SMTP perso.)
+3. **Authentication → Providers → Email** : désactive « Confirm email » (inscription immédiate,
+   sans mail). `secure_08` le garantit aussi côté base.
 4. *(Optionnel, WhatsApp)* **Database → Extensions** : active `pg_net`.
 
 ## 2. SQL Editor — exécuter dans CET ordre, un fichier à la fois
@@ -24,7 +23,8 @@ Non testé : Auth réel de Supabase (mails, confirmation), Edge Function WhatsAp
 | 3 | `secure_04_super_admin.sql` | crée le compte Super Admin (email/mot de passe en haut du fichier : modifie-les avant) |
 | 4 | `secure_05_maps_whatsapp.sql` | carte, codes de reçu, WhatsApp (« bientôt ») |
 | 5 | `secure_06_verification.sql` | vérification vendeur (pièce d'identité + visage), badge, limites |
-| 6 | `secure_07_repair_grants.sql` | droits d'exécution des fonctions — **toujours en dernier** |
+| 6 | `secure_08_auto_confirm.sql` | plus de confirmation par email : comptes confirmés automatiquement |
+| 7 | `secure_07_repair_grants.sql` | droits d'exécution des fonctions — **toujours en dernier** |
 
 Ne saute pas `secure_02` : il ne sert que pour d'anciens comptes, inutile sur une base neuve.
 
