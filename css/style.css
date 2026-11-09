@@ -1427,10 +1427,6 @@ body.cart-empty .nav-item[data-page="cart"] { display: none; }
 .coming-soon p { font-size: .84rem; color: var(--t2); line-height: 1.6; margin: 0; }
 
 /* ═══ BOUTIQUE v3 — lisibilité avant tout (filtres, tri, cartes, fiche produit) ═══ */
-.assure { list-style: none; margin: 0 0 20px; padding: 14px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; border-top: 1px solid var(--b1); border-bottom: 1px solid var(--b1); }
-.assure li { display: flex; flex-direction: column; gap: 2px; }
-.assure strong { font-size: var(--fs-sm); font-weight: 600; color: var(--t1); }
-.assure span { font-size: var(--fs-xs); color: var(--t3); line-height: 1.4; }
 
 .shop-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; align-items: start; }
 .filters-panel { position: sticky; top: 20px; }
@@ -1501,8 +1497,7 @@ body.cart-empty .nav-item[data-page="cart"] { display: none; }
 @media (max-width: 1100px) { .shop-layout { grid-template-columns: 190px minmax(0, 1fr); gap: 20px; } }
 
 @media (max-width: 768px) {
-  .assure { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 12px 0; margin-bottom: 14px; }
-  .shop-layout { display: block; }
+    .shop-layout { display: block; }
   .shop-main .toolbar { flex-wrap: wrap; }
   .search-wrap { flex: 1 1 100%; }
   .sort-select { flex: 1; min-width: 0; }
@@ -1576,3 +1571,21 @@ body.cart-empty .nav-item[data-page="cart"] { display: none; }
   body[data-bnav="shop"] .shop-layout { grid-template-columns: 190px minmax(0, 1fr); gap: 18px; }
 }
 @media (min-width: 769px) and (max-width: 1100px) { .shop-main .grid { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 14px; } .card-img { aspect-ratio: 4 / 3; } }
+
+/* Thème sous le logo, crédit sous le profil, marges latérales réduites (boutique PC) */
+.logo-under { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.logo-under .logo-sub { margin: 0; }
+.logo-under .theme-toggle { width: 26px; height: 26px; min-height: 0; font-size: .85rem; line-height: 1; padding: 0; }
+.ask-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+.ask-actions .btn-primary { margin: 0; }
+@media (max-width: 1100px) { .logo-under .theme-toggle { display: none; } }   /* masqué sur téléphone/tablette étroite, comme demandé plus tôt */
+@media (min-width: 769px) {
+  body[data-bnav="shop"] .sidebar { padding: 0 14px; gap: 20px; }
+  body[data-bnav="shop"] .logo { flex-direction: column; align-items: flex-start; gap: 0; }
+  body[data-bnav="shop"] .logo-under .logo-sub { font-size: .58rem; }
+  body[data-bnav="shop"] .main { padding: 88px 14px 32px !important; max-width: none; }
+  body[data-bnav="shop"] .shop-layout { grid-template-columns: 200px minmax(0, 1fr); gap: 20px; }
+  body[data-bnav="shop"] .sidebar-footer { flex-direction: column; align-items: flex-end; gap: 1px; }
+  body[data-bnav="shop"] .credit { display: block; padding: 0; font-size: .58rem; }
+  body[data-bnav="shop"] .user-pill { padding: 4px 10px 4px 4px; }
+}
