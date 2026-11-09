@@ -465,6 +465,7 @@ async function openProductDetail(id) {
     </div>
     <ul class="pd-info">
       <li><strong>Livraison</strong><span>Sur le campus ou à l'adresse de ton choix, à la date que tu indiques. Le vendeur te contacte pour confirmer.</span></li>
+      <li><strong>Paiement</strong><span>À la remise de la commande ou par Wave, comme convenu avec le vendeur.</span></li>
       <li><strong>Retour</strong><span>Demande un retour avec le code de ton reçu (NM-…).</span></li>
     </ul>
     <div class="pd-reviews">
@@ -928,3 +929,31 @@ function syncSessionUI() {
     document.getElementById('adminBtn').style.display = 'none';
   }
 }
+
+
+/* ── Tutoriel « Comment ça marche » : s'ouvre à la première visite, puis via le lien sous le titre ── */
+document.addEventListener('DOMContentLoaded', () => {
+  const KEY = 'nm_tuto_v1';
+  const close = () => { closeModal('howModal'); try { localStorage.setItem(KEY, '1'); } catch (e) {} };
+  const ok = document.getElementById('howOk'), btn = document.getElementById('howBtn');
+  if (ok) ok.addEventListener('click', close);
+  if (btn) btn.addEventListener('click', () => openModal('howModal'));
+  document.querySelectorAll('[data-close="howModal"]').forEach(b => b.addEventListener('click', close));
+  let seen = false; try { seen = !!localStorage.getItem(KEY); } catch (e) {}
+  if (!seen) setTimeout(() => openModal('howModal'), 600);
+});
+
+/* ── Catégories : dans la colonne de filtres sur PC/tablette, en ligne défilante sur téléphone ── */
+document.addEventListener('DOMContentLoaded', () => {
+  const chips = document.getElementById('filterButtons'), panel = document.getElementById('filtersPanel');
+  if (!chips || !panel) return;
+  const anchor = document.createComment('chips'); chips.parentNode.insertBefore(anchor, chips);
+  const grp = document.createElement('div'); grp.className = 'fp-group fp-cats';
+  grp.innerHTML = '<div class="fp-title">Catégories</div>';
+  const mq = window.matchMedia('(min-width: 769px)');
+  const place = () => {
+    if (mq.matches) { grp.appendChild(chips); panel.insertBefore(grp, panel.querySelector('.fp-group:not(.fp-cats)')); chips.classList.add('in-rail'); }
+    else { if (grp.parentNode) grp.remove(); anchor.parentNode.insertBefore(chips, anchor.nextSibling); chips.classList.remove('in-rail'); }
+  };
+  place(); (mq.addEventListener ? mq.addEventListener('change', place) : mq.addListener(place));
+});

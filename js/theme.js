@@ -31,6 +31,7 @@
   }
 
   // Applique le thème mémorisé dès que possible (avant le rendu)
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}   // plus de bouton clair/sombre : le thème suit l'appareil
   apply(current());
 
   function updateButtons() {
