@@ -8,6 +8,10 @@ let searchQ      = '';
 let allProducts  = [];
 let allSellers   = [];
 let promotedIds  = [];
+function sellerBadge(sellerId) {
+  const u = allSellers.find(x => x.id === sellerId);
+  return u && u.verified ? ' <span class="vbadge" title="Vendeur vérifié : identité contrôlée par N Market">✓ Vérifié</span>' : '';
+}
 function sellerFiliere(sellerId) {
   const u = allSellers.find(x => x.id === sellerId);
   return u && u.filiere ? esc(getFiliereLabel(u.filiere)) : '';     // déjà échappé
@@ -172,7 +176,7 @@ function productCardHtml(p, isSponsored) {
       <div class="card-body">
         <div class="card-meta">${isSponsored ? '<span class="sp-tag">Sponsorisé</span>' : ''}${cat ? esc(cat.label) : ''}${low ? `<span class="card-low">Plus que ${p.stock}</span>` : ''}</div>
         <h3 class="card-name" data-detail="${p.id}" role="button" tabindex="0">${esc(p.name)}</h3>
-        <div class="card-seller">${esc(p.sellerName)}<span class="shop-link" data-shop="${p.sellerId}">Voir la boutique</span></div>
+        <div class="card-seller"><span>${esc(p.sellerName)}${sellerBadge(p.sellerId)}</span><span class="shop-link" data-shop="${p.sellerId}">Voir la boutique</span></div>
         <div class="card-row">
           <div class="card-price">${p.price.toLocaleString()} <small>FCFA</small></div>
           <div class="card-rating" title="Note moyenne">${p.rating ? '★ ' + p.rating + (p.votes ? ` <span>(${p.votes})</span>` : '') : '<span>Pas encore noté</span>'}</div>
@@ -399,7 +403,11 @@ function renderCart() {
   const items = cart.map(i => ({ ...i, p: allProducts.find(x => x.id === i.productId) })).filter(i => i.p);
   const empty = document.getElementById('cartEmpty');
   const content = document.getElementById('cartContent');
-  if (!items.length) { empty.style.display = ''; content.style.display = 'none'; return; }
+  const done = document.getElementById('orderSuccess');
+  const doneShown = !!done && done.style.display !== 'none';
+  if (!items.length) { empty.style.display = doneShown ? 'none' : ''; content.style.display = 'none'; return; }
+  // nouveau panier : on efface la confirmation / le ticket de la commande précédente
+  if (done) { done.style.display = 'none'; const tw = document.getElementById('ticketWrap'); if (tw) tw.style.display = 'none'; }
   empty.style.display = 'none'; content.style.display = '';
   const wrap = document.getElementById('cartItems');
   wrap.innerHTML = items.map(i => `
@@ -450,7 +458,7 @@ async function openProductDetail(id) {
   document.getElementById('pdContent').innerHTML = `
     <div class="pd-img cat-${esc(p.cat)}">${thumbHtml(p, p.name)}</div>
     <div class="pd-title">${esc(p.name)}</div>
-    <div class="pd-seller">Vendu par <span class="shop-link" id="pdShopLink">${esc(p.sellerName)}</span>${filiere?` <span class="seller-filiere">· ${filiere}</span>`:''}</div>
+    <div class="pd-seller">Vendu par <span class="shop-link" id="pdShopLink">${esc(p.sellerName)}</span>${sellerBadge(p.sellerId)}${filiere?` <span class="seller-filiere">· ${filiere}</span>`:''}</div>
     <div class="pd-row">
       <div class="pd-price">${p.price.toLocaleString()} <small>FCFA</small></div>
       <div class="pd-rating">${p.rating ? '★ ' + p.rating + (p.votes ? ` (${p.votes} avis)` : '') : 'Pas encore noté'}</div>
@@ -514,7 +522,7 @@ async function openShop(sellerId) {
     <div class="shop-header">
       <div class="shop-avatar">${esc((seller.name||'?')[0].toUpperCase())}</div>
       <div class="shop-info">
-        <div class="shop-name">${esc(seller.name)}</div>
+        <div class="shop-name">${esc(seller.name)}${seller.verified ? ' <span class="vbadge" title="Vendeur vérifié">✓ Vérifié</span>' : ''}</div>
         <div class="shop-meta">${filiere?esc(filiere)+' · ':''}${products.length} produit${products.length>1?'s':''}</div>
         ${avgRating ? `<div class="shop-rating">★ ${avgRating.toFixed(1)} note moyenne</div>` : ''}
       </div>
@@ -653,7 +661,8 @@ async function submitOrder() {
   // Affiche le ticket, puis demande au client s'il veut le télécharger
   fillTicket(createdOrders, { name, phone, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress, classe, filiere, grandTotal });
   document.getElementById('orderSuccess').scrollIntoView({ behavior:'smooth' });
-  setTimeout(() => openModal('ticketAsk'), 700);
+  // image du ticket prête d'abord, puis question au client
+  Promise.race([prepareTicket(), new Promise(r => setTimeout(r, 4000))]).then(() => setTimeout(() => openModal('ticketAsk'), 300));
 
   // Vide le panier et réinitialise le formulaire
   cart = []; saveCart(); renderCart();
@@ -710,39 +719,54 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('downloadTicketBtn').addEventListener('click', downloadTicket);
 });
 
-function downloadTicket() {
+/* Le ticket est converti en image AVANT de demander au client ce qu'il veut en faire :
+   le clic « Télécharger » n'a plus qu'à enregistrer un fichier déjà prêt (les navigateurs mobiles bloquent
+   un téléchargement lancé après un délai). */
+let ticketBlob = null, ticketName = 'ticket-commande.png', ticketPrep = null;
+
+function prepareTicket() {
+  ticketBlob = null;
   const el = document.getElementById('ticketCard');
-  if (typeof html2canvas === 'undefined') {
-    showToast('Indisponible', 'Fais une capture d\'écran de ce ticket comme preuve.', 'var(--orange)');
-    return;
+  ticketName = `ticket-commande-${document.getElementById('tkId').textContent.replace(/[^0-9–-]/g, '')}.png`;
+  if (typeof html2canvas === 'undefined' || !el) return (ticketPrep = Promise.resolve(null));
+  ticketPrep = (async () => {
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+    if (!canvas.width || !canvas.height) throw new Error('ticket invisible');
+    return await new Promise(res => canvas.toBlob(b => { ticketBlob = b; res(b); }, 'image/png'));
+  })().catch(() => null);
+  return ticketPrep;
+}
+
+/* Affiche l'image du ticket plein écran (appui long pour l'enregistrer) : dernier recours */
+function showTicketImage() {
+  if (!ticketBlob) { showToast('Ticket', 'Fais une capture d\'écran du ticket affiché.', 'var(--orange)'); return; }
+  const url = URL.createObjectURL(ticketBlob);
+  const ov = document.createElement('div');
+  ov.className = 'ticket-viewer';
+  ov.innerHTML = `<div class="tv-box"><img src="${url}" alt="Ticket de commande"><p>Appuie longuement sur l'image pour l'enregistrer, ou fais une capture d'écran.</p><button class="btn-primary" type="button">Fermer</button></div>`;
+  ov.querySelector('button').addEventListener('click', () => { ov.remove(); URL.revokeObjectURL(url); });
+  document.body.appendChild(ov);
+}
+
+async function downloadTicket() {
+  if (!ticketBlob) { showToast('Un instant…', 'Préparation du ticket', 'var(--t2)'); await (ticketPrep || prepareTicket()); }
+  if (!ticketBlob) { showToast('Téléchargement impossible', 'Fais une capture d\'écran du ticket affiché.', 'var(--red)'); return; }
+  const file = new File([ticketBlob], ticketName, { type: 'image/png' });
+  const isApple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // iPhone/iPad : l'attribut « download » est ignoré → feuille de partage (« Enregistrer l'image »)
+  if (isApple && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'Ticket N Market' }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
   }
-  // S'assurer que le ticket est bien visible avant la capture
-  const wrap = document.getElementById('ticketWrap');
-  wrap.style.display = '';
-  el.style.visibility = 'visible';
-
-  // Forcer un reflow pour garantir que le navigateur a bien rendu le ticket
-  void el.offsetHeight;
-
-  html2canvas(el, {
-    scale: 2,
-    backgroundColor: '#ffffff',
-    useCORS: true,
-    logging: false,
-    onclone: (clonedDoc) => {
-      const clonedWrap = clonedDoc.getElementById('ticketWrap');
-      const clonedEl = clonedDoc.getElementById('ticketCard');
-      if (clonedWrap) clonedWrap.style.display = '';
-      if (clonedEl) { clonedEl.style.visibility = 'visible'; clonedEl.style.opacity = '1'; }
-    }
-  }).then(canvas => {
-    const link = document.createElement('a');
-    link.download = `ticket-commande-${document.getElementById('tkId').textContent.replace(/#/g,'')}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  }).catch(() => {
-    showToast('Erreur', 'Téléchargement impossible. Fais une capture d\'écran.', 'var(--red)');
-  });
+  try {
+    const url = URL.createObjectURL(ticketBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = ticketName; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    showToast('Ticket', 'Téléchargement lancé. Vérifie tes téléchargements.', 'var(--green)');
+  } catch (e) { showTicketImage(); }
 }
 
 /* ── RETOURS / LITIGES ── */
@@ -807,7 +831,7 @@ let pendingRegistration = null;
 function initAuth() {
   document.getElementById('goRegister').addEventListener('click', () => { document.getElementById('viewLogin').style.display='none'; document.getElementById('viewRegister').style.display=''; });
   document.getElementById('goLogin').addEventListener('click', () => { document.getElementById('viewRegister').style.display='none'; document.getElementById('viewLogin').style.display=''; });
-  document.getElementById('userPill').addEventListener('click', () => { if (!getSession()) openModal('authModal'); });
+  document.getElementById('userPill').addEventListener('click', () => { if (getSession()) location.href = 'pages/admin.html'; else openModal('authModal'); });
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
   document.getElementById('forgotBtn').addEventListener('click', handleForgot);
   document.getElementById('goForgot').addEventListener('click', () => { document.getElementById('loginFormEmail').style.display='none'; document.getElementById('loginFormForgot').style.display=''; });
@@ -828,6 +852,7 @@ async function handleLogin() {
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
   closeModal('authModal'); syncSessionUI();
   showToast('Connecté', `Bienvenue ${r.user.firstName} !`);
+  setTimeout(() => { location.href = 'pages/admin.html'; }, 350);   // entre directement dans l'espace vendeur
 }
 
 async function handleForgot() {
@@ -894,12 +919,10 @@ async function acceptTermsAndCreateAccount() {
   }
   syncSessionUI();
   showToast('Compte créé !', `Bienvenue ${first} 🎉`);
-  // Email de bienvenue
-  if (typeof sendWelcomeEmail !== 'undefined') {
-    sendWelcomeEmail(r.user).then(res => {
-      if (res.ok) showToast('Email envoyé', 'Vérifie ta boîte mail 📧');
-    });
-  }
+  // Email de bienvenue (envoyé avant de quitter la page)
+  let mail = Promise.resolve();
+  if (typeof sendWelcomeEmail !== 'undefined') mail = Promise.race([sendWelcomeEmail(r.user).catch(() => null), new Promise(x => setTimeout(x, 2500))]);
+  mail.then(() => { location.href = 'pages/admin.html'; });   // entre directement dans l'espace vendeur
 }
 
 /* L'utilisateur refuse → le compte n'est pas créé */
@@ -915,14 +938,13 @@ function syncSessionUI() {
     document.getElementById('userAvatar').textContent = u.firstName[0].toUpperCase();
     document.getElementById('userName').textContent   = u.name;
     document.getElementById('userRole').textContent   = 'Vendeur';
-    document.getElementById('userPill').style.cursor  = 'default';
-    document.getElementById('adminBtn').style.display = '';
+    document.getElementById('userPill').style.cursor  = 'pointer';
+    document.getElementById('userRole').textContent   = 'Vendeur · Mon espace';
   } else {
     document.getElementById('userAvatar').textContent = '?';
     document.getElementById('userName').textContent   = 'Se connecter';
     document.getElementById('userRole').textContent   = 'Visiteur';
     document.getElementById('userPill').style.cursor  = 'pointer';
-    document.getElementById('adminBtn').style.display = 'none';
   }
 }
 
@@ -956,6 +978,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   const yes = document.getElementById('ticketAskYes'), no = document.getElementById('ticketAskNo');
-  if (yes) yes.addEventListener('click', () => { closeModal('ticketAsk'); setTimeout(downloadTicket, 150); });
-  if (no) no.addEventListener('click', () => closeModal('ticketAsk'));
+  if (yes) yes.addEventListener('click', () => { closeModal('ticketAsk'); downloadTicket(); });
+  if (no) no.addEventListener('click', () => {
+    closeModal('ticketAsk');
+    const t = document.getElementById('ticketWrap'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('Ticket affiché', 'Fais ta capture d\'écran maintenant.', 'var(--t2)');
+  });
+});
+
+/* La confirmation et le ticket sortent du bloc « panier » : celui-ci est masqué dès que le panier est vidé,
+   ce qui rendait le ticket invisible (donc non capturable) juste après la commande. */
+document.addEventListener('DOMContentLoaded', () => {
+  const content = document.getElementById('cartContent'), ok = document.getElementById('orderSuccess'), tk = document.getElementById('ticketWrap');
+  if (!content || !ok || !tk) return;
+  const box = document.createElement('div'); box.className = 'form-wrap'; box.id = 'orderDone';
+  box.appendChild(ok); box.appendChild(tk);
+  content.parentNode.insertBefore(box, content.nextSibling);
 });

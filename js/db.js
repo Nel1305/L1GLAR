@@ -48,7 +48,7 @@ function getSession()   { return _profile; }
 function setSession(u)  { _profile = u; }
 async function clearSession() { _profile = null; try { await db.auth.signOut(); } catch (e) {} }
 
-const USER_COLS = 'id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at';
+const USER_COLS = 'id, first_name, last_name, name, email, phone, bio, shop_open, is_blocked, blocked_reason, billing_period, filiere, created_at, verified, verification_status, verif_deadline, verif_submitted_at';
 
 /* Charge la session Auth courante + le profil vendeur. À appeler au démarrage de chaque page. */
 async function initSession() {
@@ -77,7 +77,7 @@ async function dbCreateUser(first, last, email, phone, pass, filiere) {
   const { data, error } = await db.auth.signUp({
     email: email.trim(), password: pass,
     options: { data: { first_name: first, last_name: last || '', phone: phone || '', filiere: filiere || '' },
-               emailRedirectTo: location.origin + '/index.html' }
+               emailRedirectTo: location.origin + '/pages/admin.html' }
   });
   if (error) return { error: authErrMsg(error) };
   // Supabase renvoie un faux succès (sans session) si l'email existe déjà et que la confirmation est activée
@@ -136,12 +136,13 @@ async function dbGetAllUsers() {
 }
 /* Vitrine publique : aucun email / téléphone */
 async function dbGetPublicSellers() {
-  const { data, error } = await db.from('public_sellers').select('id, name, bio, shop_open, filiere').order('name');
+  const { data, error } = await db.from('public_sellers').select('id, name, bio, shop_open, filiere, verified').order('name');
   if (error) { console.error(error); return []; }
   return (data || []).map(nu);
 }
 function nu(r) {
-  return { id:r.id, firstName:r.first_name||(r.name||'?'), lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, isBlocked:r.is_blocked||false, blockedReason:r.blocked_reason||'', billingPeriod:r.billing_period||'monthly', filiere:r.filiere||'', createdAt:r.created_at };
+  return { id:r.id, firstName:r.first_name||(r.name||'?'), lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, isBlocked:r.is_blocked||false, blockedReason:r.blocked_reason||'', billingPeriod:r.billing_period||'monthly', filiere:r.filiere||'', createdAt:r.created_at,
+           verified:!!r.verified, verificationStatus:r.verification_status||'none', verifDeadline:r.verif_deadline||null, verifSubmittedAt:r.verif_submitted_at||null };
 }
 
 /* ── PRODUCTS ── */
@@ -666,6 +667,7 @@ function notifIcon(type) {
     case 'promotion_new':    return '📣';
     case 'promotion_status': return '⭐';
     case 'seller_report':    return '⚠️';
+    case 'verification':     return '🛡';
     case 'review_new':       return '⭐';
     default:                 return '🔔';
   }
@@ -754,4 +756,97 @@ function compressImageFile(file, maxDim, quality) {
     };
     fr.readAsDataURL(file);
   });
+}
+
+
+/* ══════════ VÉRIFICATION DES VENDEURS (pièce d'identité + selfie) ══════════
+   Les images vont dans un bucket Storage PRIVÉ « kyc », dossier <auth.uid()>/ :
+   le vendeur n'écrit/lit que le sien, seul le Super Admin lit tout (voir secure_06_verification.sql). */
+const KYC_BUCKET = 'kyc';
+
+/* état du compte : 'verified' | 'pending' | 'active' (délai en cours) | 'expired' */
+function verifState(u) {
+  if (!u) return { code: 'none' };
+  if (u.verified) return { code: 'verified' };
+  const dl = u.verifDeadline ? new Date(u.verifDeadline).getTime() : null;
+  const msLeft = dl ? dl - Date.now() : null;
+  const inTime = u.verificationStatus === 'pending' && u.verifSubmittedAt && dl && new Date(u.verifSubmittedAt).getTime() <= dl;
+  if (msLeft !== null && msLeft <= 0 && !inTime) return { code: 'expired', msLeft: 0 };
+  if (u.verificationStatus === 'pending') return { code: 'pending', msLeft };
+  return { code: u.verificationStatus === 'rejected' ? 'rejected' : 'active', msLeft };
+}
+function fmtLeft(ms) {
+  if (ms === null || ms === undefined) return '';
+  const h = Math.max(0, Math.floor(ms / 3600000)), d = Math.floor(h / 24);
+  return d >= 1 ? `${d} jour${d > 1 ? 's' : ''} ${h % 24} h` : `${h} h`;
+}
+
+function canvasToBlob(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('Lecture impossible'));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Image invalide'));
+      img.onload = () => {
+        const k = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(b => b ? resolve(b) : reject(new Error('Conversion impossible')), 'image/jpeg', quality);
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+async function dbSubmitVerification(idType, idFile, selfieFile) {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) return { error: 'Connecte-toi d\'abord.' };
+  const uid = session.user.id, stamp = Date.now();
+  let idBlob, selfieBlob;
+  try { [idBlob, selfieBlob] = await Promise.all([canvasToBlob(idFile, 1600, 0.82), canvasToBlob(selfieFile, 1200, 0.82)]); }
+  catch (e) { return { error: 'Image illisible. Utilise une photo JPG ou PNG.' }; }
+  const idPath = `${uid}/${stamp}-piece.jpg`, selfiePath = `${uid}/${stamp}-selfie.jpg`;
+  const up = (path, blob) => db.storage.from(KYC_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+  const [a, b] = await Promise.all([up(idPath, idBlob), up(selfiePath, selfieBlob)]);
+  if (a.error || b.error) return { error: 'Envoi impossible : ' + ((a.error || b.error).message || 'réessaie.') };
+  const { data, error } = await db.rpc('fn_submit_verification', { p_id_type: idType, p_id_path: idPath, p_selfie_path: selfiePath });
+  if (error) return { error: error.message };
+  if (!data || !data.ok) return { error: (data && data.error) || 'Envoi refusé.' };
+  if (window.NMCache) NMCache.invalidate('*volatile');
+  return { ok: true };
+}
+async function dbGetMyVerifications() {
+  const { data, error } = await db.from('seller_verifications').select('id, id_type, status, admin_note, submitted_at, reviewed_at').order('submitted_at', { ascending: false }).limit(10);
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+/* ── Super Admin ── */
+async function dbAdminListVerifications(status) {
+  let q = db.from('seller_verifications').select('id, user_id, id_type, id_doc_path, selfie_path, status, admin_note, submitted_at, reviewed_at').order('submitted_at', { ascending: false }).limit(200);
+  if (status) q = q.eq('status', status);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+async function dbAdminVerifSignedUrls(paths) {
+  const { data, error } = await db.storage.from(KYC_BUCKET).createSignedUrls(paths, 300);   // liens valables 5 min
+  if (error) return {};
+  const m = {}; (data || []).forEach(x => { if (x.signedUrl) m[x.path] = x.signedUrl; });
+  return m;
+}
+async function dbAdminReviewVerification(id, approve, note) {
+  const { data, error } = await db.rpc('admin_review_verification', { p_id: id, p_approve: !!approve, p_note: note || null });
+  if (error) return { error: error.message };
+  // après validation, les pièces ne sont plus nécessaires : on les efface (minimisation des données)
+  if (approve && data && data.id_doc_path) { try { await db.storage.from(KYC_BUCKET).remove([data.id_doc_path, data.selfie_path]); } catch (e) {} }
+  if (window.NMCache) NMCache.invalidate('*volatile');
+  return { ok: true };
+}
+async function dbAdminRevokeVerification(userId, reason) {
+  const { error } = await db.rpc('admin_revoke_verification', { p_user_id: userId, p_reason: reason || null });
+  if (window.NMCache) NMCache.invalidate('*volatile');
+  return error ? { error: error.message } : { ok: true };
 }

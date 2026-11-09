@@ -38,7 +38,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('editShowStock').addEventListener('click', function(){ this.classList.toggle('on'); });
   document.getElementById('orderStatusFilter').addEventListener('change', renderOrders);
   document.getElementById('markAllReadBtn').addEventListener('click', markAllNotificationsRead);
-  await renderDashboard();
+  renderVerifBanner();
+  if (verifState(currentUser).code === 'expired') { await goPage('verify'); }
+  else await renderDashboard();
   checkPendingReturns();
   await refreshNotifDot();
   setInterval(() => { if (!document.hidden) refreshNotifDot(); }, 45000);
@@ -117,6 +119,7 @@ async function goPage(name) {
   if (name==='addproduct') resetAddForm();
   if (name==='promote')    await renderPromotePage();
   if (name==='profile')    loadProfile();
+  if (name==='verify')     await renderVerifyPage();
   if (name==='whatsapp')   await mountWhatsApp(false);
   if (name==='chat' && !chatInited) await initChat(currentUser, false);
 }
@@ -517,4 +520,68 @@ function handlePhoto(input, previewId, placeholderId, cb) {
   if (file.size>5*1024*1024) { showToast('Fichier trop lourd','Max 5 Mo.','var(--red)'); return; }
   compressImageFile(file, 900, 0.8).then(data => { cb(data); const p=document.getElementById(previewId); p.src=data; p.style.display='block'; document.getElementById(placeholderId).style.display='none'; })
     .catch(() => showToast('Image illisible','Choisis une photo JPG ou PNG.','var(--red)'));
+}
+
+
+/* ══════════ VÉRIFICATION DU COMPTE ══════════ */
+function renderVerifBanner() {
+  const b = document.getElementById('verifBanner'); if (!b) return;
+  const st = verifState(currentUser);
+  document.body.classList.toggle('acct-locked', st.code === 'expired');
+  document.getElementById('verifDot').style.display = (st.code === 'active' || st.code === 'rejected' || st.code === 'expired') ? '' : 'none';
+  const go = '<button type="button" class="vb-btn" onclick="goPage(\'verify\')">Vérifier mon compte</button>';
+  if (st.code === 'verified') { b.style.display = 'none'; return; }
+  b.className = 'verif-banner' + (st.code === 'expired' ? ' danger' : '');
+  b.style.display = '';
+  if (st.code === 'expired') b.innerHTML = `<span><strong>Compte désactivé.</strong> Tes produits sont masqués. Envoie ta pièce d'identité pour le réactiver.</span>${go}`;
+  else if (st.code === 'pending') b.innerHTML = `<span><strong>Dossier en cours d'examen</strong> (24 à 48 h). Ton compte reste actif pendant l'examen.</span>`;
+  else b.innerHTML = `<span><strong>Compte non vérifié</strong> · 5 produits maximum · il te reste <strong>${fmtLeft(st.msLeft)}</strong> pour envoyer ton dossier.</span>${go}`;
+}
+
+async function renderVerifyPage() {
+  const root = document.getElementById('page-verify');
+  const st = verifState(currentUser);
+  const hist = await dbGetMyVerifications();
+  const statusTxt = { pending: 'En examen', approved: 'Validé', rejected: 'Refusé' };
+  let top = '';
+  if (st.code === 'verified') top = `<div class="vf-card ok"><div class="vf-ico">✓</div><div><strong>Compte vérifié</strong><p>Le badge « Vérifié » s'affiche sur ta boutique et sur tes produits. Aucune limite de produits.</p></div></div>`;
+  else if (st.code === 'pending') top = `<div class="vf-card"><div class="vf-ico">⏳</div><div><strong>Dossier en cours d'examen</strong><p>Le Super Admin valide sous 24 à 48 h. Tu seras notifié ici. Ton compte reste actif pendant l'examen.</p></div></div>`;
+  else if (st.code === 'expired') top = `<div class="vf-card bad"><div class="vf-ico">!</div><div><strong>Compte désactivé</strong><p>Le délai de vérification est dépassé. Tes produits sont masqués du catalogue. Envoie ton dossier : ton compte sera réactivé dès sa validation.</p></div></div>`;
+  else {
+    const rej = hist.find(h => h.status === 'rejected');
+    top = `<div class="vf-card"><div class="vf-ico">🛡</div><div><strong>${st.code === 'rejected' ? 'Dossier refusé — nouvel essai possible' : 'Fais vérifier ton compte'}</strong>
+      <p>${st.code === 'rejected' && rej && rej.admin_note ? 'Motif : ' + esc(rej.admin_note) + '. ' : ''}Sans vérification : <strong>5 produits maximum</strong> et le compte est <strong>désactivé dans ${fmtLeft(st.msLeft)}</strong>. Une fois vérifié : badge « Vérifié », plus de limite.</p></div></div>`;
+  }
+  const canSend = st.code !== 'verified' && st.code !== 'pending';
+  const form = !canSend ? '' : `
+    <div class="form-wrap" style="max-width:520px">
+      <div class="f-section">
+        <span class="f-label">Ton dossier</span>
+        <div class="field"><label>Type de pièce</label>
+          <select id="vfType"><option value="cni">Carte nationale d'identité</option><option value="passeport">Passeport</option><option value="carte_etudiant">Carte d'étudiant</option><option value="permis">Permis de conduire</option></select></div>
+        <div class="field"><label>Photo de la pièce (recto, lisible)</label><input type="file" id="vfId" accept="image/*"></div>
+        <div class="field"><label>Selfie : ton visage, bien éclairé, sans lunettes de soleil</label><input type="file" id="vfSelfie" accept="image/*" capture="user"></div>
+        <div class="vf-prev"><img id="vfIdPrev" alt="" hidden><img id="vfSelfiePrev" alt="" hidden></div>
+        <label class="check-row"><input type="checkbox" id="vfConsent"><span>J'accepte que N Market utilise ces images <strong>uniquement pour vérifier mon identité</strong>. Elles sont visibles du seul Super Admin et <strong>supprimées après validation</strong>.</span></label>
+      </div>
+      <button class="btn-primary" id="vfSend">Envoyer mon dossier</button>
+    </div>`;
+  const history = hist.length ? `<div style="margin-top:26px"><div class="f-label" style="margin-bottom:8px">Historique</div>${hist.map(h => `<div class="vf-row"><span>${new Date(h.submitted_at).toLocaleDateString('fr-FR')}</span><span>${esc(statusTxt[h.status] || h.status)}${h.admin_note ? ' — ' + esc(h.admin_note) : ''}</span></div>`).join('')}</div>` : '';
+  root.innerHTML = `<div class="page-header"><div><div class="page-title">Vérification</div><div class="page-desc">Badge « Vérifié » et levée des limites</div></div></div>${top}${form}${history}`;
+
+  if (!canSend) return;
+  const prev = (inp, img) => inp.addEventListener('change', () => { const f = inp.files[0]; if (!f) { img.hidden = true; return; } img.src = URL.createObjectURL(f); img.hidden = false; });
+  prev(document.getElementById('vfId'), document.getElementById('vfIdPrev'));
+  prev(document.getElementById('vfSelfie'), document.getElementById('vfSelfiePrev'));
+  document.getElementById('vfSend').addEventListener('click', async () => {
+    const idF = document.getElementById('vfId').files[0], sF = document.getElementById('vfSelfie').files[0];
+    if (!idF || !sF) { showToast('Fichiers manquants', 'Ajoute la photo de la pièce ET ton selfie.', 'var(--red)'); return; }
+    if (!document.getElementById('vfConsent').checked) { showToast('Accord requis', 'Coche la case pour continuer.', 'var(--red)'); return; }
+    const btn = document.getElementById('vfSend'); btn.disabled = true; btn.textContent = 'Envoi…';
+    const r = await dbSubmitVerification(document.getElementById('vfType').value, idF, sF);
+    if (r.error) { btn.disabled = false; btn.textContent = 'Envoyer mon dossier'; showToast('Envoi impossible', r.error, 'var(--red)'); return; }
+    currentUser = await initSession() || currentUser;
+    renderVerifBanner(); await renderVerifyPage();
+    showToast('Dossier envoyé', 'Réponse sous 24 à 48 h.', 'var(--green)');
+  });
 }

@@ -103,6 +103,8 @@ async function checkPendingPromos() {
 async function refreshNotifDot() {
   const count = await dbGetUnreadNotificationCount('admin', null);
   document.getElementById('notifDot').style.display = count > 0 ? '' : 'none';
+  const pend = await dbAdminListVerifications('pending');
+  document.getElementById('verifsDot').style.display = pend.length ? '' : 'none';
 }
 async function renderNotificationsPage() {
   showLoader(true);
@@ -144,6 +146,7 @@ async function goPage(name) {
   if (name==='dashboard')   await renderDashboard();
   if (name==='notifications') await renderNotificationsPage();
   if (name==='commissions') await renderCommissions();
+  if (name==='verifs')      await renderVerifs();
   if (name==='sellers')     await renderSellers();
   if (name==='network')     await renderNetwork();
   if (name==='products')    await renderAllProducts();
@@ -365,7 +368,7 @@ async function renderSellers() {
       <div class="seller-top">
         <div class="seller-av">${u.firstName[0].toUpperCase()}</div>
         <div>
-          <div class="seller-name">${esc(u.name)}${u.isBlocked?`<span class="blocked-tag">Bloqué</span>`:''}</div>
+          <div class="seller-name">${esc(u.name)}${u.verified?' <span class="vbadge">✓ Vérifié</span>':''}${u.isBlocked?`<span class="blocked-tag">Bloqué</span>`:''}</div>
           <div class="seller-email">${esc(u.email)}</div>
           <div class="period-tag period-${period}">${period==='monthly'?'Mensuel':'Hebdomadaire'}</div>
         </div>
@@ -1084,3 +1087,71 @@ async function accRemoveAdmin(id, email) {
   showToast('Droits retirés', email, 'var(--green)');
   renderAccountPage();
 }
+
+
+/* ══════════ VÉRIFICATIONS ══════════ */
+let currentVerif = null;
+const ID_TYPES = { cni: 'Carte nationale d\'identité', passeport: 'Passeport', carte_etudiant: 'Carte d\'étudiant', permis: 'Permis de conduire' };
+
+async function renderVerifs() {
+  const f = document.getElementById('verifFilter');
+  if (!f.dataset.bound) { f.dataset.bound = '1'; f.addEventListener('change', renderVerifs); }
+  const box = document.getElementById('verifsList');
+  showLoader(true);
+  const users = await dbGetAllUsers();
+  const byId = Object.fromEntries(users.map(u => [u.id, u]));
+  if (f.value === 'verified') {
+    showLoader(false);
+    const list = users.filter(u => u.verified);
+    box.innerHTML = list.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur</th><th>Email</th><th>Vérifié le</th><th></th></tr></thead><tbody>${list.map(u => `<tr><td>${esc(u.name)} <span class="vbadge">✓ Vérifié</span></td><td>${esc(u.email)}</td><td>—</td><td><button class="btn-ghost" onclick="revokeVerif(${u.id})">Retirer le badge</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="table-empty">Aucun vendeur vérifié</div>';
+    return;
+  }
+  const rows = await dbAdminListVerifications(f.value);
+  showLoader(false);
+  if (!rows.length) { box.innerHTML = '<div class="table-empty">Aucun dossier</div>'; return; }
+  box.innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur</th><th>Pièce</th><th>Envoyé</th><th>Attente</th><th></th></tr></thead><tbody>${rows.map(r => {
+    const u = byId[r.user_id] || {}; const h = Math.round((Date.now() - new Date(r.submitted_at)) / 3600000);
+    return `<tr><td>${esc(u.name || '#' + r.user_id)}<div style="font-size:.68rem;color:var(--t3)">${esc(u.email || '')}</div></td><td>${esc(ID_TYPES[r.id_type] || r.id_type)}</td><td>${new Date(r.submitted_at).toLocaleString('fr-FR')}</td><td style="color:${h > 36 ? 'var(--red)' : 'inherit'}">${h} h</td><td>${r.status === 'pending' ? `<button class="btn-primary" style="margin:0;padding:7px 14px" onclick="openVerif(${r.id})">Examiner</button>` : esc(r.admin_note || '')}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+  window._verifRows = rows; window._verifUsers = byId;
+}
+
+async function openVerif(id) {
+  const r = (window._verifRows || []).find(x => x.id === id); if (!r) return;
+  currentVerif = r;
+  const u = (window._verifUsers || {})[r.user_id] || {};
+  document.getElementById('vmTitle').textContent = 'Dossier de ' + (u.name || '#' + r.user_id);
+  document.getElementById('vmMeta').textContent = `${ID_TYPES[r.id_type] || r.id_type} · envoyé le ${new Date(r.submitted_at).toLocaleString('fr-FR')} · ${u.email || ''}${u.phone ? ' · ' + u.phone : ''}`;
+  document.getElementById('vmNote').value = '';
+  const idEl = document.getElementById('vmId'), sEl = document.getElementById('vmSelfie'); idEl.removeAttribute('src'); sEl.removeAttribute('src');
+  openModal('verifModal');
+  const urls = await dbAdminVerifSignedUrls([r.id_doc_path, r.selfie_path]);
+  if (urls[r.id_doc_path]) idEl.src = urls[r.id_doc_path]; else showToast('Image introuvable', 'La pièce n\'est plus disponible.', 'var(--red)');
+  if (urls[r.selfie_path]) sEl.src = urls[r.selfie_path];
+}
+
+async function decideVerif(approve) {
+  if (!currentVerif) return;
+  const note = document.getElementById('vmNote').value.trim();
+  if (!approve && !note) { showToast('Motif requis', 'Explique pourquoi tu refuses le dossier.', 'var(--red)'); return; }
+  showLoader(true);
+  const r = await dbAdminReviewVerification(currentVerif.id, approve, note);
+  showLoader(false);
+  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  closeModal('verifModal'); currentVerif = null;
+  showToast(approve ? 'Vendeur vérifié' : 'Dossier refusé', approve ? 'Le badge est actif ; les pièces ont été supprimées.' : 'Le vendeur est notifié.', 'var(--green)');
+  await renderVerifs(); refreshNotifDot();
+}
+async function revokeVerif(userId) {
+  const reason = prompt('Motif du retrait du badge ?'); if (reason === null) return;
+  const r = await dbAdminRevokeVerification(userId, reason);
+  if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  showToast('Badge retiré', 'Le vendeur dispose d\'un nouveau délai.', 'var(--green)');
+  await renderVerifs();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const a = document.getElementById('vmApprove'), b = document.getElementById('vmReject');
+  if (a) a.addEventListener('click', () => decideVerif(true));
+  if (b) b.addEventListener('click', () => decideVerif(false));
+  document.querySelectorAll('[data-close="verifModal"]').forEach(x => x.addEventListener('click', () => { closeModal('verifModal'); currentVerif = null; }));
+});

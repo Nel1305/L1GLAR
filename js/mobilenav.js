@@ -64,8 +64,7 @@
       navItems().filter(b => !cfg.primary.includes(b.dataset.page) && getComputedStyle(b).display !== 'none')
         .forEach(b => items.push({ icon: iconOf(b), label: labelOf(b), dot: hasDot(b), run: () => b.click() }));
       if (mode === 'shop') {
-        const a = document.getElementById('adminBtn');
-        if (a && getComputedStyle(a).display !== 'none') items.push({ icon: '⚙', label: 'Mon espace vendeur', run: () => { location.href = a.getAttribute('href'); } });
+        /* le compte vendeur s'ouvre depuis l'onglet « Compte » */
       } else {
         items.push({ icon: '↩', label: 'Retour au site', run: () => { location.href = '../index.html'; } });
         const lo = document.getElementById('logoutBtn') || document.getElementById('adminLogoutBtn');
