@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Super Admin · N Market</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/theme.js"></script>
+  <link rel="stylesheet" href="../css/superadmin.css">
+</head>
+<body data-bnav="admin">
+<div class="flag-bar"></div>
+<div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
+
+<div id="loginScreen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo"><div style="font-size:1.5rem;margin-bottom:8px">◆</div><div style="font-size:.98rem;font-weight:600">Super Admin</div><div style="font-size:.7rem;color:var(--t3);margin-top:3px">N Market</div></div>
+    <div class="field"><label>Email admin</label><input type="email" id="aEmail" placeholder="email administrateur" autocomplete="username"></div>
+    <div class="field"><label>Mot de passe</label><input type="password" id="aPass" placeholder="••••••••"></div>
+    <button class="btn-primary" id="adminLoginBtn">Se connecter</button>
+    <a href="../index.html" style="display:block;text-align:center;font-size:.72rem;color:var(--t3);margin-top:10px;text-decoration:none">← Retour au site</a>
+  </div>
+</div>
+
+<div class="mobile-topbar"><div class="mt-title">Super Admin</div></div>
+<div class="app" id="appShell" style="display:none">
+  <aside class="sidebar">
+    <div class="logo-row"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> Super Admin</div><div class="logo-sub">N Market</div></div></div>
+    <nav class="nav">
+      <span class="nav-label">Vue globale</span>
+      <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Tableau de bord</button>
+      <button class="nav-item" data-page="notifications"><span class="icon">🔔</span>Notifications <span class="dot" id="notifDot" style="display:none"></span></button>
+      <span class="nav-label">Finances</span>
+      <button class="nav-item" data-page="commissions"><span class="icon">💰</span>Commissions</button>
+      <button class="nav-item" data-page="generate"><span class="icon">🧾</span>Générer factures</button>
+      <span class="nav-label">Vendeurs</span>
+      <button class="nav-item" data-page="verifs"><span class="icon">🛡</span>Vérifications <span class="dot" id="verifsDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="sellers"><span class="icon">👥</span>Tous les vendeurs</button>
+      <button class="nav-item" data-page="network"><span class="icon">🔗</span>Réseau vendeurs</button>
+      <button class="nav-item" data-page="products"><span class="icon">🛍</span>Tous les produits</button>
+      <button class="nav-item" data-page="catalog"><span class="icon">🏷️</span>Classes du catalogue</button>
+      <button class="nav-item" data-page="filieres"><span class="icon">🎓</span>Filières</button>
+      <button class="nav-item" data-page="orders"><span class="icon">📦</span>Toutes les commandes</button>
+      <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours / Litiges</button>
+      <button class="nav-item" data-page="promo"><span class="icon">📣</span>Publicité <span class="dot" id="promoDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="banners"><span class="icon">🖼️</span>Bannières</button>
+      <button class="nav-item" data-page="reports"><span class="icon">🚩</span>Signalements <span class="dot" id="reportsDot" style="display:none"></span></button>
+      <span class="nav-label">Communication</span>
+      <button class="nav-item" data-page="whatsapp"><span class="icon">🟢</span>WhatsApp <span class="soon-tag">Bientôt</span><span class="dot wa-dot" style="display:none"></span></button>
+      <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="adminChatDot" style="display:none"></span></button>
+      <span class="nav-label">Paramètres</span>
+      <button class="nav-item" data-page="settings"><span class="icon">⚙</span>Paramètres</button>
+      <button class="nav-item" data-page="account"><span class="icon">🔐</span>Compte admin</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-pill"><div class="avatar">◆</div><div class="user-info"><div class="user-name" id="adminName">Admin</div><div class="user-role">Super administrateur</div></div></div>
+      <button class="admin-btn" id="adminLogoutBtn"><span class="icon">←</span>Se déconnecter</button>
+      <a href="../index.html" class="admin-btn"><span class="icon">←</span>Retour au site</a>
+      <a href="../index.html" class="credit">codé par BUABEY Nel'si</a>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div id="page-dashboard" class="page active">
+      <div class="page-header"><div><div class="page-title">Tableau de bord</div><div class="page-desc">Vue globale de la marketplace</div></div><div id="dashDate" style="font-size:.74rem;color:var(--t3)"></div></div>
+      <div class="stats-row" id="dashStats"></div>
+      <div class="alert-section" id="alertSection" style="display:none"><div class="alert-title">Paiements en retard</div><div id="alertList"></div></div>
+      <div class="dash-grid">
+        <div class="dash-card"><div class="dash-card-title">Dernières commandes</div><div id="recentOrders"></div></div>
+        <div class="dash-card"><div class="dash-card-title">Commissions en attente</div><div id="recentCommissions"></div></div>
+      </div>
+    </div>
+
+    <div id="page-commissions" class="page">
+      <div class="page-header"><div><div class="page-title">Commissions</div><div class="page-desc">Suivi des paiements (5%)</div></div><select class="select-sm" id="commStatusFilter"><option value="all">Tous</option><option value="pending">En attente</option><option value="overdue">En retard</option><option value="partial">Partiel</option><option value="paid">Payé</option></select></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur</th><th>Période</th><th>CA</th><th>Taux</th><th>Dû</th><th>Reçu</th><th>Reste</th><th>Statut</th><th></th></tr></thead><tbody id="commissionsBody"></tbody></table></div>
+    </div>
+
+    <div id="page-generate" class="page">
+      <div class="page-header"><div><div class="page-title">Générer les factures</div><div class="page-desc">Calcule automatiquement les commissions dues</div></div></div>
+      <div class="form-wrap">
+        <div class="f-section"><span class="f-label">Paramètres</span>
+          <div class="field-row"><div class="field"><label>Type</label><select id="genType"><option value="monthly">Mensuel</option><option value="weekly">Hebdomadaire</option></select></div><div class="field"><label>Taux (%)</label><input type="number" id="genRate" value="5" min="1" max="100" step="0.5"></div></div>
+          <div class="field-row"><div class="field"><label>Début</label><input type="date" id="genStart"></div><div class="field"><label>Fin</label><input type="date" id="genEnd"></div></div>
+          <div class="field"><label>Date limite</label><input type="date" id="genDue"></div>
+        </div>
+        <div class="divider"></div>
+        <div id="genPreview" style="display:none">
+          <span class="f-label">Prévisualisation</span>
+          <div class="table-wrap" style="margin-bottom:14px"><table class="data-table"><thead><tr><th>Vendeur</th><th>Période</th><th>CA</th><th>Commission</th></tr></thead><tbody id="genPreviewBody"></tbody></table></div>
+          <div id="genTotal" class="gen-total"></div>
+        </div>
+        <div style="display:flex;gap:8px"><button class="btn-ghost" id="previewBtn" style="flex:1">Prévisualiser</button><button class="btn-primary" id="generateBtn" style="flex:2" disabled>Générer</button></div>
+        <div class="success-box" id="genSuccess"><div class="ico">✓</div><strong>Factures générées !</strong><p id="genSuccessText"></p></div>
+      </div>
+    </div>
+
+    <div id="page-verifs" class="page">
+      <div class="page-header"><div><div class="page-title">Vérifications</div><div class="page-desc">Pièce d'identité + selfie des vendeurs — réponse sous 24 à 48 h</div></div>
+        <select class="select-sm" id="verifFilter"><option value="pending">En attente</option><option value="rejected">Refusés</option><option value="verified">Vérifiés</option></select></div>
+      <div id="verifsList"></div>
+    </div>
+    <div id="page-sellers" class="page">
+      <div class="page-header"><div><div class="page-title">Vendeurs</div><div class="page-desc">Gérer tous les comptes</div></div><select class="select-sm" id="sellerStatusFilter"><option value="all">Tous</option><option value="active">Actifs</option><option value="blocked">Bloqués</option></select></div>
+      <div class="sellers-grid" id="sellersGrid"></div>
+    </div>
+
+    <div id="page-network" class="page">
+      <div class="page-header"><div><div class="page-title">Réseau vendeurs</div><div class="page-desc">Qui est en contact avec qui — tu vois, eux non</div></div></div>
+      <div class="network-wrap" style="margin-bottom:16px">
+        <h3>Graphe des connexions</h3>
+        <p>Chaque ligne indique que deux vendeurs se sont déjà parlé. Le contenu des discussions reste privé.</p>
+        <canvas id="graphCanvas"></canvas>
+      </div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur A</th><th>Vendeur B</th><th>Statut</th><th>Dernier contact</th></tr></thead><tbody id="connectionsBody"></tbody></table></div>
+    </div>
+
+    <div id="page-products" class="page">
+      <div class="page-header"><div><div class="page-title">Tous les produits</div><div class="page-desc">Vue globale</div></div></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Photo</th><th>Produit</th><th>Vendeur</th><th>Catégorie</th><th>Prix</th><th>Note</th><th>Dispo</th></tr></thead><tbody id="allProductsBody"></tbody></table></div>
+    </div>
+
+    <div id="page-catalog" class="page">
+      <div class="page-header"><div><div class="page-title">Classes du catalogue</div><div class="page-desc">Gère les catégories (« classes ») de produits visibles sur la marketplace</div></div><button class="btn-primary sm" id="addCatBtn">+ Ajouter une classe</button></div>
+      <div class="cat-grid" id="catalogGrid"></div>
+    </div>
+
+    <div id="page-filieres" class="page">
+      <div class="page-header"><div><div class="page-title">Filières</div><div class="page-desc">Gère la liste des filières affichées aux vendeurs lors de l'inscription</div></div><button class="btn-primary sm" id="addFiliereBtn">+ Ajouter une filière</button></div>
+      <div class="cat-grid" id="filieresGrid"></div>
+    </div>
+
+    <div id="page-returns" class="page">
+      <div class="page-header"><div><div class="page-title">Retours / Litiges</div><div class="page-desc">Demandes de retour signalées par les clients</div></div></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Commande</th><th>Client</th><th>Vendeur</th><th>Produit</th><th>Motif</th><th>Statut</th><th>Date</th></tr></thead><tbody id="returnsBody"></tbody></table></div>
+    </div>
+
+    <div id="page-promo" class="page">
+      <div class="page-header"><div><div class="page-title">Publicité</div><div class="page-desc">Demandes de mise en avant des vendeurs + tarifs</div></div><button class="btn-primary sm" id="addPlanBtn">+ Ajouter une formule</button></div>
+
+      <div class="section-divider" style="margin-top:0">Tarifs de mise en avant</div>
+      <div class="cat-grid" id="promoPlansGrid"></div>
+
+      <div class="section-divider">Demandes en attente</div>
+      <div id="promoPendingList"></div>
+
+      <div class="section-divider">Historique</div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur</th><th>Produit</th><th>Formule</th><th>Prix</th><th>Statut</th><th>Période</th></tr></thead><tbody id="promoHistoryBody"></tbody></table></div>
+    </div>
+
+    <div id="page-banners" class="page">
+      <div class="page-header"><div><div class="page-title">Bannières</div><div class="page-desc">Bannières publicitaires affichées en haut de la page Produits</div></div><button class="btn-primary sm" id="addBannerBtn">+ Ajouter une bannière</button></div>
+      <div id="bannersList"></div>
+    </div>
+
+    <div id="page-reports" class="page">
+      <div class="page-header"><div><div class="page-title">Signalements</div><div class="page-desc">Signalements de vendeurs par les clients</div></div></div>
+      <div class="section-divider" style="margin-top:0">En attente</div>
+      <div id="reportsPendingList"></div>
+      <div class="section-divider">Historique</div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur</th><th>Motif</th><th>Signalé par</th><th>Statut</th><th>Date</th></tr></thead><tbody id="reportsHistoryBody"></tbody></table></div>
+    </div>
+
+    <div id="page-orders" class="page">
+      <div class="page-header"><div><div class="page-title">Toutes les commandes</div><div class="page-desc">Vue globale</div></div><select class="select-sm" id="allOrdersFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Client</th><th>Produit</th><th>Vendeur</th><th>Total</th><th>Livraison</th><th>Statut</th><th>Date</th></tr></thead><tbody id="allOrdersBody"></tbody></table></div>
+    </div>
+
+    <div id="page-chat" class="page">
+      <div class="page-header"><div><div class="page-title">Messages vendeurs</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Accès restreint</span></div></div></div>
+      <div class="chat-wrap">
+        <div class="chat-sidebar"><div class="chat-sidebar-hd">Conversations</div><div class="chat-rooms" id="chatRooms"></div></div>
+        <div class="chat-main">
+          <div class="chat-header"><div class="chat-header-info"><div class="chat-header-name" id="chatHeaderName">Canal général</div><div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div></div><span class="e2e-badge">🔒 Privé</span></div>
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-area"><textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1"></textarea><button class="chat-send" id="chatSendBtn">↑</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-notifications" class="page">
+      <div class="page-header"><div><div class="page-title">Notifications</div><div class="page-desc">Demandes de sponsoring et signalements de vendeurs</div></div><button class="btn-ghost" id="markAllReadBtn" style="font-size:.74rem">Tout marquer comme lu</button></div>
+      <div id="notifList" class="notif-list"></div>
+    </div>
+
+    <div id="page-settings" class="page">
+      <div class="page-header"><div><div class="page-title">Paramètres</div><div class="page-desc">Configuration de la plateforme</div></div></div>
+      <div class="form-wrap">
+        <div class="f-section"><span class="f-label">Commission</span><div class="field"><label>Taux global (%)</label><input type="number" id="globalRate" value="5" min="1" max="50" step="0.5" style="max-width:120px"><div class="hint">Appliqué lors de la génération des factures.</div></div></div>
+        <button class="btn-primary" id="saveSettingsBtn">Sauvegarder</button>
+      </div>
+    </div>
+
+    <div id="page-whatsapp" class="page"></div>
+
+    <div id="page-account" class="page">
+      <div class="page-header"><div><div class="page-title">Compte admin</div><div class="page-desc">Ton profil, tes accès et les administrateurs de la plateforme</div></div></div>
+      <div class="form-wrap">
+        <div class="f-section"><span class="f-label">Profil</span>
+          <div class="field"><label>Nom affiché</label><input type="text" id="accName" maxlength="80"></div>
+          <button class="btn-primary sm" id="accSaveNameBtn">Enregistrer le nom</button>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section"><span class="f-label">Email de connexion</span>
+          <div class="field"><label>Email actuel</label><input type="email" id="accEmailCur" disabled></div>
+          <div class="field"><label>Nouvel email</label><input type="email" id="accEmailNew" placeholder="nouvel@email.com" autocomplete="off"><div class="hint">Un lien de confirmation est envoyé : l'email ne change qu'après avoir cliqué dessus.</div></div>
+          <button class="btn-primary sm" id="accSaveEmailBtn">Changer l'email</button>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section"><span class="f-label">Mot de passe</span>
+          <div class="field"><label>Mot de passe actuel</label><input type="password" id="accPassCur" autocomplete="current-password"></div>
+          <div class="field"><label>Nouveau mot de passe</label><input type="password" id="accPassNew" placeholder="Min. 12 caractères" autocomplete="new-password"></div>
+          <div class="field"><label>Confirmer</label><input type="password" id="accPassNew2" autocomplete="new-password"></div>
+          <button class="btn-primary sm" id="accSavePassBtn">Changer le mot de passe</button>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section"><span class="f-label">Administrateurs</span>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>Nom</th><th>Email</th><th></th></tr></thead><tbody id="accAdminsBody"></tbody></table></div>
+        </div>
+        <div class="f-section" style="margin-top:18px"><span class="f-label">Ajouter ou transférer le rôle</span>
+          <div class="field"><label>Nom</label><input type="text" id="accNewAdminName" maxlength="80" autocomplete="off"></div>
+          <div class="field"><label>Email</label><input type="email" id="accNewAdminEmail" autocomplete="off"></div>
+          <div class="field"><label>Mot de passe (min. 12 caractères)</label><input type="password" id="accNewAdminPass" autocomplete="new-password"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-primary sm" id="accAddAdminBtn">Ajouter comme admin</button>
+            <button class="btn-ghost" id="accTransferBtn">Transférer mon rôle</button>
+          </div>
+          <div class="hint">« Transférer » donne tous les droits au nouveau compte et te les retire (tu seras déconnecté).</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="overlay" id="verifModal">
+  <div class="modal" style="max-width:720px">
+    <button class="modal-x" data-close="verifModal" aria-label="Fermer">✕</button>
+    <h2 class="how-title" id="vmTitle">Dossier</h2>
+    <p class="how-sub" id="vmMeta"></p>
+    <div class="vm-imgs"><figure><img id="vmId" alt="Pièce d'identité"><figcaption>Pièce d'identité</figcaption></figure><figure><img id="vmSelfie" alt="Selfie"><figcaption>Selfie</figcaption></figure></div>
+    <p class="how-sub">Vérifie que le visage du selfie correspond à la photo de la pièce, que la pièce est lisible et valide, et que le nom correspond au vendeur. Les liens des images expirent après 5 minutes.</p>
+    <div class="field"><label>Motif (obligatoire en cas de refus)</label><input type="text" id="vmNote" maxlength="300" placeholder="Ex : photo floue, visage non visible…"></div>
+    <div class="ask-actions"><button class="btn-ghost" id="vmReject">Refuser</button><button class="btn-primary" id="vmApprove">Valider et donner le badge</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="catModal">
+  <div class="modal"><button class="modal-x" data-close="catModal">✕</button>
+    <div class="modal-title" id="catModalTitle">Ajouter une classe</div><div class="modal-sub">Catégorie visible dans le catalogue de l'école</div>
+    <div class="modal-form">
+      <input type="hidden" id="catId">
+      <div class="field"><label>Nom affiché</label><input type="text" id="catLabel" placeholder="Ex : Fournitures scolaires"></div>
+      <div class="field-row">
+        <div class="field"><label>Emoji</label><input type="text" id="catEmojiInput" placeholder="📚" style="max-width:100%"></div>
+        <div class="field"><label>Couleur du badge</label><input type="color" id="catColor" value="#404040" style="height:42px;padding:4px"></div>
+      </div>
+      <div class="field"><label>Identifiant technique (slug)</label><input type="text" id="catSlug" placeholder="ex : fournitures"><div class="hint">Lettres minuscules, chiffres et tirets uniquement. Généré automatiquement si laissé vide.</div></div>
+      <button class="btn-primary" id="saveCatBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="filiereModal">
+  <div class="modal"><button class="modal-x" data-close="filiereModal">✕</button>
+    <div class="modal-title" id="filiereModalTitle">Ajouter une filière</div><div class="modal-sub">Affichée lors de l'inscription des vendeurs</div>
+    <div class="modal-form">
+      <input type="hidden" id="filiereId">
+      <div class="field"><label>Nom affiché</label><input type="text" id="filiereLabel" placeholder="Ex : L1 GLAR"></div>
+      <div class="field"><label>Identifiant technique (slug)</label><input type="text" id="filiereSlug" placeholder="ex : l1-glar"><div class="hint">Lettres minuscules, chiffres et tirets uniquement. Généré automatiquement si laissé vide.</div></div>
+      <button class="btn-primary" id="saveFiliereBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="planModal">
+  <div class="modal"><button class="modal-x" data-close="planModal">✕</button>
+    <div class="modal-title" id="planModalTitle">Ajouter une formule</div><div class="modal-sub">Tarif de mise en avant proposé aux vendeurs</div>
+    <div class="modal-form">
+      <input type="hidden" id="planId">
+      <div class="field"><label>Nom</label><input type="text" id="planLabel" placeholder="Ex : Mise en avant — 7 jours"></div>
+      <div class="field-row">
+        <div class="field"><label>Durée (jours)</label><input type="number" id="planDuration" min="1" placeholder="7"></div>
+        <div class="field"><label>Prix (FCFA)</label><input type="number" id="planPrice" min="0" placeholder="2000"></div>
+      </div>
+      <div class="toggle-row"><div class="toggle-info"><strong>Formule active</strong><span>Visible par les vendeurs</span></div><button class="toggle on" id="planActive"></button></div>
+      <button class="btn-primary" id="savePlanBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="promoReviewModal">
+  <div class="modal"><button class="modal-x" data-close="promoReviewModal">✕</button>
+    <div class="modal-title">Demande de mise en avant</div><div class="modal-sub" id="promoReviewSub"></div>
+    <div id="promoReviewContent" style="margin-bottom:14px"></div>
+    <div class="modal-form">
+      <input type="hidden" id="promoReviewId">
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" id="activatePromoBtn" style="flex:1">Activer</button>
+        <button class="btn-danger" id="rejectPromoBtn" style="flex:1">Refuser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="bannerModal">
+  <div class="modal"><button class="modal-x" data-close="bannerModal">✕</button>
+    <div class="modal-title" id="bannerModalTitle">Ajouter une bannière</div><div class="modal-sub">Affichée en haut de la page Produits</div>
+    <div class="modal-form">
+      <input type="hidden" id="bannerId">
+      <div class="field"><label>Titre</label><input type="text" id="bannerTitle" placeholder="Ex : Promo spéciale rentrée !"></div>
+      <div class="field"><label>Sous-titre (optionnel)</label><input type="text" id="bannerSubtitle" placeholder="Ex : -10% sur tous les snacks cette semaine"></div>
+      <div class="field">
+        <label>Affiche / Image de fond</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button type="button" class="btn-ghost" id="bannerImgTabUrl" onclick="switchBannerImgTab('url')" style="flex:1;font-size:.8rem;padding:6px 10px">🔗 URL</button>
+          <button type="button" class="btn-ghost" id="bannerImgTabFile" onclick="switchBannerImgTab('file')" style="flex:1;font-size:.8rem;padding:6px 10px">📁 Uploader une affiche</button>
+        </div>
+        <div id="bannerImgUrlField"><input type="text" id="bannerImage" placeholder="https://…"></div>
+        <div id="bannerImgFileField" style="display:none">
+          <input type="file" id="bannerImageFile" accept="image/*" style="width:100%;padding:8px;border:1px dashed var(--border);border-radius:8px;background:var(--bg2);cursor:pointer">
+          <div id="bannerImgPreview" style="margin-top:8px;display:none"><img id="bannerImgPreviewImg" src="" alt="Aperçu" style="width:100%;border-radius:8px;max-height:160px;object-fit:cover"></div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Couleur de fond (si pas d'image)</label><input type="color" id="bannerColor" value="#404040" style="height:42px;padding:4px"></div>
+        <div class="field"><label>Lien (optionnel)</label><input type="text" id="bannerLink" placeholder="https://…"></div>
+      </div>
+      <div class="toggle-row"><div class="toggle-info"><strong>Bannière active</strong><span>Visible sur la marketplace</span></div><button class="toggle on" id="bannerActive"></button></div>
+      <button class="btn-primary" id="saveBannerBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="reportReviewModal">
+  <div class="modal"><button class="modal-x" data-close="reportReviewModal">✕</button>
+    <div class="modal-title">Signalement</div><div class="modal-sub" id="reportReviewSub"></div>
+    <div id="reportReviewContent" style="margin-bottom:14px"></div>
+    <div class="modal-form">
+      <input type="hidden" id="reportReviewId">
+      <input type="hidden" id="reportReviewSellerId">
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" id="validateReportBtn" style="flex:1">Valider le signalement</button>
+        <button class="btn-danger" id="dismissReportBtn" style="flex:1">Rejeter</button>
+      </div>
+      <div id="reportDeleteWrap" style="display:none;margin-top:10px">
+        <div class="divider"></div>
+        <div class="hint" id="reportDeleteHint" style="margin-bottom:8px"></div>
+        <button class="btn-danger" id="deleteSellerBtn" style="width:100%">Supprimer le compte de ce vendeur</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="paymentModal">
+  <div class="modal"><button class="modal-x" data-close="paymentModal">✕</button>
+    <div class="modal-title">Enregistrer un paiement</div><div class="modal-sub" id="paymentSub"></div>
+    <div class="modal-form">
+      <input type="hidden" id="payCommId">
+      <div id="paymentInfo" style="background:var(--bg3);border:1px solid var(--line);border-radius:var(--r2);padding:14px;font-size:.8rem"></div>
+      <div class="field"><label>Montant reçu (FCFA)</label><input type="number" id="payAmount" placeholder="Ex : 2500" min="1"></div>
+      <div class="field"><label>Note (optionnel)</label><input type="text" id="payNote" placeholder="Ex : Wave, cash…"></div>
+      <button class="btn-primary" id="savePaymentBtn">Confirmer le paiement</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="blockModal">
+  <div class="modal"><button class="modal-x" data-close="blockModal">✕</button>
+    <div class="modal-title" id="blockTitle">Bloquer</div><div class="modal-sub" id="blockSub"></div>
+    <div class="modal-form">
+      <input type="hidden" id="blockSellerId"><input type="hidden" id="blockAction">
+      <div class="field"><label>Raison (optionnel)</label><textarea id="blockReason" placeholder="Ex : Commission impayée…" style="min-height:70px"></textarea></div>
+      <button class="btn-primary" id="confirmBlockBtn">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
+<script src="../js/vendor/supabase.js"></script>
+<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/cache.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script><script src="../js/mobilenav.js"></script>
+<script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
+<script src="../js/vendor/emailjs.min.js"></script>
+<script src="../js/email.js"></script>
+<script src="../js/superadmin.js"></script>
+</body></html>

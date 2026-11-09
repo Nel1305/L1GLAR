@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Mon espace · N Market</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/theme.js"></script>
+</head>
+<body data-bnav="seller">
+<div class="flag-bar"></div>
+<div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
+<div id="lockedScreen" style="display:none;text-align:center;padding:100px 20px;max-width:360px;margin:0 auto">
+  <div style="font-size:1.8rem;margin-bottom:14px">🔒</div>
+  <div class="page-title" style="margin-bottom:8px">Accès refusé</div>
+  <p style="color:var(--t2);font-size:.82rem;margin-bottom:22px">Connecte-toi pour accéder à ton espace vendeur.</p>
+  <a href="../index.html" style="display:inline-block;padding:9px 22px;background:var(--t1);color:var(--bg);border-radius:var(--r2);text-decoration:none;font-weight:600;font-size:.82rem">← Retourner au site</a>
+</div>
+<div class="mobile-topbar"><div class="mt-title"><span id="shopNameMobile">N Market</span></div></div>
+<div class="app" id="appShell" style="display:none">
+  <aside class="sidebar">
+    <div class="logo-row"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> <span id="shopName">Mon commerce</span></div><div class="logo-sub">N Market</div></div></div>
+    <nav class="nav">
+      <span class="nav-label">Tableau de bord</span>
+      <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Vue globale</button>
+      <button class="nav-item" data-page="notifications"><span class="icon">🔔</span>Notifications <span class="dot" id="notifDot" style="display:none"></span></button>
+      <span class="nav-label">Ventes</span>
+      <button class="nav-item" data-page="orders"><span class="icon">📦</span>Commandes</button>
+      <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours <span class="dot" id="returnsDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="products"><span class="icon">🛍</span>Mes produits</button>
+      <button class="nav-item" data-page="addproduct"><span class="icon">+</span>Ajouter un produit</button>
+      <button class="nav-item" data-page="promote"><span class="icon">📣</span>Publicité</button>
+      <span class="nav-label">Communication</span>
+      <button class="nav-item" data-page="whatsapp"><span class="icon">🟢</span>WhatsApp <span class="soon-tag">Bientôt</span><span class="dot wa-dot" style="display:none"></span></button>
+      <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="chatDot" style="display:none"></span></button>
+      <span class="nav-label">Compte</span>
+      <button class="nav-item" data-page="verify"><span class="icon">🛡</span>Vérification <span class="dot" id="verifDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="profile"><span class="icon">⚙</span>Mon profil</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-pill" id="userPill">
+        <div class="avatar" id="userAvatar">?</div>
+        <div class="user-info"><div class="user-name" id="userName">…</div><div class="user-role">Vendeur</div></div>
+      </div>
+      <button class="admin-btn" id="logoutBtn"><span class="icon">←</span>Se déconnecter</button>
+      <a href="../index.html" class="admin-btn"><span class="icon">←</span>Retour au site</a>
+      <a href="superadmin.html" class="credit">codé par BUABEY Nel'si</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div id="verifBanner" class="verif-banner" style="display:none"></div>
+
+    <div id="page-dashboard" class="page active">
+      <div class="page-header"><div><div class="page-title" id="dashTitle">Tableau de bord</div><div class="page-desc" id="dashDesc">Bienvenue</div></div></div>
+      <div class="stats-row" id="dashStats"></div>
+      <div style="margin-bottom:24px">
+        <div style="font-size:.82rem;font-weight:500;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+          <span>Dernières commandes</span>
+          <button class="btn-ghost" style="font-size:.72rem;padding:5px 12px" onclick="goPage('orders')">Tout voir</button>
+        </div>
+        <div class="table-wrap"><table class="data-table"><thead><tr><th>Client</th><th>Produit</th><th>Qté</th><th>Total</th><th>Statut</th></tr></thead><tbody id="dashOrders"></tbody></table></div>
+      </div>
+      <div>
+        <div style="font-size:.82rem;font-weight:500;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+          <span>Mes produits</span>
+          <button class="btn-ghost" style="font-size:.72rem;padding:5px 12px" onclick="goPage('products')">Gérer</button>
+        </div>
+        <div id="dashProducts" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px"></div>
+      </div>
+    </div>
+
+    <div id="page-orders" class="page">
+      <div class="page-header">
+        <div><div class="page-title">Commandes</div><div class="page-desc">Toutes les commandes reçues</div></div>
+        <select class="select-sm" id="orderStatusFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select>
+      </div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Client</th><th>Contact</th><th>Produit</th><th>Qté</th><th>Total</th><th>Livraison</th><th>Modification</th><th>Statut</th><th></th></tr></thead><tbody id="ordersBody"></tbody></table></div>
+    </div>
+
+    <div id="page-returns" class="page">
+      <div class="page-header"><div><div class="page-title">Retours</div><div class="page-desc">Demandes de retour signalées par tes clients</div></div></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Commande</th><th>Client</th><th>Produit</th><th>Motif</th><th>Statut</th><th>Date</th><th></th></tr></thead><tbody id="returnsBody"></tbody></table></div>
+    </div>
+
+    <div id="page-products" class="page">
+      <div class="page-header"><div><div class="page-title">Mes produits</div><div class="page-desc">Gérer ta boutique</div></div><button class="btn-primary sm" onclick="goPage('addproduct')">+ Ajouter</button></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Photo</th><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>Note</th><th>Dispo</th><th>Actions</th></tr></thead><tbody id="productsBody"></tbody></table></div>
+    </div>
+
+    <div id="page-promote" class="page">
+      <div class="page-header"><div><div class="page-title">Publicité</div><div class="page-desc">Mets un produit en avant sur la marketplace pour booster sa visibilité</div></div></div>
+
+      <div class="form-wrap">
+        <div class="f-section">
+          <span class="f-label">1. Choisir un produit</span>
+          <div class="field"><select id="promoProduct"></select></div>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section">
+          <span class="f-label">2. Choisir une formule</span>
+          <div class="promo-plans" id="promoPlans"></div>
+        </div>
+        <button class="btn-primary" id="submitPromoBtn">Demander la mise en avant</button>
+        <div class="success-box" id="promoSuccess"><div class="ico">✓</div><strong>Demande envoyée !</strong><p>Le Super Admin va valider ta demande et activer la mise en avant.</p></div>
+      </div>
+
+      <div class="section-divider">Mes demandes de mise en avant</div>
+      <div id="myPromosList"></div>
+    </div>
+
+    <div id="page-addproduct" class="page">
+      <div class="page-header"><div><div class="page-title">Ajouter un produit</div><div class="page-desc">Décris ce que tu vends</div></div></div>
+      <div class="form-wrap">
+        <div class="field"><label>Photo du produit</label>
+          <div class="photo-upload"><input type="file" accept="image/*" id="apPhoto"><div id="apPhotoPlaceholder"><div style="font-size:1.5rem;margin-bottom:6px">📷</div><div style="font-size:.8rem;font-weight:500;margin-bottom:2px">Clique ou glisse une photo</div><div style="font-size:.7rem;color:var(--t3)">JPG, PNG — max 5 Mo</div></div><img id="apPhotoPreview" class="photo-preview" alt=""></div>
+        </div>
+        <div class="field"><label>Nom du produit</label><input type="text" id="apName" placeholder="Ex : Crêpes au Nutella"></div>
+        <div class="field"><label>Description</label><textarea id="apDesc" placeholder="Décris ton produit : ingrédients, taille, disponibilités…"></textarea></div>
+        <div class="field-row">
+          <div class="field"><label>Catégorie</label><select id="apCat"></select></div>
+          <div class="field"><label>Prix (FCFA)</label><input type="number" id="apPrice" placeholder="500" min="1"></div>
+        </div>
+        <div class="field"><label>Emoji (si pas de photo)</label><input type="text" id="apEmoji" placeholder="🥞" style="max-width:100px"></div>
+        <div class="divider"></div>
+        <div class="f-section">
+          <span class="f-label">Stock</span>
+          <div class="toggle-row"><div class="toggle-info"><strong>Gérer le stock</strong><span>Active pour suivre les quantités disponibles</span></div><button class="toggle" id="apTrackStock"></button></div>
+          <div id="apStockFields" style="display:none">
+            <div class="field"><label>Quantité disponible</label><input type="number" id="apStock" placeholder="10" min="0"></div>
+            <div class="toggle-row"><div class="toggle-info"><strong>Afficher la quantité</strong><span>Sinon les clients verront juste « En stock » / « Rupture de stock »</span></div><button class="toggle on" id="apShowStock"></button></div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <button class="btn-primary" id="saveProductBtn">Publier le produit</button>
+        <div class="success-box" id="addSuccess"><div class="ico">✓</div><strong>Produit publié !</strong><p>Il est maintenant visible par toute la promo.</p></div>
+      </div>
+    </div>
+
+    <div id="page-whatsapp" class="page"></div>
+
+    <div id="page-chat" class="page">
+      <div class="page-header"><div><div class="page-title">Messages</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Accès restreint</span></div></div></div>
+      <div class="chat-wrap">
+        <div class="chat-sidebar">
+          <div class="chat-sidebar-hd">Conversations</div>
+          <div class="chat-rooms" id="chatRooms"></div>
+        </div>
+        <div class="chat-main">
+          <div class="chat-header">
+            <div class="chat-header-info">
+              <div class="chat-header-name" id="chatHeaderName">Canal général</div>
+              <div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div>
+            </div>
+            <span class="e2e-badge">🔒 Privé</span>
+          </div>
+          <div class="chat-messages" id="chatMessages"><div class="chat-empty"><span>💬</span><span>Sélectionne une conversation</span></div></div>
+          <div class="chat-input-area">
+            <textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1"></textarea>
+            <button class="chat-send" id="chatSendBtn">↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-notifications" class="page">
+      <div class="page-header"><div><div class="page-title">Notifications</div><div class="page-desc">Commandes, retours, avis et sponsorings</div></div><button class="btn-ghost" id="markAllReadBtn" style="font-size:.74rem">Tout marquer comme lu</button></div>
+      <div id="notifList" class="notif-list"></div>
+    </div>
+
+    <div id="page-verify" class="page"></div>
+    <div id="page-profile" class="page">
+      <div class="page-header"><div><div class="page-title">Mon profil</div><div class="page-desc">Gérer les informations de ton commerce</div></div></div>
+      <div class="form-wrap">
+        <div class="f-section">
+          <span class="f-label">Informations</span>
+          <div class="field-row"><div class="field"><label>Prénom</label><input type="text" id="pfFirst"></div><div class="field"><label>Nom</label><input type="text" id="pfLast"></div></div>
+          <div class="field"><label>Email</label><input type="email" id="pfEmail"></div>
+          <div class="field"><label>Téléphone</label><input type="tel" id="pfPhone"></div>
+          <div class="field"><label>Filière</label><select id="pfFiliere"></select></div>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section">
+          <span class="f-label">Ma boutique</span>
+          <div class="field"><label>Nom affiché</label><input type="text" id="pfShopName"></div>
+          <div class="field"><label>Description</label><textarea id="pfBio" placeholder="Ex : Crêpes maison tous les midis en salle 12 !"></textarea></div>
+          <div class="toggle-row"><div class="toggle-info"><strong>Boutique ouverte</strong><span>Tes produits sont visibles</span></div><button class="toggle on" id="pfToggle"></button></div>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section"><span class="f-label">Sécurité</span><div class="field"><label>Nouveau mot de passe</label><input type="password" id="pfPass" placeholder="Laisser vide pour ne pas changer (min. 8 caractères)" autocomplete="new-password"></div></div>
+        <button class="btn-primary" id="saveProfileBtn">Sauvegarder</button>
+        <div class="modal-link" style="margin-top:14px"><a id="openTermsLink">Conditions vendeur — comment ça fonctionne, ce qu'il faut et ne faut pas faire</a></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="overlay" id="editProductModal">
+  <div class="modal modal-lg">
+    <button class="modal-x" data-close="editProductModal">✕</button>
+    <div class="modal-title">Modifier le produit</div><div class="modal-sub">Changements visibles immédiatement</div>
+    <div class="modal-form">
+      <input type="hidden" id="editId">
+      <div class="field"><label>Photo</label><div class="photo-upload"><input type="file" accept="image/*" id="editPhoto"><div id="editPhotoPlaceholder"><div style="font-size:1.4rem;margin-bottom:4px">📷</div><div style="font-size:.78rem;font-weight:500">Changer la photo</div></div><img id="editPhotoPreview" class="photo-preview" alt=""></div></div>
+      <div class="field"><label>Nom</label><input type="text" id="editName"></div>
+      <div class="field"><label>Description</label><textarea id="editDesc"></textarea></div>
+      <div class="modal-grid">
+        <div class="field"><label>Catégorie</label><select id="editCat"></select></div>
+        <div class="field"><label>Prix (FCFA)</label><input type="number" id="editPrice"></div>
+      </div>
+      <div class="field"><label>Emoji</label><input type="text" id="editEmoji" style="max-width:90px"></div>
+      <div class="divider"></div>
+      <div class="f-section">
+        <span class="f-label">Stock</span>
+        <div class="toggle-row"><div class="toggle-info"><strong>Gérer le stock</strong><span>Active pour suivre les quantités disponibles</span></div><button class="toggle" id="editTrackStock"></button></div>
+        <div id="editStockFields" style="display:none">
+          <div class="field"><label>Quantité disponible</label><input type="number" id="editStock" min="0"></div>
+          <div class="toggle-row"><div class="toggle-info"><strong>Afficher la quantité</strong><span>Sinon les clients verront juste « En stock » / « Rupture de stock »</span></div><button class="toggle on" id="editShowStock"></button></div>
+        </div>
+      </div>
+      <button class="btn-primary" id="saveEditBtn">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="orderDetailModal">
+  <div class="modal"><button class="modal-x" data-close="orderDetailModal">✕</button>
+    <div class="modal-title">Détail commande</div><div class="modal-sub" id="orderDetailSub"></div>
+    <div id="orderDetailContent"></div>
+  </div>
+</div>
+
+<div class="overlay" id="returnModal">
+  <div class="modal"><button class="modal-x" data-close="returnModal">✕</button>
+    <div class="modal-title">Demande de retour</div><div class="modal-sub" id="returnModalSub"></div>
+    <div id="returnModalContent" style="margin-bottom:14px"></div>
+    <div class="modal-form">
+      <input type="hidden" id="returnId">
+      <div class="field"><label>Ta réponse au client</label><textarea id="returnResponse" placeholder="Ex : Pas de souci, ramène le produit et on te rembourse / on te l'échange."></textarea></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" id="acceptReturnBtn" style="flex:1">Accepter le retour</button>
+        <button class="btn-danger" id="rejectReturnBtn" style="flex:1">Refuser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="termsModal">
+  <div class="modal modal-lg">
+    <button class="modal-x" data-close="termsModal">✕</button>
+    <div class="modal-title">Conditions pour devenir vendeur sur N Market</div>
+    <div class="modal-sub">À lire avant de créer ta boutique</div>
+    <div class="terms-content">
+      <h4>1. Qui peut vendre ?</h4>
+      <p>N Market est réservé à la communauté universitaire (étudiants, personnel). L'inscription est gratuite et ouverte à toute personne souhaitant proposer des produits ou services aux autres membres de l'université.</p>
+
+      <h4>2. Comment ça fonctionne</h4>
+      <ul>
+        <li>Tu crées ton compte avec ton prénom, nom, email, téléphone et ta filière.</li>
+        <li>Tu ajoutes tes produits (nom, description, prix, photo, catégorie, stock si besoin).</li>
+        <li>Les clients commandent depuis le catalogue, choisissent une date/heure et un lieu de livraison (sur le campus ou une adresse).</li>
+        <li>Tu reçois une notification par email pour chaque nouvelle commande, avec les coordonnées du client.</li>
+        <li>Une commission de service (taux fixé par l'administration à 2%) s'applique sur les ventes réalisées via la plateforme, facturée périodiquement.</li>
+        <li>Tu peux mettre tes produits en avant (section "Sponsorisé") via la page Publicité, selon les formules proposées.</li>
+      </ul>
+
+      <h4>3. Ce qu'il FAUT faire</h4>
+      <ul>
+        <li>Décrire tes produits de façon honnête (prix, quantité, ingrédients, état).</li>
+        <li>Mettre à jour ton stock et la disponibilité de tes produits régulièrement.</li>
+        <li>Répondre aux clients et confirmer les commandes dans un délai raisonnable.</li>
+        <li>Respecter les dates, heures et lieux de livraison convenus.</li>
+        <li>Traiter les demandes de retour ou de réclamation avec sérieux et de bonne foi.</li>
+        <li>Garder tes informations de profil (email, téléphone, filière) à jour.</li>
+        <li>Payer les commissions dues dans les délais indiqués par l'administration.</li>
+      </ul>
+
+      <h4>4. Ce qu'il NE FAUT PAS faire</h4>
+      <ul>
+        <li>Vendre des produits illégaux, dangereux, contrefaits ou interdits par le règlement de l'université.</li>
+        <li>Publier des photos, descriptions ou prix trompeurs.</li>
+        <li>Annuler des commandes confirmées sans motif valable, ou ne pas livrer.</li>
+        <li>Harceler, insulter ou faire pression sur un client ou un autre vendeur (y compris via la messagerie).</li>
+        <li>Créer plusieurs comptes pour contourner un blocage ou une suspension.</li>
+        <li>Utiliser les coordonnées des clients obtenues via une commande à d'autres fins que cette commande.</li>
+      </ul>
+
+      <h4>5. Signalements et sanctions</h4>
+      <p>Tout client peut signaler un vendeur via la page de sa boutique. Le Super Admin examine chaque signalement. Au-delà d'un seuil de signalements jugés fondés, le Super Admin peut suspendre ou supprimer définitivement le compte vendeur et ses produits, sans préavis, en cas de manquement grave ou répété aux présentes conditions.</p>
+
+      <h4>6. Modération et droit de retrait</h4>
+      <p>Le Super Admin peut, à tout moment, suspendre un compte, retirer un produit du catalogue, ou refuser une demande de mise en avant, notamment en cas de non-respect de ces règles, de retard de paiement de commission, ou de plainte fondée.</p>
+
+      <p class="terms-footer" id="termsFooterText">Ces conditions s'appliquent à tout compte vendeur créé sur N Market.</p>
+    </div>
+    <div class="modal-form" id="termsActions" style="display:none;margin-top:14px">
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" id="acceptTermsBtn" style="flex:1">J'accepte, créer mon compte</button>
+        <button class="btn-danger" id="declineTermsBtn" style="flex:1">Refuser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
+<script src="../js/vendor/supabase.js"></script>
+<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/cache.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script><script src="../js/mobilenav.js"></script>
+<script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
+<script src="../js/vendor/emailjs.min.js"></script>
+<script src="../js/email.js"></script>
+<script src="../js/admin.js"></script>
+</body></html>
