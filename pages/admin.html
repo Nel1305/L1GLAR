@@ -33,6 +33,7 @@
       <button class="nav-item" data-page="whatsapp"><span class="icon">🟢</span>WhatsApp <span class="soon-tag">Bientôt</span><span class="dot wa-dot" style="display:none"></span></button>
       <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="chatDot" style="display:none"></span></button>
       <span class="nav-label">Compte</span>
+      <button class="nav-item" data-page="verify"><span class="icon">🛡</span>Vérification <span class="dot" id="verifDot" style="display:none"></span></button>
       <button class="nav-item" data-page="profile"><span class="icon">⚙</span>Mon profil</button>
     </nav>
     <div class="sidebar-footer">
@@ -46,6 +47,7 @@
     </div>
   </aside>
   <main class="main">
+    <div id="verifBanner" class="verif-banner" style="display:none"></div>
 
     <div id="page-dashboard" class="page active">
       <div class="page-header"><div><div class="page-title" id="dashTitle">Tableau de bord</div><div class="page-desc" id="dashDesc">Bienvenue</div></div></div>
@@ -164,6 +166,7 @@
       <div id="notifList" class="notif-list"></div>
     </div>
 
+    <div id="page-verify" class="page"></div>
     <div id="page-profile" class="page">
       <div class="page-header"><div><div class="page-title">Mon profil</div><div class="page-desc">Gérer les informations de ton commerce</div></div></div>
       <div class="form-wrap">

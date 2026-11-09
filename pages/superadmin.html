@@ -33,6 +33,7 @@
       <button class="nav-item" data-page="commissions"><span class="icon">💰</span>Commissions</button>
       <button class="nav-item" data-page="generate"><span class="icon">🧾</span>Générer factures</button>
       <span class="nav-label">Vendeurs</span>
+      <button class="nav-item" data-page="verifs"><span class="icon">🛡</span>Vérifications <span class="dot" id="verifsDot" style="display:none"></span></button>
       <button class="nav-item" data-page="sellers"><span class="icon">👥</span>Tous les vendeurs</button>
       <button class="nav-item" data-page="network"><span class="icon">🔗</span>Réseau vendeurs</button>
       <button class="nav-item" data-page="products"><span class="icon">🛍</span>Tous les produits</button>
@@ -94,6 +95,11 @@
       </div>
     </div>
 
+    <div id="page-verifs" class="page">
+      <div class="page-header"><div><div class="page-title">Vérifications</div><div class="page-desc">Pièce d'identité + selfie des vendeurs — réponse sous 24 à 48 h</div></div>
+        <select class="select-sm" id="verifFilter"><option value="pending">En attente</option><option value="rejected">Refusés</option><option value="verified">Vérifiés</option></select></div>
+      <div id="verifsList"></div>
+    </div>
     <div id="page-sellers" class="page">
       <div class="page-header"><div><div class="page-title">Vendeurs</div><div class="page-desc">Gérer tous les comptes</div></div><select class="select-sm" id="sellerStatusFilter"><option value="all">Tous</option><option value="active">Actifs</option><option value="blocked">Bloqués</option></select></div>
       <div class="sellers-grid" id="sellersGrid"></div>
@@ -225,6 +231,18 @@
     </div>
 
   </main>
+</div>
+
+<div class="overlay" id="verifModal">
+  <div class="modal" style="max-width:720px">
+    <button class="modal-x" data-close="verifModal" aria-label="Fermer">✕</button>
+    <h2 class="how-title" id="vmTitle">Dossier</h2>
+    <p class="how-sub" id="vmMeta"></p>
+    <div class="vm-imgs"><figure><img id="vmId" alt="Pièce d'identité"><figcaption>Pièce d'identité</figcaption></figure><figure><img id="vmSelfie" alt="Selfie"><figcaption>Selfie</figcaption></figure></div>
+    <p class="how-sub">Vérifie que le visage du selfie correspond à la photo de la pièce, que la pièce est lisible et valide, et que le nom correspond au vendeur. Les liens des images expirent après 5 minutes.</p>
+    <div class="field"><label>Motif (obligatoire en cas de refus)</label><input type="text" id="vmNote" maxlength="300" placeholder="Ex : photo floue, visage non visible…"></div>
+    <div class="ask-actions"><button class="btn-ghost" id="vmReject">Refuser</button><button class="btn-primary" id="vmApprove">Valider et donner le badge</button></div>
+  </div>
 </div>
 
 <div class="overlay" id="catModal">
