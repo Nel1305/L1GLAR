@@ -1589,3 +1589,31 @@ body.cart-empty .nav-item[data-page="cart"] { display: none; }
   body[data-bnav="shop"] .credit { display: block; padding: 0; font-size: .58rem; }
   body[data-bnav="shop"] .user-pill { padding: 4px 10px 4px 4px; }
 }
+.ticket-viewer { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+.tv-box { background: var(--bg2); border-radius: 20px; padding: 16px; max-width: 420px; width: 100%; text-align: center; }
+.tv-box img { width: 100%; border-radius: 10px; border: 1px solid var(--b1); }
+.tv-box p { font-size: var(--fs-sm); color: var(--t2); margin: 12px 0; }
+.tv-box .btn-primary { width: 100%; margin: 0; }
+.order-contact-note strong { display: inline; }
+
+/* ── badge « Vérifié » ── */
+.vbadge { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: .62rem; font-weight: 500; letter-spacing: .01em; white-space: nowrap; vertical-align: middle; }
+
+/* ── Vérification vendeur ── */
+.verif-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 12px 16px; margin-bottom: 18px; border: 1px solid var(--b2); border-radius: 14px; background: var(--bg2); font-size: var(--fs-sm); color: var(--t1); }
+.verif-banner.danger { border-color: var(--err); background: rgba(178, 58, 46, .08); }
+.vb-btn { min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+.vf-card { display: flex; gap: 14px; align-items: flex-start; max-width: 520px; padding: 16px; margin-bottom: 18px; border: 1px solid var(--b2); border-radius: 16px; background: var(--bg2); }
+.vf-card.ok { border-color: var(--ok, #2e7d4f); } .vf-card.bad { border-color: var(--err); }
+.vf-ico { width: 34px; height: 34px; border-radius: 50%; background: var(--bg3); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; font-weight: 600; }
+.vf-card p { margin: 4px 0 0; color: var(--t2); font-size: var(--fs-sm); line-height: 1.55; }
+.vf-prev { display: flex; gap: 10px; margin: 4px 0 12px; } .vf-prev img { width: 100px; height: 100px; object-fit: cover; border-radius: 10px; border: 1px solid var(--b1); } .vf-prev img[hidden] { display: none; }
+.vf-row { display: flex; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--b1); font-size: var(--fs-sm); color: var(--t2); }
+/* compte désactivé : seule la page Vérification reste accessible */
+body.acct-locked .sidebar .nav-item:not([data-page="verify"]) { display: none; }
+body.acct-locked .bottom-nav .bn-page:not([data-page="verify"]) { display: none; }
+.vm-imgs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0 14px; }
+.vm-imgs figure { margin: 0; } .vm-imgs img { width: 100%; max-height: 340px; object-fit: contain; background: var(--bg3); border: 1px solid var(--b1); border-radius: 12px; min-height: 120px; }
+.vm-imgs figcaption { font-size: var(--fs-xs); color: var(--t3); text-align: center; margin-top: 4px; }
+@media (max-width: 600px) { .vm-imgs { grid-template-columns: 1fr; } }
+body.acct-locked .sidebar .nav-label { display: none; }
