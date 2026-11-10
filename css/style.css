@@ -1700,3 +1700,9 @@ body:has(#page-cart.active) .cart-fab { display: none; }
 
 /* L'onglet « Panier » n'existe plus dans les menus : on ouvre le panier avec la bulle (le bouton reste dans le DOM, caché, pour la navigation interne) */
 .sidebar .nav-item[data-page="cart"] { display: none !important; }
+
+/* ══ Pas de zoom involontaire (double-tap, focus des champs sur iPhone) ══ */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@media (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px !important; }   /* iOS zoome si < 16px */
+}

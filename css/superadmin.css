@@ -1,0 +1,83 @@
+/* ══════════════════════════════════════════════════
+   N MARKET — Super Admin addons
+   Utilise les tokens de style.css
+══════════════════════════════════════════════════ */
+
+/* Login screen */
+.login-box {
+  background: var(--bg2); border: 1px solid var(--b2); border-radius: var(--r-xl);
+  padding: 36px 32px; max-width: 360px; width: 100%;
+  text-align: center; margin: 80px auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+.login-logo { margin-bottom: 24px; }
+.login-logo .star { font-size: 1.6rem; color: var(--accent); display: block; margin-bottom: 6px; }
+.login-desc { font-size: .76rem; color: var(--t3); margin-bottom: 18px; }
+
+/* Sellers grid */
+.sellers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.seller-card {
+  background: var(--bg2); border: 1px solid var(--b1); border-radius: var(--r-xl);
+  padding: 18px 20px; position: relative; transition: border-color .15s;
+}
+.seller-card:hover { border-color: var(--b2); }
+.seller-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.seller-avatar {
+  width: 40px; height: 40px; border-radius: 50%; background: var(--accent-dim);
+  border: 1px solid var(--accent-bdr); display: flex; align-items: center;
+  justify-content: center; font-size: .9rem; font-weight: 700;
+  color: var(--accent-lt); flex-shrink: 0;
+}
+.seller-name { font-weight: 700; font-size: .9rem; }
+.seller-email { font-size: .7rem; color: var(--t3); }
+.seller-stats { display: flex; gap: 14px; font-size: .72rem; color: var(--t2); margin-bottom: 12px; }
+.seller-stat strong { color: var(--t1); font-weight: 700; display: block; font-size: .88rem; }
+.seller-actions { display: flex; gap: 6px; }
+.seller-blocked { opacity: .55; }
+.seller-blocked .seller-avatar { background: var(--err-dim); color: var(--err); border-color: var(--err-bdr); }
+
+/* Commissions */
+.comm-card {
+  background: var(--bg2); border: 1px solid var(--b1); border-radius: var(--r-xl); padding: 18px 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  transition: border-color .15s;
+}
+.comm-card:hover { border-color: var(--b2); }
+.comm-seller { font-weight: 700; font-size: .88rem; }
+.comm-period { font-size: .72rem; color: var(--t3); margin-top: 1px; }
+.comm-amount { font-size: 1.1rem; font-weight: 700; color: var(--accent-lt); }
+.comm-due    { font-size: .7rem; color: var(--t3); margin-top: 1px; }
+.comm-actions { display: flex; gap: 6px; align-items: center; }
+
+/* Dash grid */
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+.dash-section {
+  background: var(--bg2); border: 1px solid var(--b1); border-radius: var(--r-xl);
+  padding: 18px 20px;
+}
+.dash-section-title { font-size: .68rem; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 12px; }
+.dash-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--b1); font-size: .79rem; }
+.dash-item:last-child { border-bottom: none; }
+.dash-item .di-label { color: var(--t2); }
+.dash-item .di-val   { font-weight: 600; color: var(--t1); }
+
+/* Generate panel */
+.gen-panel { background: var(--bg2); border: 1px solid var(--b1); border-radius: var(--r-xl); padding: 24px; max-width: 560px; }
+.gen-panel .gen-title { font-family: var(--font); font-size: 1rem; font-weight: 700; margin-bottom: 4px; color: var(--t1); }
+.gen-panel .gen-sub { font-size: .76rem; color: var(--t3); margin-bottom: 18px; }
+.gen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+
+/* Preview table */
+.preview-wrap { margin-top: 20px; }
+.preview-title { font-size: .74rem; font-weight: 600; color: var(--t2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .07em; }
+
+/* Settings */
+.settings-section { max-width: 420px; }
+.settings-section .f-label { margin-bottom: 8px; }
+
+/* Responsive */
+@media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) {
+  .sellers-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+}
