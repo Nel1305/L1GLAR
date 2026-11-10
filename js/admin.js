@@ -201,7 +201,7 @@ async function renderOrders() {
           <option value="cancel" ${o.status==='cancel'?'selected':''}>Annulée</option>
         </select>
       </td>
-      <td><button class="icon-btn edit" onclick="viewOrder(${o.id})" title="Voir">👁</button></td>
+      <td style="white-space:nowrap"><button class="icon-btn edit" onclick="viewOrder(${o.id})" title="Voir">👁</button> <button class="icon-btn wa" onclick="openWaSend(${o.id})" title="Écrire sur WhatsApp" aria-label="Écrire sur WhatsApp">💬</button></td>
     </tr>`).join('');
 }
 
@@ -584,4 +584,44 @@ async function renderVerifyPage() {
     renderVerifBanner(); await renderVerifyPage();
     showToast('Dossier envoyé', 'Réponse sous 24 à 48 h.', 'var(--green)');
   });
+}
+
+
+/* ── WHATSAPP : messages prêts à envoyer (lien wa.me) ── */
+let _waTpl = [], _waOrder = null;
+async function openWaSend(id) {
+  const orders = await dbGetOrders({ sellerId: currentUser.id });
+  const o = orders.find(x => x.id === id); if (!o) return;
+  _waOrder = o; _waTpl = await dbGetWaTemplates(currentUser.id);
+  document.getElementById('waSendSub').textContent = `${o.buyerName} · 📞 ${o.buyerPhone || '—'} · ${o.receiptCode || '#' + o.id}`;
+  const box = document.getElementById('waSendChoices');
+  box.innerHTML = _waTpl.map((t, i) => `<button type="button" class="wa-choice${i === 0 ? ' on' : ''}" data-i="${i}">${esc(t.label)}</button>`).join('');
+  const pick = i => { box.querySelectorAll('.wa-choice').forEach(b => b.classList.toggle('on', +b.dataset.i === i)); document.getElementById('waSendText').value = waFill(_waTpl[i].text, o, currentUser.name); };
+  box.querySelectorAll('.wa-choice').forEach(b => b.addEventListener('click', () => pick(+b.dataset.i)));
+  pick(0);
+  const ok = !!waPhone(o.buyerPhone), warn = document.getElementById('waSendWarn');
+  warn.hidden = ok; warn.textContent = ok ? '' : 'Numéro du client invalide : impossible d\'ouvrir WhatsApp.';
+  const go = document.getElementById('waSendGo'); go.disabled = !ok;
+  go.onclick = () => { const url = waLink(o.buyerPhone, document.getElementById('waSendText').value); if (url) window.open(url, '_blank', 'noopener'); };
+  closeModal('waTplModal'); openModal('waSendModal');
+}
+async function openWaTemplates() {
+  _waTpl = await dbGetWaTemplates(currentUser.id);
+  const list = document.getElementById('waTplList');
+  list.innerHTML = _waTpl.map((t, i) => `<div class="wa-tpl"><input class="wa-tpl-label" data-i="${i}" maxlength="40" value="${esc(t.label)}" aria-label="Nom du modèle"><textarea class="wa-text" data-i="${i}" rows="4" maxlength="800">${esc(t.text)}</textarea></div>`).join('');
+  let last = null; list.addEventListener('focusin', e => { if (e.target.tagName === 'TEXTAREA') last = e.target; });
+  document.getElementById('waTagChips').innerHTML = WA_TAGS.map(([t, d]) => `<button type="button" class="wa-chip" data-tag="${t}" title="${esc(d)}">${t}</button>`).join('');
+  document.querySelectorAll('#waTagChips .wa-chip').forEach(c => c.addEventListener('click', () => {
+    const ta = last || list.querySelector('textarea'); if (!ta) return;
+    const a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? a;
+    ta.value = ta.value.slice(0, a) + c.dataset.tag + ta.value.slice(b); ta.focus(); ta.selectionStart = ta.selectionEnd = a + c.dataset.tag.length;
+  }));
+  document.getElementById('waTplSave').onclick = async () => {
+    const out = _waTpl.map((t, i) => ({ key: t.key, label: (list.querySelector(`.wa-tpl-label[data-i="${i}"]`).value.trim() || t.label).slice(0, 40), text: (list.querySelector(`textarea[data-i="${i}"]`).value.trim() || t.text).slice(0, 800) }));
+    const r = await dbSaveWaTemplates(currentUser.id, out);
+    showToast(r.ok ? 'Messages enregistrés' : 'Enregistrés sur cet appareil', r.ok ? 'Tes modèles WhatsApp sont à jour.' : 'Base non mise à jour (exécute secure_10_wa_templates.sql pour les garder sur tous tes appareils).', r.ok ? 'var(--green)' : 'var(--orange)');
+    closeModal('waTplModal');
+  };
+  document.getElementById('waTplReset').onclick = async () => { await dbSaveWaTemplates(currentUser.id, WA_DEFAULTS.map(d => ({ ...d }))); showToast('Modèles rétablis', '', 'var(--green)'); openWaTemplates(); };
+  closeModal('waSendModal'); openModal('waTplModal');
 }

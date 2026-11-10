@@ -26,6 +26,9 @@
     const iconOf  = b => ICON[b.dataset.page] || (b.querySelector('.icon') ? b.querySelector('.icon').textContent : '•');
     const btnFor  = page => document.querySelector(`.sidebar .nav-item[data-page="${page}"]`);
 
+    /* ── Boutique sur smartphone : pas de barre du bas. Menu « ⋯ » en haut à droite, recherche en bas ── */
+    if (mode === 'shop') { shopMobile(navItems, labelOf, iconOf); return; }
+
     /* ── DOM ── */
     const nav = document.createElement('nav');
     nav.className = 'bottom-nav'; nav.setAttribute('aria-label', 'Navigation principale');
@@ -122,6 +125,53 @@
     const isField = el => el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && !/^(checkbox|radio|button|submit)$/.test(el.type || '');
     document.addEventListener('focusin',  e => { if (isField(e.target)) document.body.classList.add('kb-open'); });
     document.addEventListener('focusout', () => setTimeout(() => { if (!isField(document.activeElement)) document.body.classList.remove('kb-open'); }, 120));
+  }
+
+  function shopMobile(navItems, labelOf, iconOf) {
+    const top = document.querySelector('.mobile-topbar'); if (!top) return;
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'mt-more';
+    btn.setAttribute('aria-label', 'Menu'); btn.setAttribute('aria-haspopup', 'true'); btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML = '<span aria-hidden="true">⋯</span><span class="mt-dot" hidden></span>';
+    top.appendChild(btn);
+    const pop = document.createElement('div'); pop.className = 'bn-pop bn-pop-top'; pop.hidden = true; document.body.appendChild(pop);
+    const hasDot = b => { const c = b.querySelector('.cart-count'); return !!(c && getComputedStyle(c).display !== 'none' && c.textContent.trim() !== '0'); };
+    const close = () => { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+    function open() {
+      const items = navItems().filter(b => getComputedStyle(b).display !== 'none')
+        .map(b => { const c = b.querySelector('.cart-count'); const n = c && hasDot(b) ? ' (' + c.textContent.trim() + ')' : '';
+                    return { icon: iconOf(b), label: labelOf(b) + n, run: () => b.click() }; });
+      const nm = ((document.getElementById('userName') || {}).textContent || '').trim();
+      const logged = nm && nm !== 'Se connecter';
+      items.push({ icon: '👤', label: logged ? nm : 'Connexion / Créer un compte', run: () => { const pill = document.getElementById('userPill'); pill && pill.click(); } });
+      pop.innerHTML = items.map((it, i) => `<button type="button" class="bn-pop-item" data-i="${i}"><span class="bn-pop-ico">${it.icon}</span><span>${it.label}</span></button>`).join('');
+      pop.querySelectorAll('.bn-pop-item').forEach(el => el.addEventListener('click', () => { const it = items[+el.dataset.i]; close(); it.run(); window.scrollTo({ top: 0 }); }));
+      pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
+    }
+    btn.addEventListener('click', e => { e.stopPropagation(); pop.hidden ? open() : close(); });
+    document.addEventListener('click', e => { if (!pop.hidden && !pop.contains(e.target)) close(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    const dot = btn.querySelector('.mt-dot');
+    const syncDot = () => { dot.hidden = !navItems().some(hasDot); };
+    syncDot(); const sb = document.querySelector('.sidebar');
+    new MutationObserver(syncDot).observe(sb, { subtree: true, attributes: true, childList: true, characterData: true });
+
+    /* le tri passe dans la feuille « Filtres » sur smartphone (la barre du bas ne garde que Recherche + Filtres) */
+    const mq = window.matchMedia('(max-width: 768px)');
+    const sort = document.getElementById('sortSelect'), toolbar = sort && sort.parentNode, panel = document.getElementById('filtersPanel');
+    if (sort && panel) {
+      const grp = document.createElement('div'); grp.className = 'fp-group fp-sort-group';
+      grp.innerHTML = '<div class="fp-title">Trier par</div>';
+      panel.insertBefore(grp, panel.querySelector('.fp-foot'));
+      const place = () => { if (mq.matches) grp.appendChild(sort); else toolbar.insertBefore(sort, toolbar.querySelector('.btn-filter')); };
+      place(); mq.addEventListener ? mq.addEventListener('change', place) : mq.addListener(place);
+    }
+
+    /* clavier ouvert : la barre de recherche suit le haut du clavier (iOS ne redimensionne pas la page) */
+    const vv = window.visualViewport;
+    if (vv) {
+      const fix = () => document.documentElement.style.setProperty('--kb', Math.max(0, window.innerHeight - vv.height - vv.offsetTop) + 'px');
+      vv.addEventListener('resize', fix); vv.addEventListener('scroll', fix); fix();
+    }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

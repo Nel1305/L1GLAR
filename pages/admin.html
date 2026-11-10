@@ -71,6 +71,7 @@
     <div id="page-orders" class="page">
       <div class="page-header">
         <div><div class="page-title">Commandes</div><div class="page-desc">Toutes les commandes reçues</div></div>
+        <button type="button" class="btn-ghost" onclick="openWaTemplates()">💬 Mes messages WhatsApp</button>
         <select class="select-sm" id="orderStatusFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select>
       </div>
       <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Client</th><th>Contact</th><th>Produit</th><th>Qté</th><th>Total</th><th>Livraison</th><th>Modification</th><th>Statut</th><th></th></tr></thead><tbody id="ordersBody"></tbody></table></div>
@@ -222,6 +223,26 @@
   </div>
 </div>
 
+
+<div class="overlay" id="waSendModal">
+  <div class="modal"><button class="modal-x" data-close="waSendModal">✕</button>
+    <div class="modal-title">Écrire au client sur WhatsApp</div><div class="modal-sub" id="waSendSub"></div>
+    <div id="waSendChoices" class="wa-choices"></div>
+    <label class="wa-lbl" for="waSendText">Message (modifiable avant l'envoi)</label>
+    <textarea id="waSendText" class="wa-text" rows="6"></textarea>
+    <div id="waSendWarn" class="wa-warn" hidden></div>
+    <div class="wa-actions"><button type="button" class="btn-ghost" onclick="openWaTemplates()">Modifier mes modèles</button><button type="button" class="btn-primary" id="waSendGo">Ouvrir WhatsApp</button></div>
+    <p class="wa-hint">WhatsApp s'ouvre avec le message prêt : il reste à appuyer sur « Envoyer ».</p>
+  </div>
+</div>
+<div class="overlay" id="waTplModal">
+  <div class="modal"><button class="modal-x" data-close="waTplModal">✕</button>
+    <div class="modal-title">Mes messages WhatsApp</div><div class="modal-sub">Les balises entre accolades sont remplacées automatiquement par les infos de la commande.</div>
+    <div class="wa-tags" id="waTagChips"></div>
+    <div id="waTplList"></div>
+    <div class="wa-actions"><button type="button" class="btn-ghost" id="waTplReset">Rétablir les modèles d'origine</button><button type="button" class="btn-primary" id="waTplSave">Enregistrer</button></div>
+  </div>
+</div>
 <div class="overlay" id="orderDetailModal">
   <div class="modal"><button class="modal-x" data-close="orderDetailModal">✕</button>
     <div class="modal-title">Détail commande</div><div class="modal-sub" id="orderDetailSub"></div>

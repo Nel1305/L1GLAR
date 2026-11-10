@@ -355,6 +355,53 @@ function no(r) {
     buyerClasse:r.buyer_classe||'', buyerFiliere:r.buyer_filiere||'', orderGroup:r.order_group||null, receiptCode:r.receipt_code||'' };
 }
 
+
+/* ── MESSAGES WHATSAPP DU VENDEUR (liens wa.me, sans API) ── */
+const WA_TAGS = [
+  ['{prenom}', 'Prénom du client'], ['{produit}', 'Produit'], ['{quantite}', 'Quantité'], ['{total}', 'Total'],
+  ['{code}', 'Code du reçu'], ['{boutique}', 'Ma boutique'], ['{date_livraison}', 'Date / heure'], ['{lieu}', 'Lieu de livraison']
+];
+const WA_DEFAULTS = [
+  { key: 'received',  label: 'Commande reçue',        text: 'Bonjour {prenom} 👋 j\'ai bien reçu ta commande {code} : {quantite} × {produit} ({total}). Je te confirme la livraison prévue le {date_livraison}. — {boutique}' },
+  { key: 'preparing', label: 'Préparation en cours',  text: 'Bonjour {prenom} ! Ta commande {code} ({produit}) est en cours de préparation 🧑‍🍳. Je te préviens dès qu\'elle part. — {boutique}' },
+  { key: 'delivery',  label: 'Bientôt livré',         text: 'Bonjour {prenom} 🚚 ta commande {code} est en route et sera bientôt livrée ({lieu}). Prépare {total} si paiement à la remise. — {boutique}' },
+  { key: 'custom',    label: 'Mon message',           text: 'Bonjour {prenom}, ' }
+];
+const _waLocalKey = id => 'nm_wa_tpl_' + id;
+async function dbGetWaTemplates(sellerId) {
+  let list = null;
+  try {
+    const { data, error } = await db.from('users').select('wa_templates').eq('id', sellerId).maybeSingle();
+    if (!error && data && Array.isArray(data.wa_templates) && data.wa_templates.length) list = data.wa_templates;
+  } catch (e) {}
+  if (!list) { try { const raw = localStorage.getItem(_waLocalKey(sellerId)); if (raw) list = JSON.parse(raw); } catch (e) {} }
+  if (!Array.isArray(list)) list = [];
+  // on garde l'ordre des modèles par défaut, complété par ce que le vendeur a modifié
+  return WA_DEFAULTS.map(d => { const m = list.find(x => x && x.key === d.key); return m ? { key: d.key, label: String(m.label || d.label), text: String(m.text || d.text) } : { ...d }; });
+}
+async function dbSaveWaTemplates(sellerId, list) {
+  try { localStorage.setItem(_waLocalKey(sellerId), JSON.stringify(list)); } catch (e) {}
+  const { error } = await db.rpc('fn_set_wa_templates', { p_templates: list });
+  return error ? { local: true, error: error.message } : { ok: true };
+}
+/* numéro → format international (Sénégal par défaut : 9 chiffres → +221) */
+function waPhone(raw) {
+  let d = String(raw || '').replace(/\D/g, '');
+  if (d.startsWith('00')) d = d.slice(2);
+  else if (d.length === 9) d = '221' + d;
+  else if (d.length === 10 && d[0] === '0') d = '221' + d.slice(1);
+  return d.length >= 8 ? d : '';
+}
+function waFill(text, o, shopName) {
+  const first = String(o.buyerName || '').trim().split(/\s+/)[0] || '';
+  const lieu = o.deliveryType === 'external' ? (o.deliveryPlaceName || o.deliveryAddress || 'hors campus') : 'sur le campus';
+  const when = [o.deliveryDate ? new Date(o.deliveryDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : '', o.deliveryTime || ''].filter(Boolean).join(' à ') || 'bientôt';
+  const map = { prenom: first, produit: o.productName || '', quantite: o.qty, total: Number(o.total || 0).toLocaleString('fr-FR') + ' FCFA',
+                code: o.receiptCode || ('#' + o.id), boutique: shopName || o.sellerName || '', date_livraison: when, lieu };
+  return String(text).replace(/\{(\w+)\}/g, (m, k) => (k in map ? String(map[k]) : m));
+}
+function waLink(phone, message) { const n = waPhone(phone); return n ? 'https://wa.me/' + n + '?text=' + encodeURIComponent(message) : ''; }
+
 /* ── PUBLICITÉ / PRODUITS SPONSORISÉS ── */
 async function dbGetPromoPlans(activeOnly) {
   let q = db.from('promo_plans').select('*').order('sort_order', { ascending: true }).order('id', { ascending: true });
