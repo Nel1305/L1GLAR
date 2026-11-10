@@ -269,12 +269,24 @@ async function loadAdBanners() {
 }
 
 /* ── FILIÈRES (sélecteurs dynamiques) ── */
+/* Filière de la commande : dépend du niveau choisi (licence / licence pro / master) */
+function fillOrderFiliere() {
+  const nv = document.getElementById('oNiveau'), fi = document.getElementById('oFiliere'); if (!nv || !fi) return;
+  const lvl = ESTM_LEVELS.find(l => l.value === nv.value);
+  if (!lvl) { fi.disabled = true; fi.innerHTML = '<option value="">Choisis d\'abord ton niveau</option>'; return; }
+  fi.disabled = false;
+  fi.innerHTML = '<option value="">— Sélectionner —</option>' + ESTM_PROGRAMS.filter(p => p.cycle === lvl.cycle).map(p => `<option value="${esc(p.slug)}">${esc(p.label)}</option>`).join('');
+}
 function populateFiliereSelects() {
   const opts = '<option value="">— Sélectionner —</option>' + getFilieres().map(f => `<option value="${esc(f.slug)}">${esc(f.label)}</option>`).join('');
   const rFiliere = document.getElementById('rFiliere');
   if (rFiliere) rFiliere.innerHTML = opts;
-  const oFiliere = document.getElementById('oFiliere');
-  if (oFiliere) oFiliere.innerHTML = opts;
+  const oNiveau = document.getElementById('oNiveau');
+  if (oNiveau && !oNiveau.dataset.ready) {
+    oNiveau.innerHTML = '<option value="">— Sélectionner —</option>' + ESTM_LEVELS.map(l => `<option value="${esc(l.value)}">${esc(l.label)}</option>`).join('');
+    oNiveau.dataset.ready = '1'; oNiveau.addEventListener('change', fillOrderFiliere);
+  }
+  fillOrderFiliere();
 }
 
 function initFilters() {
@@ -636,7 +648,7 @@ async function submitOrder() {
   const deliveryTime = document.getElementById('oTime').value;
   const deliveryType = document.querySelector('input[name="deliveryType"]:checked').value;
   const deliveryAddress = document.getElementById('oAddress').value.trim();
-  const classe  = document.getElementById('oClasse').value.trim();
+  const classe  = document.getElementById('oNiveau').value;
   const filiere = document.getElementById('oFiliere').value;
 
   const items = cart.map(i => ({ ...i, p: allProducts.find(x => x.id === i.productId) })).filter(i => i.p);
@@ -645,7 +657,7 @@ async function submitOrder() {
   if (!deliveryDate || !deliveryTime) { showToast('Date/heure manquantes', 'Choisis une date et une heure de livraison.', 'var(--red)'); return; }
   const geo = deliveryType === 'external' && window.deliveryPicker ? window.deliveryPicker.position : null;
   if (deliveryType === 'external' && !deliveryAddress && !geo) { showToast('Adresse manquante', 'Indique l\'adresse hors campus ou place un repère sur la carte.', 'var(--red)'); return; }
-  if (deliveryType === 'campus' && (!classe || !filiere)) { showToast('Informations manquantes', 'Indique ta classe et ta filière pour la livraison sur le campus.', 'var(--red)'); return; }
+  if (deliveryType === 'campus' && (!classe || !filiere)) { showToast('Informations manquantes', 'Choisis ton niveau et ta filière pour la livraison sur le campus.', 'var(--red)'); return; }
 
   for (const i of items) {
     if (i.p.trackStock && i.qty > i.p.stock) { showToast('Stock insuffisant', `Il ne reste que ${i.p.stock} unité(s) de "${i.p.name}".`, 'var(--red)'); return; }
@@ -696,9 +708,9 @@ async function submitOrder() {
 
   // Vide le panier et réinitialise le formulaire
   cart = []; saveCart(); renderCart();
-  ['oName','oPhone','oNotes','oAddress','oDate','oTime','oClasse'].forEach(id => document.getElementById(id).value='');
+  ['oName','oPhone','oNotes','oAddress','oDate','oTime'].forEach(id => document.getElementById(id).value='');
   document.getElementById('oWaOptIn').checked = false; if (window.deliveryPicker) window.deliveryPicker.reset();
-  document.getElementById('oFiliere').value = '';
+  document.getElementById('oNiveau').value = ''; fillOrderFiliere();
   document.querySelector('input[name="deliveryType"][value="campus"]').checked = true;
   document.querySelectorAll('.delivery-type-opt').forEach(o => o.classList.remove('active'));
   document.querySelector('.delivery-type-opt[data-val="campus"]').classList.add('active');

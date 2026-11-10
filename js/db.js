@@ -282,20 +282,62 @@ async function dbDeleteFiliere(id) {
 }
 function nf(r) { return { id:r.id, slug:r.slug, label:r.label, sortOrder:r.sort_order||0 }; }
 
+
+/* ── NIVEAUX & FILIÈRES ESTM (menus déroulants) ──
+   Licences : brochures ESTM. Licences pro et Masters : sources tierces, À CONFIRMER avec l'ESTM.
+   Les mêmes filières sont créées dans la base par secure_11_filieres_estm.sql (le serveur les vérifie). */
+const ESTM_LEVELS = [
+  { value: 'L1', label: 'L1 — Licence 1', cycle: 'L' }, { value: 'L2', label: 'L2 — Licence 2', cycle: 'L' }, { value: 'L3', label: 'L3 — Licence 3', cycle: 'L' },
+  { value: 'Licence pro', label: 'Licence professionnelle (cours du soir)', cycle: 'LP' },
+  { value: 'M1', label: 'M1 — Master 1', cycle: 'M' }, { value: 'M2', label: 'M2 — Master 2', cycle: 'M' }
+];
+const ESTM_CYCLE_SUFFIX = { L: ' (Licence)', LP: ' (Licence pro)', M: ' (Master)' };
+const ESTM_PROGRAMS = [
+  { slug: "cim", label: "Communication, Informatique et Multimédia (CIM)", cycle: 'L' },
+  { slug: "glar", label: "Génie Logiciel et Administration Réseaux (GLAR)", cycle: 'L' },
+  { slug: "trc", label: "Télécommunications, Réseaux et Cybersécurité (TRC)", cycle: 'L' },
+  { slug: "geer", label: "Génie Électrique et Énergies Renouvelables (GEER)", cycle: 'L' },
+  { slug: "droit", label: "Droit", cycle: 'L' },
+  { slug: "fc", label: "Finance-Comptabilité (FC)", cycle: 'L' },
+  { slug: "sdg", label: "Sciences de gestion (SDG)", cycle: 'L' },
+  { slug: "lp-glar", label: "Génie Logiciel et Administration Réseaux (GLAR)", cycle: 'LP' },
+  { slug: "lp-trc", label: "Télécommunications, Réseaux et Cybersécurité (TRC)", cycle: 'LP' },
+  { slug: "lp-geer", label: "Génie Électrique et Énergies Renouvelables (GEER)", cycle: 'LP' },
+  { slug: "lp-fc", label: "Finance-Comptabilité (FC)", cycle: 'LP' },
+  { slug: "lp-sdg", label: "Sciences de gestion (SDG)", cycle: 'LP' },
+  { slug: "lp-marketing-communication", label: "Marketing-Communication", cycle: 'LP' },
+  { slug: "lp-banque-assurance", label: "Banque-Assurance", cycle: 'LP' },
+  { slug: "lp-genie-logiciel-mobile", label: "Génie logiciel et applications mobiles", cycle: 'LP' },
+  { slug: "lp-grh", label: "Gestion des ressources humaines", cycle: 'LP' },
+  { slug: "lp-transport-logistique", label: "Transport-Logistique", cycle: 'LP' },
+  { slug: "lp-cp-international-business", label: "Chef de projet International Business", cycle: 'LP' },
+  { slug: "lp-management-services-reseaux", label: "Management des services et réseaux de communication", cycle: 'LP' },
+  { slug: "m-telecom-reseaux", label: "Télécommunications-Réseaux", cycle: 'M' },
+  { slug: "m-fc", label: "Finance-Comptabilité", cycle: 'M' },
+  { slug: "m-ingenierie-financiere", label: "Ingénierie financière", cycle: 'M' },
+  { slug: "m-compta-audit-controle", label: "Comptabilité-Audit et Contrôle de gestion", cycle: 'M' },
+  { slug: "m-banque-assurance", label: "Banque-Assurance", cycle: 'M' },
+  { slug: "m-grh", label: "Gestion des ressources humaines", cycle: 'M' },
+  { slug: "m-management-projets-innovation", label: "Management de projets et innovation", cycle: 'M' },
+  { slug: "m-cp-international-business", label: "Chef de projet International Business", cycle: 'M' },
+  { slug: "m-transport-logistique", label: "Transport-Logistique", cycle: 'M' },
+  { slug: "m-ssi", label: "Sécurité des Systèmes d'Information", cycle: 'M' },
+  { slug: "m-genie-logiciel-reseaux", label: "Génie logiciel et Réseaux", cycle: 'M' },
+  { slug: "m-informatique-multimedia", label: "Informatique et Multimédia", cycle: 'M' }
+];
 let _filieresCache = [];
 async function loadFilieres() {
   _filieresCache = await dbGetFilieres();
   if (!_filieresCache.length) {
-    _filieresCache = [
-      { id:0, slug:'l1-glar', label:'L1 GLAR', sortOrder:1 },
-      { id:0, slug:'l2-glar', label:'L2 GLAR', sortOrder:2 },
-      { id:0, slug:'l3-glar', label:'L3 GLAR', sortOrder:3 },
-    ];
+    _filieresCache = ESTM_PROGRAMS.map((p, i) => ({ id:0, slug:p.slug, label:p.label+ESTM_CYCLE_SUFFIX[p.cycle], sortOrder:i+1 }));
   }
   return _filieresCache;
 }
 function getFilieres() { return _filieresCache; }
-function getFiliereLabel(slug) { const f = _filieresCache.find(x=>x.slug===slug); return f ? f.label : (slug||''); }
+function getFiliereLabel(slug) {
+  const f = _filieresCache.find(x=>x.slug===slug); if (f) return f.label;
+  const e = ESTM_PROGRAMS.find(x=>x.slug===slug); return e ? e.label + ESTM_CYCLE_SUFFIX[e.cycle] : (slug||'');
+}
 
 /* ── RÉGLAGES PLATEFORME ── */
 let _settingsCache = {};
