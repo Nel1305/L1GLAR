@@ -1736,3 +1736,10 @@ html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adj
 html[data-theme="dark"] .brand-img.light { display: none; } html[data-theme="dark"] .brand-img.dark { display: block; }
 html[data-theme="light"] .brand-img.light { display: block; } html[data-theme="light"] .brand-img.dark { display: none; }
 .mobile-topbar .brand-img { height: 26px; }
+
+/* ── Bannière : sans tag/flèches/points ; cartes à taille stable ── */
+.ad-banner .ab-tag,.ab-arrow,.ab-dots{display:none!important}
+.card-row{flex-wrap:nowrap;gap:8px;min-width:0}
+.card-price{white-space:nowrap;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.card-rating{white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.card .btn-order{width:100%;height:44px;min-height:44px;padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;box-sizing:border-box}

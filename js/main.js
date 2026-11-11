@@ -179,7 +179,7 @@ function productCardHtml(p, isSponsored) {
         <div class="card-seller"><span>${esc(p.sellerName)}${sellerBadge(p.sellerId)}</span><span class="shop-link" data-shop="${p.sellerId}">Voir la boutique</span></div>
         <div class="card-row">
           <div class="card-price">${p.price.toLocaleString()} <small>FCFA</small></div>
-          <div class="card-rating" title="Note moyenne">${p.rating ? '★ ' + p.rating + (p.votes ? ` <span>(${p.votes})</span>` : '') : '<span>Pas encore noté</span>'}</div>
+          ${p.rating ? `<div class="card-rating" title="Note moyenne">★ ${p.rating}${p.votes ? ` <span>(${p.votes})</span>` : ''}</div>` : ''}
         </div>
         <button class="btn-order" data-id="${p.id}" data-name="${esc(p.name)}" ${out?'disabled':''}>${out?'Indisponible':'Ajouter au panier'}</button>
       </div>
@@ -212,7 +212,7 @@ async function loadAdBanners() {
   if (banners.length === 1) {
     const b = banners[0];
     const bgStyle = safeImg(b.imageUrl) ? `background-image:url('${safeImg(b.imageUrl)}')` : `background:${safeColor(b.bgColor)}`;
-    const inner = `<div class="ab-overlay"><div class="ab-title">${esc(b.title)}</div>${b.subtitle ? `<div class="ab-subtitle">${esc(b.subtitle)}</div>` : ''}</div><span class="ab-tag">Publicité</span>`;
+    const inner = `<div class="ab-overlay"><div class="ab-title">${esc(b.title)}</div>${b.subtitle ? `<div class="ab-subtitle">${esc(b.subtitle)}</div>` : ''}</div>`;
     wrap.innerHTML = safeHref(b.linkUrl)
       ? `<a class="ad-banner" style="${bgStyle}" href="${safeHref(b.linkUrl)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
       : `<div class="ad-banner" style="${bgStyle}">${inner}</div>`;
@@ -222,36 +222,26 @@ async function loadAdBanners() {
   // Plusieurs bannières : carousel
   const slides = banners.map((b, i) => {
     const bgStyle = safeImg(b.imageUrl) ? `background-image:url('${safeImg(b.imageUrl)}')` : `background:${safeColor(b.bgColor)}`;
-    const inner = `<div class="ab-overlay"><div class="ab-title">${esc(b.title)}</div>${b.subtitle ? `<div class="ab-subtitle">${esc(b.subtitle)}</div>` : ''}</div><span class="ab-tag">Publicité</span>`;
+    const inner = `<div class="ab-overlay"><div class="ab-title">${esc(b.title)}</div>${b.subtitle ? `<div class="ab-subtitle">${esc(b.subtitle)}</div>` : ''}</div>`;
     const el = safeHref(b.linkUrl)
       ? `<a class="ad-banner ab-slide" style="${bgStyle}" href="${safeHref(b.linkUrl)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
       : `<div class="ad-banner ab-slide" style="${bgStyle}">${inner}</div>`;
     return el;
   }).join('');
 
-  const dots = banners.map((_, i) => `<button class="ab-dot${i===0?' active':''}" data-idx="${i}"></button>`).join('');
-
   wrap.innerHTML = `
     <div class="ab-carousel">
       <div class="ab-track" id="abTrack">${slides}</div>
-      <button class="ab-arrow ab-prev" id="abPrev">&#8249;</button>
-      <button class="ab-arrow ab-next" id="abNext">&#8250;</button>
-      <div class="ab-dots" id="abDots">${dots}</div>
     </div>`;
 
   let current = 0;
   const track = document.getElementById('abTrack');
-  const dotsEl = document.getElementById('abDots');
 
   function goTo(idx) {
     current = (idx + banners.length) % banners.length;
     track.style.transform = `translateX(-${current * 100}%)`;
-    dotsEl.querySelectorAll('.ab-dot').forEach((d, i) => d.classList.toggle('active', i === current));
   }
 
-  document.getElementById('abPrev').addEventListener('click', () => { goTo(current - 1); resetTimer(); });
-  document.getElementById('abNext').addEventListener('click', () => { goTo(current + 1); resetTimer(); });
-  dotsEl.querySelectorAll('.ab-dot').forEach(d => d.addEventListener('click', () => { goTo(parseInt(d.dataset.idx)); resetTimer(); }));
 
   // Swipe tactile
   let startX = 0;
@@ -503,7 +493,7 @@ async function openProductDetail(id) {
     <div class="pd-seller">Vendu par <span class="shop-link" id="pdShopLink">${esc(p.sellerName)}</span>${sellerBadge(p.sellerId)}${filiere?` <span class="seller-filiere">· ${filiere}</span>`:''}</div>
     <div class="pd-row">
       <div class="pd-price">${p.price.toLocaleString()} <small>FCFA</small></div>
-      <div class="pd-rating">${p.rating ? '★ ' + p.rating + (p.votes ? ` (${p.votes} avis)` : '') : 'Pas encore noté'}</div>
+      <div class="pd-rating">${p.rating ? '★ ' + p.rating + (p.votes ? ` (${p.votes} avis)` : '') : ''}</div>
     </div>
     ${stockBadgeHtml(p)}
     ${p.desc ? `<div class="pd-desc">${esc(p.desc)}</div>` : ''}
@@ -861,6 +851,10 @@ function initAuth() {
   document.getElementById('goLogin').addEventListener('click', () => { document.getElementById('viewRegister').style.display='none'; document.getElementById('viewLogin').style.display=''; });
   document.getElementById('userPill').addEventListener('click', () => { if (getSession()) location.href = 'pages/admin.html'; else openModal('authModal'); });
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
+  [['lEmail',handleLogin],['lPass',handleLogin],['fEmail',handleForgot],['rFirst',handleRegister],['rLast',handleRegister],['rEmail',handleRegister],['rPhone',handleRegister],['rPass',handleRegister]].forEach(([id,fn]) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); fn(); } });
+  });
   document.getElementById('forgotBtn').addEventListener('click', handleForgot);
   document.getElementById('goForgot').addEventListener('click', () => { document.getElementById('loginFormEmail').style.display='none'; document.getElementById('loginFormForgot').style.display=''; });
   document.getElementById('goPasswordLogin').addEventListener('click', () => { document.getElementById('loginFormForgot').style.display='none'; document.getElementById('loginFormEmail').style.display=''; });
