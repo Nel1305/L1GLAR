@@ -1,0 +1,6 @@
+# N Market
+> Marketplace d'étudiants (campus, Sénégal) : les étudiants vendent et achètent des produits et services entre camarades. Paiement à la remise ou par Wave, livraison sur le campus ou à l'adresse choisie. Prix en FCFA.
+
+## Pages
+- [Catalogue](https://n-market-sigma.vercel.app/): tous les produits disponibles
+- [Plan du site](https://n-market-sigma.vercel.app/sitemap.xml): une page par produit (/p/identifiant-nom-du-produit) avec nom, prix, vendeur et description

@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   db.auth.onAuthStateChange((event) => {
     if (event === 'PASSWORD_RECOVERY') openModal('recoveryModal');
   });
+  { const si = document.getElementById('searchInput'); if (si && window.innerWidth <= 380) si.placeholder = 'Rechercher…'; }
   await initSession();
   initNav();
   await loadCategories();
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadCart();
   await loadProducts();
   loadAdBanners();
+  openDeepLinkedProduct();
   NMCache.startAutoRefresh(async () => { await loadProducts(); await loadAdBanners(); }, 90000,
     () => document.getElementById('page-products').classList.contains('active'));
   initDeliveryFields();
@@ -175,20 +177,20 @@ function productCardHtml(p, isSponsored) {
       <div class="card-img cat-${esc(p.cat)}" data-detail="${p.id}" role="button" tabindex="0" aria-label="Voir ${esc(p.name)}">${thumbHtml(p, p.name)}${out?'<span class="img-flag">Rupture de stock</span>':''}</div>
       <div class="card-body">
         <div class="card-meta">${isSponsored ? '<span class="sp-tag">Sponsorisé</span>' : ''}${cat ? esc(cat.label) : ''}${low ? `<span class="card-low">Plus que ${p.stock}</span>` : ''}</div>
-        <h3 class="card-name" data-detail="${p.id}" role="button" tabindex="0">${esc(p.name)}</h3>
+        <h3 class="card-name" data-detail="${p.id}"><a href="/p/${esc(productSlug(p))}">${esc(p.name)}</a></h3>
         <div class="card-seller"><span>${esc(p.sellerName)}${sellerBadge(p.sellerId)}</span><span class="shop-link" data-shop="${p.sellerId}">Voir la boutique</span></div>
         <div class="card-row">
           <div class="card-price">${p.price.toLocaleString()} <small>FCFA</small></div>
           ${p.rating ? `<div class="card-rating" title="Note moyenne">★ ${p.rating}${p.votes ? ` <span>(${p.votes})</span>` : ''}</div>` : ''}
         </div>
-        <button class="btn-order" data-id="${p.id}" data-name="${esc(p.name)}" ${out?'disabled':''}>${out?'Indisponible':'Ajouter au panier'}</button>
+        <button class="btn-order" data-id="${p.id}" data-name="${esc(p.name)}" ${out?'disabled':''}>${out?'Indisponible':'<span class="bo-full">Ajouter au panier</span><span class="bo-short">Ajouter</span>'}</button>
       </div>
     </article>`;
 }
 
 function bindProductGridEvents(grid) {
   grid.querySelectorAll('[data-detail]').forEach(el => {
-    el.addEventListener('click', () => openProductDetail(parseInt(el.dataset.detail)));
+    el.addEventListener('click', (ev) => { if (ev.target.closest && ev.target.closest('a')) ev.preventDefault(); openProductDetail(parseInt(el.dataset.detail)); });
     el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProductDetail(parseInt(el.dataset.detail)); } });
   });
   grid.querySelectorAll('.btn-order:not(:disabled)').forEach(btn =>
@@ -530,6 +532,7 @@ async function openProductDetail(id) {
   if (addBtn && !addBtn.disabled) addBtn.addEventListener('click', () => { addToCart(id, q, document.querySelector('#pdContent img') || addBtn); closeModal('productDetailModal'); });
   document.getElementById('pdShopLink').addEventListener('click', () => { closeModal('productDetailModal'); openShop(p.sellerId); });
   openModal('productDetailModal');
+  try { history.replaceState(null, '', '/p/' + productSlug(p)); } catch (e) {}
 }
 
 /* ── BOUTIQUE VENDEUR ── */
@@ -981,7 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btn) btn.addEventListener('click', () => openModal('howModal'));
   document.querySelectorAll('[data-close="howModal"]').forEach(b => b.addEventListener('click', close));
   let seen = false; try { seen = !!localStorage.getItem(KEY); } catch (e) {}
-  if (!seen) setTimeout(() => openModal('howModal'), 600);
+  if (!seen && !/^\/p\//.test(location.pathname) && !/[?&]p=\d/.test(location.search)) setTimeout(() => openModal('howModal'), 600);
 });
 
 /* ── Catégories : dans la colonne de filtres sur PC/tablette, en ligne défilante sur téléphone ── */
@@ -1028,3 +1031,25 @@ document.addEventListener('click', e => {
   const nav = document.querySelector('.sidebar .nav-item[data-page="products"]'); if (nav) nav.click();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
+
+
+/* ── Lien direct vers un produit (/p/12-nom-du-produit ou ?p=12) : utile pour Google, les IA et le partage ── */
+function openDeepLinkedProduct() {
+  const m = location.pathname.match(/^\/p\/(\d+)/) || location.search.match(/[?&]p=(\d+)/);
+  if (!m) return;
+  const id = parseInt(m[1]);
+  if (allProducts.some(x => x.id === id)) openProductDetail(id);
+  else if (/^\/p\//.test(location.pathname)) { try { history.replaceState(null, '', '/'); } catch (e) {} }
+}
+/* L'adresse du navigateur suit le produit ouvert, puis revient à l'accueil à la fermeture */
+(function watchProductModal() {
+  document.addEventListener('DOMContentLoaded', () => {
+    const m = document.getElementById('productDetailModal'); if (!m) return;
+    new MutationObserver(() => {
+      try {
+        if (m.classList.contains('show')) return;
+        if (/^\/p\//.test(location.pathname)) history.replaceState(null, '', '/');
+      } catch (e) {}
+    }).observe(m, { attributes: true, attributeFilter: ['class'] });
+  });
+})();

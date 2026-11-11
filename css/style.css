@@ -1743,3 +1743,74 @@ html[data-theme="light"] .brand-img.light { display: block; } html[data-theme="l
 .card-price{white-space:nowrap;flex:0 0 auto;font-variant-numeric:tabular-nums}
 .card-rating{white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .card .btn-order{width:100%;height:44px;min-height:44px;padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;box-sizing:border-box}
+
+/* ══ Curseur « main » sur tout ce qui est cliquable ══ */
+a[href], button, summary, label[for], select,
+input[type="checkbox"], input[type="radio"], input[type="file"], input[type="submit"], input[type="button"],
+[role="button"], [onclick], [data-detail], [data-shop], [data-page], [data-close], [data-filter], [data-rm], [data-idx], [data-room],
+.nav-item, .user-pill, .shop-link, .link-btn, .card-img, .card-name, .btn-order, .btn-detail, .btn-primary, .btn-ghost,
+.overlay, .theme-toggle, .cart-fab, .cart-pop, .bn-pop-item, .wa-chip, .wa-choice, .chat-room, .fp-chip, .chip,
+.logo-link, .brand-img-link, .hamburger-btn, .cart-btn, .mt-title, .modal-close, .close-btn,
+#tsAlign button, #tsHeader button, #waTagChips .wa-chip, #userPill, #cartFab, #goRegister, #goLogin, #goForgot, #goPasswordLogin, #openTermsLink, #howBtn
+{ cursor: pointer; }
+button:disabled, [disabled], .is-out .btn-order, .btn-order:disabled, select:disabled, input:disabled { cursor: not-allowed; }
+input[type="text"], input[type="email"], input[type="password"], input[type="tel"], input[type="number"], input[type="search"], textarea { cursor: text; }
+
+/* ══ Lien du nom de produit (référencement) : même aspect qu'avant ══ */
+.card-name a { color: inherit; text-decoration: none; }
+.card-name a:hover { text-decoration: underline; }
+.bo-short { display: none; }
+
+/* ══ Adaptation à la largeur réelle de chaque carte (téléphones étroits) ══ */
+.card-body { container-type: inline-size; }
+@container (max-width: 160px) {
+  .card-rating { display: none; }
+  .bo-full { display: none; }
+  .bo-short { display: inline; }
+  .card-price { font-size: .95rem; }
+  .card-price small { font-size: .62em; }
+}
+@container (max-width: 190px) { .card-rating span { display: none; } }
+
+/* ══ Téléphones : confort tactile, fenêtres, zones sûres ══ */
+@media (max-width: 768px) {
+  html { -webkit-text-size-adjust: 100%; }
+  body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+  .main { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+  button, .btn-primary, .btn-ghost, select, .select-sm, .nav-item { min-height: 44px; }
+  .field input, .field select, .field textarea { min-height: 46px; font-size: 16px; }
+  .overlay { padding: 0; align-items: flex-end; }
+  .overlay .modal { max-height: 92vh; max-height: 92dvh; width: 100%; max-width: 100%; border-radius: 22px 22px 0 0; padding-bottom: calc(18px + env(safe-area-inset-bottom)); overscroll-behavior: contain; }
+  .modal-x { width: 40px; height: 40px; top: 10px; right: 10px; font-size: 1rem; }
+  .toast { left: 12px; right: 12px; width: auto; max-width: none; bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .page-header { flex-wrap: wrap; gap: 10px; }
+  .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 360px) {
+  .main { padding-left: 12px; padding-right: 12px; }
+  .page-title { font-size: 1.05rem; }
+  .grid { gap: 8px; }
+  .card-body { padding: 10px 10px 12px; }
+  .card-img { height: 120px; }
+  .stats-row { grid-template-columns: 1fr; }
+}
+
+/* ══ Tableaux d'administration → fiches empilées sur téléphone ══ */
+@media (max-width: 768px) {
+  .table-wrap { border: none; background: transparent; overflow: visible; }
+  .data-table { min-width: 0; width: 100%; display: block; }
+  .data-table thead { display: none; }
+  .data-table tbody { display: grid; gap: 12px; }
+  .data-table tbody tr { display: block; border: 1px solid var(--b1); border-radius: 16px; background: var(--bg2); padding: 6px 14px; }
+  .data-table tbody tr.tc-empty { border: none; background: transparent; padding: 0; }
+  .data-table td { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--b1); text-align: right; max-width: none !important; min-width: 0; word-break: break-word; }
+  .data-table td:last-child { border-bottom: none; }
+  .data-table td::before { content: attr(data-label); flex: 0 0 auto; max-width: 42%; text-align: left; color: var(--t3); font-size: var(--fs-xs); font-weight: 500; }
+  .data-table td[data-label=""]::before, .data-table td.tc-actions::before { content: none; }
+  .data-table td.tc-actions { justify-content: flex-end; flex-wrap: wrap; }
+  .data-table td.table-empty { display: block; text-align: center; }
+  .data-table td.table-empty::before { content: none; }
+  .data-table td > div { text-align: right; }
+  .data-table tbody tr:hover td { background: transparent; }
+  .data-table td img, .data-table td .thumb { margin-left: auto; }
+}
