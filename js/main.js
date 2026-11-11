@@ -10,7 +10,7 @@ let allSellers   = [];
 let promotedIds  = [];
 function sellerBadge(sellerId) {
   const u = allSellers.find(x => x.id === sellerId);
-  return u && u.verified ? ' <span class="vbadge" title="Vendeur vérifié : identité contrôlée par N Market">✓ Vérifié</span>' : '';
+  return u && u.verified ? vBadge() : '';
 }
 function sellerFiliere(sellerId) {
   const u = allSellers.find(x => x.id === sellerId);
@@ -564,7 +564,7 @@ async function openShop(sellerId) {
     <div class="shop-header">
       <div class="shop-avatar">${esc((seller.name||'?')[0].toUpperCase())}</div>
       <div class="shop-info">
-        <div class="shop-name">${esc(seller.name)}${seller.verified ? ' <span class="vbadge" title="Vendeur vérifié">✓ Vérifié</span>' : ''}</div>
+        <div class="shop-name">${esc(seller.name)}${seller.verified ? vBadge() : ''}</div>
         <div class="shop-meta">${filiere?esc(filiere)+' · ':''}${products.length} produit${products.length>1?'s':''}</div>
         ${avgRating ? `<div class="shop-rating">★ ${avgRating.toFixed(1)} note moyenne</div>` : ''}
       </div>
@@ -701,10 +701,11 @@ async function submitOrder() {
   }
 
   // Affiche le ticket, puis demande au client s'il veut le télécharger
-  fillTicket(createdOrders, { name, phone, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress, classe, filiere, grandTotal });
   document.getElementById('orderSuccess').scrollIntoView({ behavior:'smooth' });
-  // image du ticket prête d'abord, puis question au client
-  Promise.race([prepareTicket(), new Promise(r => setTimeout(r, 4000))]).then(() => setTimeout(() => openModal('ticketAsk'), 300));
+  // ticket dessiné, image prête, puis question au client
+  fillTicket(createdOrders, { name, phone, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress, classe, filiere, grandTotal })
+    .then(() => Promise.race([prepareTicket(), new Promise(r => setTimeout(r, 5000))]))
+    .then(() => setTimeout(() => openModal('ticketAsk'), 300));
 
   // Vide le panier et réinitialise le formulaire
   cart = []; saveCart(); renderCart();
@@ -725,35 +726,26 @@ async function submitOrder() {
 }
 
 /* ── TICKET / PREUVE DE COMMANDE ── */
-function fillTicket(createdOrders, f) {
-  const firstId = createdOrders[0].order.id;
-  document.getElementById('tkPlatform').textContent = typeof PLATFORM_NAME !== 'undefined' ? PLATFORM_NAME : 'N Market';
-  document.getElementById('tkId').textContent       = createdOrders.length>1 ? `#${firstId}–#${createdOrders[createdOrders.length-1].order.id}` : `#${firstId}`;
-  document.getElementById('tkDate').textContent     = formatDateTime(createdOrders[0].order.createdAt || new Date().toISOString());
-  document.getElementById('tkName').textContent     = f.name;
-  document.getElementById('tkPhone').textContent    = f.phone;
-
-  const classeRow = document.getElementById('tkClasseRow');
-  if (f.deliveryType === 'campus') { classeRow.style.display=''; document.getElementById('tkClasse').textContent = `${f.classe} · ${getFiliereLabel(f.filiere)}`; }
-  else classeRow.style.display = 'none';
-
-  document.getElementById('tkItems').innerHTML = createdOrders.map(o => `
-    <div class="ticket-row"><span class="k">#${Number(o.order.id)} · ${esc(o.p.name)} ×${Number(o.qty)}</span><span class="v">${o.total.toLocaleString()} FCFA</span></div>
-    <div class="ticket-row" style="font-size:.7rem"><span class="k">Vendeur</span><span class="v">${esc(o.p.sellerName)}</span></div>
-    ${o.note ? `<div class="ticket-row" style="font-size:.7rem"><span class="k">Précision</span><span class="v">${esc(o.note)}</span></div>` : ''}
-    ${o.code ? `<div class="ticket-row"><span class="k">Code de reçu</span><span class="v receipt-code">${esc(o.code)}</span></div>` : ''}
-  `).join('<div class="ticket-sep"></div>');
-
-  document.getElementById('tkTotal').textContent    = `${f.grandTotal.toLocaleString()} FCFA`;
-  document.getElementById('tkDelivery').textContent = `${new Date(f.deliveryDate+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})} à ${f.deliveryTime}`;
-  document.getElementById('tkPlace').textContent    = deliveryTypeLabel(f.deliveryType);
-  const notesRow = document.getElementById('tkNotesRow');
-  if (f.notes) { notesRow.style.display=''; document.getElementById('tkNotes').textContent = f.notes; }
-  else notesRow.style.display = 'none';
-  const addrRow = document.getElementById('tkAddressRow');
-  if (f.deliveryType === 'external' && f.deliveryAddress) { addrRow.style.display=''; document.getElementById('tkAddress').textContent = f.deliveryAddress; }
-  else addrRow.style.display = 'none';
-
+let ticketData = null, ticketStyle = null;
+async function fillTicket(createdOrders, f) {
+  const d = {
+    platform: typeof PLATFORM_NAME !== 'undefined' ? PLATFORM_NAME : 'N Market',
+    shops: [...new Set(createdOrders.map(o => o.p.sellerName).filter(Boolean))],
+    ids: createdOrders.map(o => Number(o.order.id)),
+    codes: createdOrders.map(o => o.code).filter(Boolean),
+    date: formatDateTime(createdOrders[0].order.createdAt || new Date().toISOString()),
+    name: f.name, phone: f.phone,
+    classe: f.deliveryType === 'campus' ? `${f.classe} · ${getFiliereLabel(f.filiere)}` : '',
+    items: createdOrders.map(o => ({ name: o.p.name, qty: o.qty, total: o.total, note: o.note || '' })),
+    notes: f.notes || '',
+    delivery: `${new Date(f.deliveryDate+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})} à ${f.deliveryTime}`,
+    place: deliveryTypeLabel(f.deliveryType),
+    address: f.deliveryType === 'external' ? (f.deliveryAddress || '') : '',
+    total: f.grandTotal
+  };
+  ticketData = d;
+  ticketStyle = await dbGetTicketStyle(createdOrders.map(o => o.p.sellerId));
+  document.getElementById('ticketCard').innerHTML = ticketHTML(d, ticketStyle);
   document.getElementById('ticketWrap').style.display = '';
 }
 
@@ -768,16 +760,10 @@ let ticketBlob = null, ticketName = 'ticket-commande.png', ticketPrep = null;
 
 function prepareTicket() {
   ticketBlob = null;
-  const el = document.getElementById('ticketCard');
-  ticketName = `ticket-commande-${document.getElementById('tkId').textContent.replace(/[^0-9–-]/g, '')}.png`;
-  if (typeof html2canvas === 'undefined' || !el) return (ticketPrep = Promise.resolve(null));
-  ticketPrep = (async () => {
-    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
-    if (!canvas.width || !canvas.height) throw new Error('ticket invisible');
-    return await new Promise(res => canvas.toBlob(b => { ticketBlob = b; res(b); }, 'image/png'));
-  })().catch(() => null);
+  if (!ticketData) return (ticketPrep = Promise.resolve(null));
+  const ref = (ticketData.codes[0] || ('' + ticketData.ids[0])).replace(/[^A-Za-z0-9-]/g, '');
+  ticketName = `ticket-${ref}.png`;
+  ticketPrep = ticketToBlob(ticketData, ticketStyle).then(b => (ticketBlob = b)).catch(() => null);
   return ticketPrep;
 }
 
@@ -892,6 +878,7 @@ async function handleLogin() {
   const r = await dbLoginUser(email, pass);
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
+  if (r.admin) { closeModal('authModal'); location.href = 'pages/superadmin.html'; return; }
   closeModal('authModal'); syncSessionUI();
   showToast('Connecté', `Bienvenue ${r.user.firstName} !`);
   setTimeout(() => { location.href = 'pages/admin.html'; }, 350);   // entre directement dans l'espace vendeur
@@ -1036,4 +1023,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const box = document.createElement('div'); box.className = 'form-wrap'; box.id = 'orderDone';
   box.appendChild(ok); box.appendChild(tk);
   content.parentNode.insertBefore(box, content.nextSibling);
+});
+
+
+/* Clic sur le logo : retour à l'accueil (page Produits, tout en haut, fenêtres fermées) */
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('.brand-img-link'); if (!a) return;
+  e.preventDefault();
+  document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
+  const nav = document.querySelector('.sidebar .nav-item[data-page="products"]'); if (nav) nav.click();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 });

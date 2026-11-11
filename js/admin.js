@@ -119,6 +119,7 @@ async function goPage(name) {
   if (name==='addproduct') resetAddForm();
   if (name==='promote')    await renderPromotePage();
   if (name==='profile')    loadProfile();
+  if (name==='ticketstyle') await renderTicketStylePage();
   if (name==='verify')     await renderVerifyPage();
   if (name==='whatsapp')   await mountWhatsApp(false);
   if (name==='chat' && !chatInited) await initChat(currentUser, false);
@@ -624,4 +625,38 @@ async function openWaTemplates() {
   };
   document.getElementById('waTplReset').onclick = async () => { await dbSaveWaTemplates(currentUser.id, WA_DEFAULTS.map(d => ({ ...d }))); showToast('Modèles rétablis', '', 'var(--green)'); openWaTemplates(); };
   closeModal('waSendModal'); openModal('waTplModal');
+}
+
+
+/* ── MON TICKET : personnalisation + aperçu en direct ── */
+let _ts = null;
+async function renderTicketStylePage() {
+  const { data } = await db.from('users').select('ticket_style').eq('id', currentUser.id).maybeSingle().then(r => r, () => ({ data: null }));
+  _ts = sanitizeTicketStyle(data && data.ticket_style);
+  const $ = id => document.getElementById(id);
+  const paint = () => { $('tsPreview').innerHTML = ticketHTML(ticketSample(currentUser.name), _ts); };
+  const sync = () => {
+    $('tsAccent').value = _ts.accent; $('tsPaper').value = _ts.paper; $('tsInk').value = _ts.ink;
+    $('tsShowShop').checked = _ts.showShop; $('tsTitle').value = _ts.title; $('tsFooter').value = _ts.footer;
+    document.querySelectorAll('#tsAlign button').forEach(b => b.classList.toggle('on', b.dataset.v === _ts.align));
+    document.querySelectorAll('#tsHeader button').forEach(b => b.classList.toggle('on', b.dataset.v === _ts.header));
+    paint();
+  };
+  if (!renderTicketStylePage._bound) {
+    renderTicketStylePage._bound = true;
+    [['tsAccent', 'accent'], ['tsPaper', 'paper'], ['tsInk', 'ink']].forEach(([id, k]) => $(id).addEventListener('input', e => { _ts[k] = e.target.value; paint(); }));
+    $('tsShowShop').addEventListener('change', e => { _ts.showShop = e.target.checked; paint(); });
+    $('tsTitle').addEventListener('input', e => { _ts.title = e.target.value; paint(); });
+    $('tsFooter').addEventListener('input', e => { _ts.footer = e.target.value; paint(); });
+    document.querySelectorAll('#tsAlign button').forEach(b => b.addEventListener('click', () => { _ts.align = b.dataset.v; sync(); }));
+    document.querySelectorAll('#tsHeader button').forEach(b => b.addEventListener('click', () => { _ts.header = b.dataset.v; sync(); }));
+    $('tsReset').addEventListener('click', () => { _ts = sanitizeTicketStyle(null); sync(); });
+    $('tsSave').addEventListener('click', async () => {
+      _ts = sanitizeTicketStyle(_ts);
+      const r = await dbSaveTicketStyle(_ts);
+      if (r.ok) showToast('Ticket enregistré', 'Tes clients le verront à leur prochaine commande.', 'var(--green)');
+      else showToast('Enregistrement impossible', /function|does not exist|schema cache/i.test(r.error) ? 'Exécute secure_12_ticket_style.sql dans Supabase.' : r.error, 'var(--red)');
+    });
+  }
+  sync();
 }

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Mon espace · N Market</title>
+<link rel="icon" type="image/png" href="../assets/favicon.png">
   <link rel="stylesheet" href="../css/style.css">
   <script src="../js/theme.js"></script>
 <script src="../js/nozoom.js"></script>
@@ -19,7 +20,7 @@
 <div class="mobile-topbar"><div class="mt-title"><span id="shopNameMobile">N Market</span></div></div>
 <div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
-    <div class="logo-row"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> <span id="shopName">Mon commerce</span></div><div class="logo-sub">N Market</div></div></div>
+    <div class="logo-row"><a class="logo-link" href="../index.html" aria-label="Retour à l'accueil N Market"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> <span id="shopName">Mon commerce</span></div><div class="logo-sub">N Market</div></div></a></div>
     <nav class="nav">
       <span class="nav-label">Tableau de bord</span>
       <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Vue globale</button>
@@ -35,6 +36,7 @@
       <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="chatDot" style="display:none"></span></button>
       <span class="nav-label">Compte</span>
       <button class="nav-item" data-page="verify"><span class="icon">🛡</span>Vérification <span class="dot" id="verifDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="ticketstyle"><span class="icon">🧾</span>Mon ticket</button>
       <button class="nav-item" data-page="profile"><span class="icon">⚙</span>Mon profil</button>
     </nav>
     <div class="sidebar-footer">
@@ -169,6 +171,36 @@
     </div>
 
     <div id="page-verify" class="page"></div>
+    <div id="page-ticketstyle" class="page">
+      <div class="page-header"><div><div class="page-title">Mon ticket</div><div class="page-desc">Personnalise le ticket que tes clients reçoivent après leur commande</div></div></div>
+      <div class="tk-editor">
+        <div class="tk-controls">
+          <div class="f-section">
+            <span class="f-label">Couleurs</span>
+            <div class="tk-colors">
+              <label class="tk-color"><input type="color" id="tsAccent"><span>Couleur principale</span></label>
+              <label class="tk-color"><input type="color" id="tsPaper"><span>Fond du ticket</span></label>
+              <label class="tk-color"><input type="color" id="tsInk"><span>Texte</span></label>
+            </div>
+          </div>
+          <div class="f-section">
+            <span class="f-label">Mise en page</span>
+            <div class="field"><label>Alignement de l'en-tête</label>
+              <div class="tk-seg" id="tsAlign" role="group"><button type="button" data-v="left">Gauche</button><button type="button" data-v="center">Centré</button><button type="button" data-v="right">Droite</button></div></div>
+            <div class="field"><label>Style de l'en-tête</label>
+              <div class="tk-seg" id="tsHeader" role="group"><button type="button" data-v="band">Bandeau coloré</button><button type="button" data-v="line">Simple trait</button></div></div>
+            <label class="tk-check"><input type="checkbox" id="tsShowShop"> Afficher le nom de ma boutique</label>
+          </div>
+          <div class="f-section">
+            <span class="f-label">Textes</span>
+            <div class="field"><label>Titre du ticket</label><input type="text" id="tsTitle" maxlength="40"></div>
+            <div class="field"><label>Message personnel (facultatif)</label><textarea id="tsFooter" rows="3" maxlength="140" placeholder="Ex : Merci pour ta confiance ! Livraison entre 12h et 14h."></textarea></div>
+          </div>
+          <div class="tk-actions"><button type="button" class="btn-ghost" id="tsReset">Rétablir le style d'origine</button><button type="button" class="btn-primary" id="tsSave">Enregistrer</button></div>
+        </div>
+        <div class="tk-preview"><div class="tk-preview-label">Aperçu en direct</div><div id="tsPreview"></div></div>
+      </div>
+    </div>
     <div id="page-profile" class="page">
       <div class="page-header"><div><div class="page-title">Mon profil</div><div class="page-desc">Gérer les informations de ton commerce</div></div></div>
       <div class="form-wrap">
@@ -326,7 +358,7 @@
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
 <script src="../js/vendor/supabase.js"></script>
-<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/cache.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script><script src="../js/mobilenav.js"></script>
+<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/ticket.js"></script><script src="../js/cache.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script><script src="../js/mobilenav.js"></script>
 <script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
 <script src="../js/vendor/emailjs.min.js"></script>
 <script src="../js/email.js"></script>

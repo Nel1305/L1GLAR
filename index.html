@@ -3,18 +3,21 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>N Market</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png"><link rel="apple-touch-icon" href="assets/favicon.png">
+  <style id="splashCss">#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#fff;transition:opacity .4s ease,visibility .4s}#splash.hide{opacity:0;visibility:hidden}#splash img{width:min(62vw,260px);height:auto;animation:spIn .6s cubic-bezier(.2,.8,.2,1) both}#splash .sp-bar{width:min(34vw,120px);height:3px;border-radius:3px;background:rgba(128,128,128,.25);overflow:hidden}#splash .sp-bar i{display:block;height:100%;width:40%;border-radius:3px;background:#111;animation:spBar 1.1s ease-in-out infinite}#splash .sp-w{display:none}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #splash{background:#0d0d0d}:root:not([data-theme="light"]) #splash .sp-b{display:none}:root:not([data-theme="light"]) #splash .sp-w{display:block}:root:not([data-theme="light"]) #splash .sp-bar i{background:#fff}}html[data-theme="dark"] #splash{background:#0d0d0d}html[data-theme="dark"] #splash .sp-b{display:none}html[data-theme="dark"] #splash .sp-w{display:block}html[data-theme="dark"] #splash .sp-bar i{background:#fff}@keyframes spIn{from{opacity:0;transform:translateY(8px) scale(.96)}}@keyframes spBar{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}@media (prefers-reduced-motion:reduce){#splash img,#splash .sp-bar i{animation:none}}</style>
   <link rel="stylesheet" href="css/style.css">
 <script src="js/theme.js"></script>
 <script src="js/nozoom.js"></script>
 </head>
-<body data-bnav="shop">
+<body data-bnav="shop" class="cart-empty">
+<div id="splash" role="status" aria-label="Chargement"><img class="sp-b" src="assets/logo-black.png" alt="N Market"><img class="sp-w" src="assets/logo-white.png" alt="" aria-hidden="true"><div class="sp-bar"><i></i></div></div>
 <div class="flag-bar"></div>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
-<div class="mobile-topbar"><div class="mt-title">N Market</div></div>
+<div class="mobile-topbar"><a class="mt-title brand-img-link" href="index.html" aria-label="N Market — accueil"><span class="brand-img-wrap"><img class="brand-img light" src="assets/logo-black.png" alt="N Market" width="170" height="30"><img class="brand-img dark" src="assets/logo-white.png" alt="" aria-hidden="true" width="170" height="30"></span></a></div>
 <div class="app">
   <aside class="sidebar">
     <div class="logo-row">
-      <div class="logo"><div class="logo-name">N Market</div><div class="logo-under"><span class="logo-sub">Université ESTM Dakar</span></div></div>
+      <div class="logo"><a class="logo-link brand-img-link" href="index.html" aria-label="N Market — accueil"><div class="logo-name"><span class="brand-img-wrap"><img class="brand-img light" src="assets/logo-black.png" alt="N Market" width="170" height="30"><img class="brand-img dark" src="assets/logo-white.png" alt="" aria-hidden="true" width="170" height="30"></span></div></a><div class="logo-under"><span class="logo-sub">Université ESTM Dakar</span></div></div>
     </div>
     <nav class="nav">
       <span class="nav-label">Catalogue</span>
@@ -28,7 +31,7 @@
         <div class="avatar" id="userAvatar">?</div>
         <div class="user-info"><div class="user-name" id="userName">Se connecter</div><div class="user-role" id="userRole">Visiteur</div></div>
       </div>
-      <a href="pages/superadmin.html" class="credit">codé par BUABEY Nel'si</a>
+      <span class="credit">codé par BUABEY Nel'si</span>
           </div>
   </aside>
   <main class="main">
@@ -144,29 +147,7 @@
             <p style="margin-top:8px">🧾 Ton ticket est affiché ci-dessous. Conserve-le : le code de reçu sert pour un retour.</p>
           </div>
           <div class="ticket-wrap" id="ticketWrap" style="display:none">
-            <div class="ticket" id="ticketCard">
-              <div class="ticket-head">
-                <div class="t-platform" id="tkPlatform">N Market</div>
-                <div class="t-sub">Ticket de commande</div>
-              </div>
-              <div class="ticket-row"><span class="k">N° commande</span><span class="v" id="tkId">—</span></div>
-              <div class="ticket-row"><span class="k">Date</span><span class="v" id="tkDate">—</span></div>
-              <div class="ticket-sep"></div>
-              <div class="ticket-row"><span class="k">Client</span><span class="v" id="tkName">—</span></div>
-              <div class="ticket-row"><span class="k">Téléphone</span><span class="v" id="tkPhone">—</span></div>
-              <div class="ticket-row" id="tkClasseRow" style="display:none"><span class="k">Classe / Filière</span><span class="v" id="tkClasse">—</span></div>
-              <div class="ticket-sep"></div>
-              <div id="tkItems"></div>
-              <div class="ticket-row" id="tkNotesRow" style="display:none"><span class="k">Modifications</span><span class="v" id="tkNotes">—</span></div>
-              <div class="ticket-sep"></div>
-              <div class="ticket-row"><span class="k">Livraison</span><span class="v" id="tkDelivery">—</span></div>
-              <div class="ticket-row"><span class="k">Lieu</span><span class="v" id="tkPlace">—</span></div>
-              <div class="ticket-row" id="tkAddressRow" style="display:none"><span class="k">Adresse</span><span class="v" id="tkAddress">—</span></div>
-              <div class="ticket-sep"></div>
-              <div class="ticket-total"><span>Total</span><span id="tkTotal">—</span></div>
-              <div style="text-align:center"><span class="ticket-status">⏳ En attente de confirmation</span></div>
-              <div class="ticket-foot">Conserve ce ticket (téléchargement ou capture d'écran) comme preuve de ta commande. Le <strong>code de reçu</strong> (NM-XXXX-XXXX) te permettra de signaler un retour si besoin.</div>
-            </div>
+            <div id="ticketCard" class="tk-host"></div>
             <div class="ticket-actions">
               <button class="btn-ghost" id="downloadTicketBtn">⬇ Télécharger mon ticket</button>
             </div>
@@ -339,13 +320,12 @@
   <div class="modal">
     <button class="modal-x" data-close="howModal" aria-label="Fermer">✕</button>
     <h2 class="how-title">Bienvenue sur N Market</h2>
-    <p class="how-sub">Comment ça marche, en 5 points :</p>
+    <p class="how-sub">Comment ça marche, en 4 points :</p>
     <ol class="how-list">
       <li><strong>Commande simple</strong><span>Sans compte, en quelques champs.</span></li>
       <li><strong>Livraison</strong><span>Sur le campus ou à une adresse.</span></li>
       <li><strong>Le vendeur te rappelle</strong><span>Il confirme la commande avec toi.</span></li>
       <li><strong>Paiement</strong><span>À la remise de la commande ou par Wave, comme convenu avec le vendeur.</span></li>
-      <li><strong>Retour par code</strong><span>Avec le code de ton reçu (NM-…).</span></li>
     </ol>
     <button class="btn-primary" id="howOk">J'ai compris</button>
   </div>
@@ -390,8 +370,10 @@
 </div>
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
 <script src="js/vendor/supabase.js"></script>
+<script src="js/splash.js"></script>
 <script src="js/config.js"></script><script src="js/db.js"></script><script src="js/cache.js"></script><script src="js/maps.js"></script><script src="js/mobilenav.js"></script><script src="js/vendor/emailjs.min.js"></script>
 <script src="js/email.js"></script>
 <script src="js/vendor/html2canvas.min.js"></script>
+<script src="js/ticket.js"></script>
 <script src="js/main.js"></script>
 </body></html>

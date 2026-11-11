@@ -9,9 +9,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Session Supabase Auth + vérification serveur (table admins). Rien n'est lu depuis le stockage du navigateur.
   adminSession = await dbAdminLoadSession();
   if (adminSession) { showApp(); }
-  else { document.getElementById('loginScreen').style.display=''; showLoader(false); }
-  document.getElementById('adminLoginBtn').addEventListener('click', handleLogin);
-  document.getElementById('adminLogoutBtn').addEventListener('click', async () => { await clearSession(); window.location.reload(); });
+  else { location.replace('../index.html'); return; }   // pas de formulaire ici : connexion par la page de connexion normale
+  document.getElementById('adminLogoutBtn').addEventListener('click', async () => { await clearSession(); window.location.replace('../index.html'); });
   document.getElementById('previewBtn').addEventListener('click', previewGen);
   document.getElementById('generateBtn').addEventListener('click', doGenerate);
   document.getElementById('savePaymentBtn').addEventListener('click', savePayment);
@@ -58,20 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('genDue').value=dd.toISOString().split('T')[0];
 });
 
-async function handleLogin() {
-  const email=document.getElementById('aEmail').value.trim();
-  const pass =document.getElementById('aPass').value;
-  if(!email||!pass){showToast('Champs manquants','','var(--red)');return;}
-  showLoader(true);
-  const r=await dbAdminLogin(email,pass);
-  showLoader(false);
-  if(r.error){showToast('Erreur',r.error,'var(--red)');return;}
-  adminSession=r.admin; showApp();
-}
-
 function showApp() {
-  document.getElementById('loginScreen').style.display='none';
-  document.getElementById('appShell').style.display='';
+    document.getElementById('appShell').style.display='';
   document.getElementById('adminName').textContent=adminSession.name||'Admin';
   showLoader(false);
   bindNav();
@@ -368,7 +355,7 @@ async function renderSellers() {
       <div class="seller-top">
         <div class="seller-av">${u.firstName[0].toUpperCase()}</div>
         <div>
-          <div class="seller-name">${esc(u.name)}${u.verified?' <span class="vbadge">✓ Vérifié</span>':''}${u.isBlocked?`<span class="blocked-tag">Bloqué</span>`:''}</div>
+          <div class="seller-name">${esc(u.name)}${u.verified?vBadge():''}${u.isBlocked?`<span class="blocked-tag">Bloqué</span>`:''}</div>
           <div class="seller-email">${esc(u.email)}</div>
           <div class="period-tag period-${period}">${period==='monthly'?'Mensuel':'Hebdomadaire'}</div>
         </div>
@@ -1075,7 +1062,7 @@ async function accSaveAdmin(replace) {
   if (replace && !confirm('Transférer le rôle de super admin à ' + email + ' ? Tu perdras immédiatement tes droits et seras déconnecté.')) return;
   const r = await dbAdminSaveAdmin(email, name, pass, replace);
   if (r.error) return showToast('Erreur', r.error, 'var(--red)');
-  if (replace) { await clearSession(); window.location.reload(); return; }
+  if (replace) { await clearSession(); window.location.replace('../index.html'); return; }
   ['accNewAdminName','accNewAdminEmail','accNewAdminPass'].forEach(i => document.getElementById(i).value = '');
   showToast('Admin ajouté', email, 'var(--green)');
   renderAccountPage();

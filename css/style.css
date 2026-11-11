@@ -1597,7 +1597,6 @@ body.cart-empty .nav-item[data-page="cart"] { display: none; }
 .order-contact-note strong { display: inline; }
 
 /* ── badge « Vérifié » ── */
-.vbadge { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: .62rem; font-weight: 500; letter-spacing: .01em; white-space: nowrap; vertical-align: middle; }
 
 /* ── Vérification vendeur ── */
 .verif-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 12px 16px; margin-bottom: 18px; border: 1px solid var(--b2); border-radius: 14px; background: var(--bg2); font-size: var(--fs-sm); color: var(--t1); }
@@ -1706,3 +1705,34 @@ html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adj
 @media (max-width: 768px) {
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px !important; }   /* iOS zoome si < 16px */
 }
+
+
+/* ══ Ticket : page vendeur « Mon ticket » ══ */
+.tk-host { max-width: 380px; margin: 0 auto; }
+.tk-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: 28px; align-items: start; }
+.tk-colors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tk-color { display: grid; gap: 6px; justify-items: start; font-size: .75rem; color: var(--t2); }
+.tk-color input[type="color"] { width: 100%; height: 46px; border: 1px solid var(--b2); border-radius: 10px; background: var(--bg2); padding: 3px; cursor: pointer; }
+.tk-seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--b2); border-radius: 12px; overflow: hidden; }
+.tk-seg button { border: 0; background: var(--bg2); color: var(--t1); font: inherit; font-size: .8rem; padding: 10px 14px; cursor: pointer; min-height: 44px; }
+.tk-seg button + button { border-left: 1px solid var(--b2); }
+.tk-seg button.on { background: var(--accent); color: var(--on-accent); }
+.tk-check { display: flex; align-items: center; gap: 10px; font-size: .85rem; min-height: 44px; }
+.tk-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; margin-top: 6px; }
+.tk-actions .btn-primary { flex: 1 1 auto; }
+.tk-preview { position: sticky; top: 16px; }
+.tk-preview-label { font-size: .72rem; color: var(--t3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .08em; }
+@media (max-width: 900px) { .tk-editor { grid-template-columns: 1fr; } .tk-preview { position: static; } }
+
+
+/* Badge vérifié : rosace bleue (taille = celle du texte) */
+.vbadge { display: inline-flex; vertical-align: -0.14em; margin-left: 4px; font-size: 1.05em; line-height: 1; }
+.vbadge svg { display: block; }
+.logo-link { display: block; color: inherit; text-decoration: none; }
+.logo-link:focus-visible, .brand-img-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+.brand-img { display: block; height: 30px; width: auto; }
+.brand-img.dark { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand-img.light { display: none; } :root:not([data-theme="light"]) .brand-img.dark { display: block; } }
+html[data-theme="dark"] .brand-img.light { display: none; } html[data-theme="dark"] .brand-img.dark { display: block; }
+html[data-theme="light"] .brand-img.light { display: block; } html[data-theme="light"] .brand-img.dark { display: none; }
+.mobile-topbar .brand-img { height: 26px; }

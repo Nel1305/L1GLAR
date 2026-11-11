@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<meta name="robots" content="noindex,nofollow">
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Super Admin · N Market</title>
+<link rel="icon" type="image/png" href="../assets/favicon.png">
   <link rel="stylesheet" href="../css/style.css">
   <script src="../js/theme.js"></script>
   <link rel="stylesheet" href="../css/superadmin.css">
@@ -12,20 +14,10 @@
 <div class="flag-bar"></div>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
 
-<div id="loginScreen" style="display:none">
-  <div class="login-box">
-    <div class="login-logo"><div style="font-size:1.5rem;margin-bottom:8px">◆</div><div style="font-size:.98rem;font-weight:600">Super Admin</div><div style="font-size:.7rem;color:var(--t3);margin-top:3px">N Market</div></div>
-    <div class="field"><label>Email admin</label><input type="email" id="aEmail" placeholder="email administrateur" autocomplete="username"></div>
-    <div class="field"><label>Mot de passe</label><input type="password" id="aPass" placeholder="••••••••"></div>
-    <button class="btn-primary" id="adminLoginBtn">Se connecter</button>
-    <a href="../index.html" style="display:block;text-align:center;font-size:.72rem;color:var(--t3);margin-top:10px;text-decoration:none">← Retour au site</a>
-  </div>
-</div>
-
 <div class="mobile-topbar"><div class="mt-title">Super Admin</div></div>
 <div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
-    <div class="logo-row"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> Super Admin</div><div class="logo-sub">N Market</div></div></div>
+    <div class="logo-row"><a class="logo-link" href="../index.html" aria-label="Retour à l'accueil N Market"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> Super Admin</div><div class="logo-sub">N Market</div></div></a></div>
     <nav class="nav">
       <span class="nav-label">Vue globale</span>
       <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Tableau de bord</button>
