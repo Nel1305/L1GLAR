@@ -77,7 +77,7 @@
         <button type="button" class="btn-ghost" onclick="openWaTemplates()">💬 Mes messages WhatsApp</button>
         <select class="select-sm" id="orderStatusFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select>
       </div>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Client</th><th>Contact</th><th>Produit</th><th>Qté</th><th>Total</th><th>Livraison</th><th>Modification</th><th>Statut</th><th></th></tr></thead><tbody id="ordersBody"></tbody></table></div>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Facture</th><th>Client</th><th>Contact</th><th>Articles</th><th>Qté</th><th>Total</th><th>Livraison</th><th>Modification</th><th>Statut</th><th></th></tr></thead><tbody id="ordersBody"></tbody></table></div>
     </div>
 
     <div id="page-returns" class="page">
@@ -132,6 +132,12 @@
             <div class="field"><label>Quantité disponible</label><input type="number" id="apStock" placeholder="10" min="0"></div>
             <div class="toggle-row"><div class="toggle-info"><strong>Afficher la quantité</strong><span>Sinon les clients verront juste « En stock » / « Rupture de stock »</span></div><button class="toggle on" id="apShowStock"></button></div>
           </div>
+        </div>
+        <div class="divider"></div>
+        <div class="f-section">
+          <span class="f-label">Options et suppléments</span>
+          <p class="f-hint">Taille, couleur, pointure… ou suppléments payants (broderie, sauce, emballage cadeau…). Le client choisit avant de commander et le prix s'ajuste tout seul.</p>
+          <div id="apOptions"></div>
         </div>
         <div class="divider"></div>
         <button class="btn-primary" id="saveProductBtn">Publier le produit</button>
@@ -251,6 +257,12 @@
           <div class="toggle-row"><div class="toggle-info"><strong>Afficher la quantité</strong><span>Sinon les clients verront juste « En stock » / « Rupture de stock »</span></div><button class="toggle on" id="editShowStock"></button></div>
         </div>
       </div>
+      <div class="divider"></div>
+      <div class="f-section">
+        <span class="f-label">Options et suppléments</span>
+        <p class="f-hint">Taille, couleur, pointure… ou suppléments payants (broderie, sauce, emballage cadeau…). Le client choisit avant de commander et le prix s'ajuste tout seul.</p>
+        <div id="editOptions"></div>
+      </div>
       <button class="btn-primary" id="saveEditBtn">Sauvegarder</button>
     </div>
   </div>
@@ -358,7 +370,7 @@
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
 <script src="../js/vendor/supabase.js"></script>
-<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/ticket.js"></script><script src="../js/cache.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script><script src="../js/mobilenav.js"></script>
+<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/ticket.js"></script><script src="../js/optionsedit.js"></script><script src="../js/cache.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script><script src="../js/mobilenav.js"></script>
 <script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
 <script src="../js/vendor/emailjs.min.js"></script>
 <script src="../js/email.js"></script>

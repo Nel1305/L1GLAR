@@ -49,13 +49,14 @@ function ticketHTML(d, style) {
     : `<div style="text-align:${al};padding:20px 20px 12px;border-bottom:3px solid ${st.accent}"><div style="font-weight:700;font-size:1.05rem">${_tkEsc(d.platform || 'N Market')}</div>${shop ? `<div style="font-size:.8rem;color:${muted};margin-top:2px">${_tkEsc(shop)}</div>` : ''}<div style="font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:${muted};margin-top:6px">${_tkEsc(st.title)}</div></div>`;
   const ids = d.ids && d.ids.length ? (d.ids.length > 1 ? `#${d.ids[0]} – #${d.ids[d.ids.length - 1]}` : `#${d.ids[0]}`) : '';
   const codes = (d.codes || []).filter(Boolean);
-  const codeBox = codes.length ? `<div style="background:${soft};border:1px solid ${line};border-radius:12px;padding:10px 12px;margin-bottom:12px;text-align:center"><div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:${muted}">Code de reçu${codes.length > 1 ? 's' : ''}</div>${codes.map(c => `<div style="font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:1.15rem;letter-spacing:.06em;margin-top:3px;color:${st.ink}">${_tkEsc(c)}</div>`).join('')}</div>` : '';
-  const items = (d.items || []).map(it => `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:.82rem"><span style="font-weight:600;max-width:65%">${_tkEsc(it.name)} <span style="color:${muted};font-weight:500">×${Number(it.qty)}</span>${it.note ? `<div style="font-size:.68rem;color:${muted};font-weight:400">${_tkEsc(it.note)}</div>` : ''}</span><span style="font-weight:600;white-space:nowrap">${Number(it.total).toLocaleString('fr-FR')} FCFA</span></div>`).join('');
+  const codeBox = codes.length ? `<div style="background:${soft};border:1px solid ${line};border-radius:12px;padding:10px 12px;margin-bottom:12px;text-align:center"><div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:${muted}">Facture n°</div>${codes.map(c => `<div style="font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:1.15rem;letter-spacing:.06em;margin-top:3px;color:${st.ink}">${_tkEsc(c)}</div>`).join('')}</div>` : '';
+  const items = (d.items || []).map(it => `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:.82rem"><span style="font-weight:600;max-width:65%">${_tkEsc(it.name)} <span style="color:${muted};font-weight:500">×${Number(it.qty)}</span>${it.options ? `<div style="font-size:.7rem;color:${muted};font-weight:500;line-height:1.4">${_tkEsc(it.options)}</div>` : ''}${it.note ? `<div style="font-size:.68rem;color:${muted};font-weight:400">${_tkEsc(it.note)}</div>` : ''}</span><span style="font-weight:600;white-space:nowrap">${Number(it.total).toLocaleString('fr-FR')} FCFA</span></div>`).join('');
   return `<div class="tk2" style="${base}background:${st.paper};width:100%;max-width:380px;margin:0 auto;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18);box-sizing:border-box">
     ${head}
+    <div style="height:4px;background:linear-gradient(90deg,#18428A 50%,#008F3D 50%)"></div>
     <div style="padding:16px 20px 18px">
       ${codeBox}
-      ${row('N° commande', ids, true)}${row('Date', d.date)}
+      ${row('Date', d.date)}
       ${sep}${row('Client', d.name)}${row('Téléphone', d.phone)}${row('Classe / Filière', d.classe)}
       ${sep}${items}${d.notes ? row('Modifications', d.notes) : ''}
       ${sep}${row('Livraison', d.delivery)}${row('Lieu', d.place)}${row('Adresse', d.address)}
@@ -63,15 +64,16 @@ function ticketHTML(d, style) {
       <div style="display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:1.1rem"><span>Total</span><span style="color:${_lum(st.paper) > .5 ? st.accent : st.ink}">${Number(d.total || 0).toLocaleString('fr-FR')} FCFA</span></div>
       <div style="display:flex;justify-content:${jc};margin-top:10px"><span style="font-size:.66rem;font-weight:600;padding:4px 10px;border-radius:999px;background:${soft};border:1px solid ${line};color:${st.ink}">⏳ En attente de confirmation</span></div>
       ${st.footer ? `<div style="margin-top:12px;font-size:.78rem;text-align:${al};line-height:1.5">${_tkEsc(st.footer)}</div>` : ''}
-      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed ${line};font-size:.62rem;color:${muted};text-align:center;line-height:1.55">Conserve ce ticket comme preuve de ta commande. Le code de reçu te permettra de signaler un retour si besoin.</div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed ${line};font-size:.62rem;color:${muted};text-align:center;line-height:1.55">Conserve ce ticket comme preuve de ta commande. Le numéro de facture te permettra de signaler un retour si besoin.</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px"><img src="/assets/estm-logo.svg" alt="ESTM" height="26" style="height:26px;width:auto"><span style="font-size:.6rem;color:${muted}">Pour les étudiants de l'ESTM</span></div>
     </div></div>`;
 }
 
 /* données d'exemple pour l'aperçu vendeur */
 function ticketSample(shopName) {
   return { platform: 'N Market', shops: [shopName || 'Ma boutique'], ids: [128], codes: ['NM-8ZTW-EJT2'], date: '10 nov. 2026, 13:14', name: 'Awa Diop', phone: '77 123 45 67',
-           classe: 'L2 · Génie Logiciel et Administration Réseaux (GLAR)', items: [{ name: 'Salade de fruits', qty: 3, total: 1500 }, { name: 'Jus de bissap', qty: 1, total: 500 }],
-           delivery: '12 nov. 2026 à 11:00', place: 'Sur le campus', total: 2000 };
+           classe: 'L2 · Génie Logiciel et Administration Réseaux (GLAR)', items: [{ name: 'Robe wax', qty: 1, total: 17000, options: 'Taille : M · Couleur : Bleu · Broderie' }, { name: 'Sac en tissu', qty: 2, total: 5000 }],
+           delivery: '12 nov. 2026 à 11:00', place: 'Sur le campus', total: 22000 };
 }
 
 /* ticket → image PNG : dessiné hors écran à largeur fixe (identique sur tous les appareils, quel que soit le thème) */

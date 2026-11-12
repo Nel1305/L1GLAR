@@ -130,7 +130,7 @@ async function renderDashboard() {
   showLoader(true);
   const [products, orders] = await Promise.all([
     dbGetProducts({ sellerId: currentUser.id }),
-    dbGetOrders({ sellerId: currentUser.id })
+    dbGetOrders({ sellerId: currentUser.id }).then(groupInvoices)      // une ligne = une FACTURE (un client, un panier)
   ]);
   showLoader(false);
 
@@ -153,7 +153,7 @@ async function renderDashboard() {
   document.getElementById('dashOrders').innerHTML = orders.slice(0,5).map(o=>`
     <tr>
       <td><span style="font-weight:500">${esc(o.buyerName)}</span></td>
-      <td>${esc(o.productName)}</td>
+      <td>${invoiceLinesHtml(o)}</td>
       <td>${o.qty}</td>
       <td style="font-weight:500">${o.total.toLocaleString()} FCFA</td>
       <td><span class="status-badge status-${o.status}">${statusLabel(o.status)}</span></td>
@@ -178,38 +178,46 @@ async function renderDashboard() {
 async function renderOrders() {
   showLoader(true);
   const filter = document.getElementById('orderStatusFilter').value;
-  const orders = await dbGetOrders({ sellerId:currentUser.id, status:filter });
+  const orders = groupInvoices(await dbGetOrders({ sellerId:currentUser.id, status:filter }));
   showLoader(false);
   const tbody = document.getElementById('ordersBody');
   if (!orders.length) { tbody.innerHTML=`<tr><td colspan="10" class="table-empty">Aucune commande</td></tr>`; return; }
   tbody.innerHTML = orders.map(o=>`
     <tr>
-      <td style="color:var(--t3);font-size:.7rem">#${o.id}</td>
+      <td style="color:var(--t3);font-size:.7rem;white-space:nowrap">${o.receiptCode?`<span class="receipt-code">${esc(o.receiptCode)}</span>`:'#'+o.id}</td>
       <td><span style="font-weight:500">${esc(o.buyerName)}</span><div style="font-size:.68rem;color:var(--t3)">${formatDate(o.createdAt)}</div></td>
       <td style="font-size:.72rem;color:var(--t2)">📞 ${esc(o.buyerPhone||'—')}</td>
-      <td>${esc(o.productName)}</td>
+      <td>${invoiceLinesHtml(o)}</td>
       <td>${o.qty}</td>
       <td style="font-weight:500">${o.total.toLocaleString()} FCFA</td>
       <td style="font-size:.72rem">
         <div style="font-weight:500">${formatDeliveryDateTime(o)}</div>
         <div style="color:var(--t3)">${o.deliveryType==='external'?'📍 Hors campus':'🏫 Sur le campus'}</div>
       </td>
-      <td style="max-width:120px">${o.itemNote?`<span style="font-size:.72rem;color:var(--t2);font-style:italic">${esc(o.itemNote.substring(0,45))}${o.itemNote.length>45?'…':''}</span>`:`<span style="color:var(--t4)">—</span>`}</td>
+      <td style="max-width:120px">${invoiceNotes(o)?`<span style="font-size:.72rem;color:var(--t2);font-style:italic">${esc(invoiceNotes(o).substring(0,60))}${invoiceNotes(o).length>60?'…':''}</span>`:`<span style="color:var(--t4)">—</span>`}</td>
       <td>
-        <select class="select-sm" style="font-size:.72rem" ${o.status==='cancel'?'disabled title="Une commande annulée est définitive"':''} onchange="updateStatus(${Number(o.id)},this.value)">
+        <select class="select-sm" style="font-size:.72rem" ${o.status==='cancel'?'disabled title="Une commande annulée est définitive"':''} onchange="updateStatus('${o.ids.map(Number).join(',')}',this.value)">
           <option value="new"    ${o.status==='new'   ?'selected':''}>Nouvelle</option>
           <option value="done"   ${o.status==='done'  ?'selected':''}>Livrée</option>
           <option value="cancel" ${o.status==='cancel'?'selected':''}>Annulée</option>
         </select>
       </td>
-      <td style="white-space:nowrap"><button class="icon-btn edit" onclick="viewOrder(${o.id})" title="Voir">👁</button> <button class="icon-btn wa" onclick="openWaSend(${o.id})" title="Écrire sur WhatsApp" aria-label="Écrire sur WhatsApp">💬</button></td>
+      <td style="white-space:nowrap"><button class="icon-btn edit" onclick="viewOrder('${esc(o.key)}')" title="Voir">👁</button> <button class="icon-btn wa" onclick="openWaSend('${esc(o.key)}')" title="Écrire sur WhatsApp" aria-label="Écrire sur WhatsApp">💬</button></td>
     </tr>`).join('');
 }
 
-async function updateStatus(id, status) {
-  const orders = await dbGetOrders({ sellerId: currentUser.id });
-  const o = orders.find(x => x.id === id);
-  const res = await dbUpdateOrderStatus(id, status);
+/* Une facture = plusieurs lignes : le statut s'applique à toute la facture */
+function invoiceLinesHtml(o) {
+  return o.lines.map(l => `<div class="inv-line"><strong>${Number(l.qty)}×</strong> ${esc(l.productName)}${(l.itemOptions||[]).length?`<div class="inv-opts">${esc(optsText(l.itemOptions, true))}</div>`:''}</div>`).join('');
+}
+function invoiceNotes(o) { return o.lines.map(l => l.itemNote ? (o.lines.length > 1 ? l.productName + ' : ' : '') + l.itemNote : '').filter(Boolean).join(' · '); }
+async function findInvoice(key) {
+  const inv = groupInvoices(await dbGetOrders({ sellerId: currentUser.id })).find(x => x.key === key);
+  return inv || null;
+}
+async function updateStatus(idList, status) {
+  const ids = String(idList).split(',').map(Number).filter(Boolean);
+  const res = await dbUpdateOrderStatus(ids, status);
   if (res.error) { showToast('Erreur', res.error, 'var(--red)'); await renderOrders(); return; }
   // Le recrédit du stock à l'annulation est fait par la base (trigger) — une annulation est définitive.
   showToast('Statut mis à jour', status==='done'?'Commande livrée ✓':status==='cancel'?'Commande annulée — stock recrédité':'En attente', status==='done'?'var(--green)':status==='cancel'?'var(--red)':null);
@@ -337,14 +345,13 @@ async function submitPromoRequest() {
   await renderPromotePage();
 }
 
-async function viewOrder(id) {
-  const orders = await dbGetOrders({ sellerId: currentUser.id });
-  const o = orders.find(x=>x.id===id); if (!o) return;
-  document.getElementById('orderDetailSub').textContent = `Commande #${o.id} · ${formatDate(o.createdAt)}`;
+async function viewOrder(key) {
+  const o = await findInvoice(key); if (!o) return;
+  document.getElementById('orderDetailSub').textContent = `${o.receiptCode ? 'Facture ' + o.receiptCode : 'Commande #' + o.id} · ${formatDate(o.createdAt)}`;
   const row = (k,v) => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:.78rem"><span style="color:var(--t2)">${k}</span><span style="font-weight:500">${v}</span></div>`;
   document.getElementById('orderDetailContent').innerHTML =
     row('Client', esc(o.buyerName)) + row('Téléphone', esc(o.buyerPhone||'—')) +
-    row('Produit', esc(o.productName)) + row('Quantité', Number(o.qty)) +
+    `<div class="inv-detail">${o.lines.map(l => `<div class="inv-d-line"><div><strong>${Number(l.qty)}×</strong> ${esc(l.productName)}${(l.itemOptions||[]).length?`<div class="inv-opts">${esc(optsText(l.itemOptions, true))}</div>`:''}${l.itemNote?`<div class="inv-opts" style="font-style:italic">↳ ${esc(l.itemNote)}</div>`:''}</div><span>${Number(l.total).toLocaleString()} FCFA</span></div>`).join('')}</div>` +
     row('Total', `<span style="color:var(--green);font-weight:600">${o.total.toLocaleString()} FCFA</span>`) +
     row('Statut', `<span class="status-badge status-${o.status}">${statusLabel(o.status)}</span>`) +
     row('Date/heure souhaitées', formatDeliveryDateTime(o)) +
@@ -355,7 +362,7 @@ async function viewOrder(id) {
     (o.deliveryType==='campus' && typeof CAMPUS!=='undefined' && CAMPUS.lat!=null ? `<div class="gmap-box gmap-view" id="orderMapBox"></div>${mapLinksHtml(CAMPUS.lat, CAMPUS.lng)}` : '') +
     (o.deliveryType==='campus' && (o.buyerClasse||o.buyerFiliere) ? row('Classe / Filière', `${esc(o.buyerClasse||'—')} · ${esc(getFiliereLabel(o.buyerFiliere)||'—')}`) : '') +
     (o.notes?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Instructions générales</div><div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;border:1px solid var(--b1)">${esc(o.notes)}</div></div>`:'') +
-    (o.itemNote?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Précision pour ce produit</div><div style="background:var(--accent-dim);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t1);font-style:italic;border:1px solid var(--accent-bdr)">${esc(o.itemNote)}</div></div>`:'');
+    (false?`<div style="margin-top:14px"><div style="font-size:.68rem;color:var(--t3);font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em">Précision pour ce produit</div><div style="background:var(--accent-dim);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t1);font-style:italic;border:1px solid var(--accent-bdr)">${esc(o.itemNote)}</div></div>`:'');
   openModal('orderDetailModal');
   if (o.deliveryType==='external' && o.deliveryLat && o.deliveryLng) showMapInto('orderMapBox', o.deliveryLat, o.deliveryLng, o.deliveryPlaceName||o.buyerName);
   else if (o.deliveryType==='campus' && typeof CAMPUS!=='undefined' && CAMPUS.lat!=null) showMapInto('orderMapBox', CAMPUS.lat, CAMPUS.lng, CAMPUS.name);
@@ -387,6 +394,11 @@ async function toggleAvail(id, current) {
   await renderProductsTable();
 }
 
+let apOpt = null, editOpt = null;
+function optEditors() {
+  if (!apOpt) apOpt = createOptionsEditor(document.getElementById('apOptions'));
+  if (!editOpt) editOpt = createOptionsEditor(document.getElementById('editOptions'));
+}
 async function openEditProduct(id) {
   showLoader(true);
   const products = await dbGetProducts({ sellerId: currentUser.id });
@@ -402,6 +414,7 @@ async function openEditProduct(id) {
   if (p.trackStock) { document.getElementById('editTrackStock').classList.add('on'); document.getElementById('editStockFields').style.display=''; }
   else { document.getElementById('editTrackStock').classList.remove('on'); document.getElementById('editStockFields').style.display='none'; }
   p.showStock ? document.getElementById('editShowStock').classList.add('on') : document.getElementById('editShowStock').classList.remove('on');
+  optEditors(); editOpt.set(p.options);
   editPhoto = null;
   const prev = document.getElementById('editPhotoPreview');
   if (p.photo) { prev.src=p.photo; prev.style.display='block'; document.getElementById('editPhotoPlaceholder').style.display='none'; }
@@ -418,6 +431,7 @@ async function deleteProd(id) {
 
 /* ── ADD PRODUCT ── */
 function resetAddForm() {
+  optEditors(); apOpt.set([]);
   ['apName','apDesc','apPrice','apEmoji','apStock'].forEach(id=>document.getElementById(id).value='');
   const cats = getCategories();
   document.getElementById('apCat').value = cats.length ? cats[0].slug : 'food';
@@ -442,8 +456,9 @@ async function saveNewProduct() {
   if (!name) { showToast('Nom manquant','','var(--red)'); return; }
   if (!price||price<1) { showToast('Prix invalide','Le prix doit être supérieur à 0.','var(--red)'); return; }
   if (trackStock && stock<0) { showToast('Stock invalide','','var(--red)'); return; }
+  optEditors(); let options; try { options = apOpt.get(); } catch (e) { showToast('Options', e.message, 'var(--red)'); return; }
   showLoader(true);
-  const r = await dbInsertProduct(currentUser.id, currentUser.name, { name, desc, cat, price, emoji, photo:addPhoto, trackStock, stock, showStock });
+  const r = await dbInsertProduct(currentUser.id, currentUser.name, { name, desc, cat, price, emoji, photo:addPhoto, trackStock, stock, showStock, options });
   showLoader(false);
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
   document.getElementById('addSuccess').classList.add('show');
@@ -463,7 +478,8 @@ async function saveEditProduct() {
   const showStock  = document.getElementById('editShowStock').classList.contains('on');
   if (!name||!price) { showToast('Champs manquants','Nom et prix requis.','var(--red)'); return; }
   if (trackStock && stock<0) { showToast('Stock invalide','','var(--red)'); return; }
-  const fields = { name, desc, cat, price, emoji, trackStock, stock, showStock };
+  optEditors(); let options; try { options = editOpt.get(); } catch (e) { showToast('Options', e.message, 'var(--red)'); return; }
+  const fields = { name, desc, cat, price, emoji, trackStock, stock, showStock, options };
   if (editPhoto) fields.photo = editPhoto;
   showLoader(true);
   const r = await dbUpdateProduct(id, fields);
@@ -590,9 +606,8 @@ async function renderVerifyPage() {
 
 /* ── WHATSAPP : messages prêts à envoyer (lien wa.me) ── */
 let _waTpl = [], _waOrder = null;
-async function openWaSend(id) {
-  const orders = await dbGetOrders({ sellerId: currentUser.id });
-  const o = orders.find(x => x.id === id); if (!o) return;
+async function openWaSend(key) {
+  const o = await findInvoice(key); if (!o) return;
   _waOrder = o; _waTpl = await dbGetWaTemplates(currentUser.id);
   document.getElementById('waSendSub').textContent = `${o.buyerName} · 📞 ${o.buyerPhone || '—'} · ${o.receiptCode || '#' + o.id}`;
   const box = document.getElementById('waSendChoices');

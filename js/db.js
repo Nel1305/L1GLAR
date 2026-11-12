@@ -199,7 +199,7 @@ async function dbGetProducts(f = {}) {
   return (data || []).map(np);
 }
 async function dbInsertProduct(sellerId, sellerName, f) {
-  const { data, error } = await db.from('products').insert({ seller_id:sellerId, name:f.name, description:f.desc||'', category:f.cat, price:f.price, emoji:f.emoji||'🛍️', photo_url:f.photo||null, available:true, track_stock:f.trackStock||false, stock:f.trackStock?(f.stock||0):0, show_stock:f.showStock!==false }).select().single();
+  const { data, error } = await db.from('products').insert({ seller_id:sellerId, name:f.name, description:f.desc||'', category:f.cat, price:f.price, emoji:f.emoji||'🛍️', photo_url:f.photo||null, available:true, track_stock:f.trackStock||false, stock:f.trackStock?(f.stock||0):0, show_stock:f.showStock!==false, options:f.options||[] }).select().single();
   if (error) return { error: error.message };
   return { product: np(data) };
 }
@@ -215,6 +215,7 @@ async function dbUpdateProduct(id, f) {
   if (f.trackStock!== undefined) p.track_stock = f.trackStock;
   if (f.stock     !== undefined) p.stock       = f.stock;
   if (f.showStock !== undefined) p.show_stock  = f.showStock;
+  if (f.options   !== undefined) p.options     = f.options;
   const { data, error } = await db.from('products').update(p).eq('id', id).select().single();
   if (error) return { error: error.message };
   return { product: np(data) };
@@ -225,7 +226,7 @@ async function dbDeleteProduct(id) {
 }
 function np(r) {
   return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name, name:r.name, desc:r.description, cat:r.category, price:r.price, emoji:r.emoji, photo:r.photo_url, rating:parseFloat(r.rating)||0, votes:r.votes||0, available:r.available, createdAt:r.created_at,
-    trackStock:r.track_stock||false, stock:r.stock||0, showStock:r.show_stock!==false };
+    trackStock:r.track_stock||false, stock:r.stock||0, showStock:r.show_stock!==false, options:Array.isArray(r.options)?r.options:[] };
 }
 function isOutOfStock(p)  { return !!(p.trackStock && p.stock <= 0); }
 function stockBadgeHtml(p) {
@@ -398,13 +399,13 @@ async function dbPlaceOrder(f) {
     p_buyer_name: f.buyerName, p_buyer_phone: f.buyerPhone, p_notes: f.notes || '',
     p_delivery_date: f.deliveryDate, p_delivery_time: f.deliveryTime, p_delivery_type: f.deliveryType,
     p_delivery_address: f.deliveryAddress || null, p_buyer_classe: f.buyerClasse || null, p_buyer_filiere: f.buyerFiliere || null,
-    p_items: f.items.map(i => ({ product_id: i.productId, qty: i.qty, note: i.note || '' })),
+    p_items: f.items.map(i => ({ product_id: i.productId, qty: i.qty, note: i.note || '', opts: (i.opts || []).map(o => ({ g: o.g, l: o.l })) })),
     p_lat: f.lat ?? null, p_lng: f.lng ?? null, p_place_name: f.placeName || null, p_wa_opt_in: !!f.waOptIn
   });
   if (error) return { error: error.message };
   return { orderGroup: data.order_group, grandTotal: Number(data.grand_total), orders: (data.orders || []).map(o => ({
     id:o.id, createdAt:o.created_at, productId:o.product_id, productName:o.product_name, sellerId:o.seller_id,
-    sellerName:o.seller_name, qty:o.qty, total:Number(o.total), itemNote:o.item_note || '', receiptCode:o.receipt_code || ''
+    sellerName:o.seller_name, qty:o.qty, total:Number(o.total), itemNote:o.item_note || '', receiptCode:o.receipt_code || '', itemOptions:Array.isArray(o.item_options)?o.item_options:[], unitPrice:Number(o.unit_price)||0
   })) };
 }
 async function dbGetOrderById(id) {
@@ -412,26 +413,66 @@ async function dbGetOrderById(id) {
   if (error || !data) return null;
   return no(data);
 }
-async function dbUpdateOrderStatus(id, status) {
-  const { error } = await db.from('orders').update({ status }).eq('id', id);
+async function dbUpdateOrderStatus(id, status) {       // id : un numéro, ou la liste des lignes d'une facture
+  const ids = (Array.isArray(id) ? id : [id]).map(Number).filter(Boolean);
+  const { error } = await db.from('orders').update({ status }).in('id', ids);
   return error ? { error: error.message } : { ok: true };
 }
 function no(r) {
   return { id:r.id, sellerId:r.seller_id, sellerName:r.seller_name||'', productId:r.product_id, productName:r.product_name, buyerName:r.buyer_name, buyerEmail:r.buyer_email, buyerPhone:r.buyer_phone, qty:r.qty, total:r.total, notes:r.notes, itemNote:r.item_note||'', status:r.status, createdAt:r.created_at,
     deliveryDate:r.delivery_date, deliveryTime:r.delivery_time, deliveryType:r.delivery_type||'campus', deliveryAddress:r.delivery_address,
     deliveryLat:r.delivery_lat||null, deliveryLng:r.delivery_lng||null, deliveryPlaceName:r.delivery_place_name||'',
-    buyerClasse:r.buyer_classe||'', buyerFiliere:r.buyer_filiere||'', orderGroup:r.order_group||null, receiptCode:r.receipt_code||'' };
+    buyerClasse:r.buyer_classe||'', buyerFiliere:r.buyer_filiere||'', orderGroup:r.order_group||null, receiptCode:r.receipt_code||'', itemOptions:Array.isArray(r.item_options)?r.item_options:[] };
 }
 
+
+/* ── OPTIONS / SUPPLÉMENTS D'UN PRODUIT ── */
+/* choix du client [{g:'Taille', l:'M', p:0}] → « Taille : M · + Broderie (+2 000 FCFA) » */
+function optsText(opts, withPrice) {
+  const by = {}, order = [];
+  (opts || []).forEach(o => { if (!by[o.g]) { by[o.g] = []; order.push(o.g); } by[o.g].push(o); });
+  return order.map(g => by[g].map(o => (o.p > 0 && withPrice ? `${o.l} (+${Number(o.p).toLocaleString('fr-FR')})` : o.l)).join(', ')
+                        .replace(/^/, `${g} : `)).join(' · ');
+}
+function optsKey(opts) { return (opts || []).map(o => o.g + '=' + o.l).sort().join('|'); }
+function optsExtra(p, opts) {                      // supplément de prix d'après les options du produit (affichage ; le serveur recalcule)
+  let x = 0;
+  (opts || []).forEach(o => { const g = (p.options || []).find(z => z.name === o.g); const c = g && g.choices.find(z => z.label === o.l); if (c) x += Number(c.price) || 0; });
+  return x;
+}
+/* Lignes de commande → FACTURES (un code de reçu = une facture ; un panier chez 2 vendeurs = 2 factures) */
+function groupInvoices(orders) {
+  const map = new Map();
+  orders.forEach(o => {
+    const key = o.receiptCode || ('#' + o.id);
+    if (!map.has(key)) map.set(key, { key, receiptCode: o.receiptCode || '', lines: [] });
+    map.get(key).lines.push(o);
+  });
+  return [...map.values()].map(inv => {
+    inv.lines.sort((a, b) => a.id - b.id);
+    const f = inv.lines[0];
+    const live = inv.lines.filter(l => l.status !== 'cancel');
+    return { ...f, key: inv.key, lines: inv.lines, ids: inv.lines.map(l => l.id),
+      qty: inv.lines.reduce((s, l) => s + Number(l.qty), 0),
+      total: inv.lines.reduce((s, l) => s + Number(l.total), 0),
+      status: live.length === 0 ? 'cancel' : live.every(l => l.status === 'done') ? 'done' : 'new',
+      productName: inv.lines.map(l => l.productName).join(', '),
+      articles: invoiceArticles(inv.lines) };
+  });
+}
+/* « 2× Robe wax (Taille : M · Broderie), 1× Sac » */
+function invoiceArticles(lines) {
+  return lines.map(l => `${Number(l.qty)}× ${l.productName}${(l.itemOptions || []).length ? ' (' + optsText(l.itemOptions) + ')' : ''}`).join(', ');
+}
 
 /* ── MESSAGES WHATSAPP DU VENDEUR (liens wa.me, sans API) ── */
 const WA_TAGS = [
   ['{prenom}', 'Prénom du client'], ['{produit}', 'Produit'], ['{quantite}', 'Quantité'], ['{total}', 'Total'],
-  ['{code}', 'Code du reçu'], ['{boutique}', 'Ma boutique'], ['{date_livraison}', 'Date / heure'], ['{lieu}', 'Lieu de livraison']
+  ['{articles}', 'Liste des articles'], ['{code}', 'N° de facture'], ['{boutique}', 'Ma boutique'], ['{date_livraison}', 'Date / heure'], ['{lieu}', 'Lieu de livraison']
 ];
 const WA_DEFAULTS = [
-  { key: 'received',  label: 'Commande reçue',        text: 'Bonjour {prenom} 👋 j\'ai bien reçu ta commande {code} : {quantite} × {produit} ({total}). Je te confirme la livraison prévue le {date_livraison}. — {boutique}' },
-  { key: 'preparing', label: 'Préparation en cours',  text: 'Bonjour {prenom} ! Ta commande {code} ({produit}) est en cours de préparation 🧑‍🍳. Je te préviens dès qu\'elle part. — {boutique}' },
+  { key: 'received',  label: 'Commande reçue',        text: 'Bonjour {prenom} 👋 j\'ai bien reçu ta commande {code} : {articles} — total {total}. Je te confirme la livraison prévue le {date_livraison}. — {boutique}' },
+  { key: 'preparing', label: 'Préparation en cours',  text: 'Bonjour {prenom} ! Ta commande {code} ({articles}) est en cours de préparation 🧑‍🍳. Je te préviens dès qu\'elle part. — {boutique}' },
   { key: 'delivery',  label: 'Bientôt livré',         text: 'Bonjour {prenom} 🚚 ta commande {code} est en route et sera bientôt livrée ({lieu}). Prépare {total} si paiement à la remise. — {boutique}' },
   { key: 'custom',    label: 'Mon message',           text: 'Bonjour {prenom}, ' }
 ];
@@ -464,7 +505,7 @@ function waFill(text, o, shopName) {
   const first = String(o.buyerName || '').trim().split(/\s+/)[0] || '';
   const lieu = o.deliveryType === 'external' ? (o.deliveryPlaceName || o.deliveryAddress || 'hors campus') : 'sur le campus';
   const when = [o.deliveryDate ? new Date(o.deliveryDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : '', o.deliveryTime || ''].filter(Boolean).join(' à ') || 'bientôt';
-  const map = { prenom: first, produit: o.productName || '', quantite: o.qty, total: Number(o.total || 0).toLocaleString('fr-FR') + ' FCFA',
+  const map = { prenom: first, produit: o.productName || '', articles: o.articles || ((o.qty || 1) + '× ' + (o.productName || '')), quantite: o.qty, total: Number(o.total || 0).toLocaleString('fr-FR') + ' FCFA',
                 code: o.receiptCode || ('#' + o.id), boutique: shopName || o.sellerName || '', date_livraison: when, lieu };
   return String(text).replace(/\{(\w+)\}/g, (m, k) => (k in map ? String(map[k]) : m));
 }

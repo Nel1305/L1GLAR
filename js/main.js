@@ -183,7 +183,7 @@ function productCardHtml(p, isSponsored) {
           <div class="card-price">${p.price.toLocaleString()} <small>FCFA</small></div>
           ${p.rating ? `<div class="card-rating" title="Note moyenne">★ ${p.rating}${p.votes ? ` <span>(${p.votes})</span>` : ''}</div>` : ''}
         </div>
-        <button class="btn-order" data-id="${p.id}" data-name="${esc(p.name)}" ${out?'disabled':''}>${out?'Indisponible':'<span class="bo-full">Ajouter au panier</span><span class="bo-short">Ajouter</span>'}</button>
+        <button class="btn-order" data-id="${p.id}" data-name="${esc(p.name)}" ${out?'disabled':''}>${out?'Indisponible':((p.options||[]).length?'<span class="bo-full">Choisir les options</span><span class="bo-short">Choisir</span>':'<span class="bo-full">Ajouter au panier</span><span class="bo-short">Ajouter</span>')}</button>
       </div>
     </article>`;
 }
@@ -194,7 +194,11 @@ function bindProductGridEvents(grid) {
     el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProductDetail(parseInt(el.dataset.detail)); } });
   });
   grid.querySelectorAll('.btn-order:not(:disabled)').forEach(btn =>
-    btn.addEventListener('click', () => addToCart(parseInt(btn.dataset.id), 1, (btn.closest('.card') && btn.closest('.card').querySelector('.card-img')) || btn))
+    btn.addEventListener('click', () => {
+      const pid = parseInt(btn.dataset.id), pr = allProducts.find(x => x.id === pid);
+      if (pr && (pr.options || []).length) { openProductDetail(pid); return; }      // taille / couleur / suppléments : à choisir sur la fiche
+      addToCart(pid, 1, (btn.closest('.card') && btn.closest('.card').querySelector('.card-img')) || btn);
+    })
   );
   grid.querySelectorAll('[data-shop]').forEach(el =>
     el.addEventListener('click', (ev) => { ev.stopPropagation(); openShop(parseInt(el.dataset.shop)); })
@@ -326,9 +330,11 @@ function initFilters() {
 
 /* ── CART (PANIER) ── */
 let cart = [];
+function cartKey(productId, opts) { return productId + '|' + optsKey(opts); }
+function cartQtyOf(productId) { return cart.filter(i => i.productId === productId).reduce((s, i) => s + i.qty, 0); }
 function loadCart() {
   try { cart = JSON.parse(localStorage.getItem('nmarket_cart') || '[]'); } catch { cart = []; }
-  cart.forEach(i => { if (i.note === undefined) i.note = ''; });
+  cart.forEach(i => { if (i.note === undefined) i.note = ''; if (!Array.isArray(i.opts)) i.opts = []; i.key = cartKey(i.productId, i.opts); });
   updateCartBadge();
 }
 function saveCart() {
@@ -352,15 +358,17 @@ function updateCartBadge() {
     else el.style.display = 'none';
   });
 }
-function addToCart(productId, addQty, srcEl) {
+function addToCart(productId, addQty, srcEl, opts) {
   addQty = Math.max(1, parseInt(addQty, 10) || 1);
+  opts = Array.isArray(opts) ? opts : [];
   const p = allProducts.find(x => x.id === productId);
   if (!p) return;
-  const existing = cart.find(i => i.productId === productId);
-  const wantQty = (existing ? existing.qty : 0) + addQty;
+  const key = cartKey(productId, opts);
+  const existing = cart.find(i => i.key === key);
+  const wantQty = cartQtyOf(productId) + addQty;                     // le stock est partagé par toutes les variantes d'un produit
   if (p.trackStock && wantQty > p.stock) { showToast('Stock insuffisant', `Il ne reste que ${p.stock} unité(s) de ce produit.`, 'var(--red)'); return; }
   if (existing) existing.qty += addQty;
-  else cart.push({ productId, qty: addQty, note: '' });
+  else cart.push({ productId, qty: addQty, note: '', opts, key });
   saveCart();
   flyToCart(p, srcEl);
   if (document.getElementById('page-cart').classList.contains('active')) renderCart();
@@ -413,21 +421,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (k) k.addEventListener('click', hideCartPopup);
   if (x) x.addEventListener('click', hideCartPopup);
 });
-function removeFromCart(productId) { cart = cart.filter(i => i.productId !== productId); saveCart(); renderCart(); }
-function setCartQty(productId, qty) {
-  const item = cart.find(i => i.productId === productId);
+function removeFromCart(key) { cart = cart.filter(i => i.key !== key); saveCart(); renderCart(); }
+function setCartQty(key, qty) {
+  const item = cart.find(i => i.key === key);
   if (!item) return;
-  if (qty < 1) { removeFromCart(productId); return; }
-  const p = allProducts.find(x => x.id === productId);
-  if (p && p.trackStock && qty > p.stock) {
+  if (qty < 1) { removeFromCart(key); return; }
+  const p = allProducts.find(x => x.id === item.productId);
+  if (p && p.trackStock && cartQtyOf(item.productId) - item.qty + qty > p.stock) {
     showToast('Stock insuffisant', `Il ne reste que ${p.stock} unité(s) de ce produit.`, 'var(--red)');
-    qty = p.stock;
+    qty = Math.max(1, p.stock - (cartQtyOf(item.productId) - item.qty));
   }
   item.qty = qty;
   saveCart(); renderCart();
 }
-function setCartNote(productId, note) {
-  const item = cart.find(i => i.productId === productId);
+function setCartNote(key, note) {
+  const item = cart.find(i => i.key === key);
   if (!item) return;
   item.note = note;
   saveCart();
@@ -450,38 +458,59 @@ function renderCart() {
         <div class="ci-img">${thumbHtml(i.p, '')}</div>
         <div class="ci-info">
           <div class="ci-name">${esc(i.p.name)}</div>
+          ${(i.opts||[]).length ? `<div class="ci-opts">${esc(optsText(i.opts, true))}</div>` : ''}
           <div class="ci-seller">${esc(i.p.sellerName)}${sellerFiliere(i.p.sellerId)?` · ${sellerFiliere(i.p.sellerId)}`:''}</div>
-          <div class="ci-price">${i.p.price.toLocaleString()} FCFA</div>
+          <div class="ci-price">${(i.p.price + optsExtra(i.p, i.opts)).toLocaleString()} FCFA</div>
         </div>
         <div class="ci-qty">
-          <button data-act="dec" data-id="${i.p.id}">−</button>
+          <button data-act="dec" data-id="${esc(i.key)}">−</button>
           <span>${i.qty}</span>
-          <button data-act="inc" data-id="${i.p.id}">+</button>
+          <button data-act="inc" data-id="${esc(i.key)}">+</button>
         </div>
-        <div class="ci-remove" data-act="rm" data-id="${i.p.id}" title="Retirer">✕</div>
+        <div class="ci-remove" data-act="rm" data-id="${esc(i.key)}" title="Retirer">✕</div>
       </div>
       <div class="ci-note-wrap">
-        <textarea class="ci-note" data-note="${i.p.id}" rows="1" placeholder="Précision pour ce produit (ex : sans sucre, sauce à part…)">${esc(i.note||'')}</textarea>
+        <textarea class="ci-note" data-note="${esc(i.key)}" rows="1" placeholder="Précision pour ce produit (ex : sans sucre, sauce à part…)">${esc(i.note||'')}</textarea>
       </div>
     </div>
   `).join('');
-  const total = items.reduce((s,i) => s + i.p.price * i.qty, 0);
+  const total = items.reduce((s,i) => s + (i.p.price + optsExtra(i.p, i.opts)) * i.qty, 0);
   document.getElementById('cartTotal').textContent = total.toLocaleString() + ' FCFA';
   wrap.querySelectorAll('[data-act]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const id = parseInt(btn.dataset.id);
-      const item = cart.find(x => x.productId === id);
+      const id = btn.dataset.id;
+      const item = cart.find(x => x.key === id);
       if (btn.dataset.act === 'inc') setCartQty(id, item.qty + 1);
       if (btn.dataset.act === 'dec') setCartQty(id, item.qty - 1);
       if (btn.dataset.act === 'rm')  removeFromCart(id);
     });
   });
   wrap.querySelectorAll('[data-note]').forEach(el => {
-    el.addEventListener('input', () => setCartNote(parseInt(el.dataset.note), el.value));
+    el.addEventListener('input', () => setCartNote(el.dataset.note, el.value));
   });
 }
 
 /* ── PRODUCT DETAIL ── */
+/* Formulaire d'options (fiche produit) : choix unique = boutons radio, suppléments = cases à cocher */
+function optionsFormHtml(p) {
+  return p.options.map((g, gi) => `
+    <fieldset class="po-group" data-gi="${gi}">
+      <legend>${esc(g.name)} <em>${g.required ? 'obligatoire' : g.type === 'multi' ? 'au choix' : 'facultatif'}</em></legend>
+      <div class="po-choices">${g.choices.map((c, ci) => `
+        <label class="po-choice"><input type="${g.type === 'multi' ? 'checkbox' : 'radio'}" name="po${gi}" data-gi="${gi}" data-ci="${ci}"><span class="po-l">${esc(c.label)}</span>${Number(c.price) > 0 ? `<span class="po-p">+${Number(c.price).toLocaleString('fr-FR')} FCFA</span>` : ''}</label>`).join('')}
+      </div>
+    </fieldset>`).join('');
+}
+function readOpts(p, root) {
+  const out = [];
+  root.querySelectorAll('.po-choice input:checked').forEach(inp => {
+    const g = p.options[+inp.dataset.gi], c = g && g.choices[+inp.dataset.ci];
+    if (c) out.push({ g: g.name, l: c.label, p: Number(c.price) || 0 });
+  });
+  return out;
+}
+function missingRequired(p, opts) { return p.options.find(g => g.required && !opts.some(o => o.g === g.name)); }
+
 async function openProductDetail(id) {
   const p = allProducts.find(x => x.id === id);
   if (!p) return;
@@ -499,6 +528,7 @@ async function openProductDetail(id) {
     </div>
     ${stockBadgeHtml(p)}
     ${p.desc ? `<div class="pd-desc">${esc(p.desc)}</div>` : ''}
+    ${(p.options||[]).length ? `<div class="po-wrap" id="poWrap">${optionsFormHtml(p)}</div>` : ''}
     <div class="pd-buy">
       <div class="qty" ${isOutOfStock(p)?'hidden':''}>
         <button type="button" id="pdMinus" aria-label="Moins">−</button><span id="pdQty">1</span><button type="button" id="pdPlus" aria-label="Plus">+</button>
@@ -525,11 +555,41 @@ async function openProductDetail(id) {
   const addBtn = document.getElementById('pdAddBtn');
   let q = 1; const maxQ = p.trackStock ? Math.max(1, p.stock) : 99;
   const qEl = document.getElementById('pdQty');
-  const setQ = v => { q = Math.min(maxQ, Math.max(1, v)); if (qEl) qEl.textContent = q; };
+  const poWrap = document.getElementById('poWrap');
+  const hasOpts = !!poWrap;
+  const priceEl = document.querySelector('#pdContent .pd-price');
+  const refresh = () => {                                    // prix en direct : produit + options choisies
+    if (!hasOpts) return;
+    const unit = p.price + optsExtra(p, readOpts(p, poWrap));
+    if (priceEl) priceEl.innerHTML = `${unit.toLocaleString()} <small>FCFA</small>`;
+    if (addBtn && !addBtn.disabled) addBtn.textContent = `Ajouter au panier · ${(unit * q).toLocaleString()} FCFA`;
+  };
+  const setQ = v => { q = Math.min(maxQ, Math.max(1, v)); if (qEl) qEl.textContent = q; refresh(); };
+  if (poWrap) {
+    poWrap.addEventListener('click', e => {                  // un choix facultatif se décoche en recliquant dessus
+      const i = e.target;
+      if (i.matches && i.matches('input[type=radio]')) {
+        if (i.dataset.was === '1') { i.checked = false; i.dataset.was = '0'; }
+        else { poWrap.querySelectorAll(`input[name="${i.name}"]`).forEach(x => x.dataset.was = '0'); i.dataset.was = '1'; }
+      }
+    });
+    poWrap.addEventListener('change', () => { poWrap.querySelectorAll('.po-error').forEach(x => x.classList.remove('po-error')); refresh(); });
+    refresh();
+  }
   const mi = document.getElementById('pdMinus'), pl = document.getElementById('pdPlus');
   if (mi) mi.addEventListener('click', () => setQ(q - 1));
   if (pl) pl.addEventListener('click', () => setQ(q + 1));
-  if (addBtn && !addBtn.disabled) addBtn.addEventListener('click', () => { addToCart(id, q, document.querySelector('#pdContent img') || addBtn); closeModal('productDetailModal'); });
+  if (addBtn && !addBtn.disabled) addBtn.addEventListener('click', () => {
+    const opts = hasOpts ? readOpts(p, poWrap) : [];
+    const miss = hasOpts ? missingRequired(p, opts) : null;
+    if (miss) {
+      const gi = p.options.indexOf(miss), fs = poWrap.querySelector(`.po-group[data-gi="${gi}"]`);
+      if (fs) { fs.classList.add('po-error'); fs.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      showToast('Choix manquant', `Choisis « ${miss.name} » avant d'ajouter au panier.`, 'var(--red)');
+      return;
+    }
+    addToCart(id, q, document.querySelector('#pdContent img') || addBtn, opts); closeModal('productDetailModal');
+  });
   document.getElementById('pdShopLink').addEventListener('click', () => { closeModal('productDetailModal'); openShop(p.sellerId); });
   openModal('productDetailModal');
   try { history.replaceState(null, '', '/p/' + productSlug(p)); } catch (e) {}
@@ -653,7 +713,7 @@ async function submitOrder() {
   if (deliveryType === 'campus' && (!classe || !filiere)) { showToast('Informations manquantes', 'Choisis ton niveau et ta filière pour la livraison sur le campus.', 'var(--red)'); return; }
 
   for (const i of items) {
-    if (i.p.trackStock && i.qty > i.p.stock) { showToast('Stock insuffisant', `Il ne reste que ${i.p.stock} unité(s) de "${i.p.name}".`, 'var(--red)'); return; }
+    if (i.p.trackStock && cartQtyOf(i.p.id) > i.p.stock) { showToast('Stock insuffisant', `Il ne reste que ${i.p.stock} unité(s) de "${i.p.name}".`, 'var(--red)'); return; }
   }
 
   const btn = document.getElementById('submitOrderBtn');
@@ -667,37 +727,32 @@ async function submitOrder() {
     buyerClasse: deliveryType==='campus' ? classe : '', buyerFiliere: deliveryType==='campus' ? filiere : '',
     lat: geo ? geo.lat : null, lng: geo ? geo.lng : null, placeName: geo ? geo.label : '',
     waOptIn: document.getElementById('oWaOptIn').checked,
-    items: items.map(i => ({ productId:i.p.id, qty:i.qty, note:(i.note||'').trim() }))
+    items: items.map(i => ({ productId:i.p.id, qty:i.qty, note:(i.note||'').trim(), opts:i.opts||[] }))
   });
   showLoader(false); btn.disabled = false;
   if (result.error) { showToast('Commande impossible', result.error, 'var(--red)'); await loadProducts(); return; }
 
-  // Reconstruit les lignes du ticket à partir des montants CALCULÉS PAR LE SERVEUR
-  const createdOrders = result.orders.map(o => ({
-    order: { id:o.id, createdAt:o.createdAt },
-    p: { name:o.productName, sellerName:o.sellerName, price:o.qty ? o.total/o.qty : o.total },
-    qty:o.qty, total:o.total, note:o.itemNote, code:o.receiptCode
-  }));
-
+  // Les montants viennent du SERVEUR. Un panier = une FACTURE par vendeur (un seul code de reçu par facture).
+  const invoices = buildInvoices(result.orders);
   const grandTotal = result.grandTotal;
-  const firstId = createdOrders[0].order.id;
-  const ticketRef = createdOrders.length>1 ? `#${firstId}–#${createdOrders[createdOrders.length-1].order.id}` : `#${firstId}`;
-  document.getElementById('orderSuccessText').innerHTML =
-    createdOrders.map(o => `${Number(o.qty)}× <strong>${esc(o.p.name)}</strong> — ${o.total.toLocaleString()} FCFA${o.note?`<br><span style="color:var(--t3);font-size:.85em">↳ ${esc(o.note)}</span>`:''}${o.code?`<br><span class="receipt-code">🔑 ${esc(o.code)}</span>`:''}`).join('<br>') +
-    `<br><strong>Total : ${grandTotal.toLocaleString()} FCFA</strong><br>` +
-    `<span style="color:var(--t3)">Numéro de commande : ${esc(ticketRef)}</span>`;
+  document.getElementById('orderSuccessText').innerHTML = invoices.map(inv => `
+    <div class="inv-box">
+      <div class="inv-title"><span class="receipt-code">🔑 ${esc(inv.code)}</span><span class="inv-shop">${esc(inv.sellerName)}</span></div>
+      ${inv.lines.map(l => `<div class="inv-row"><span>${Number(l.qty)}× <strong>${esc(l.name)}</strong>${l.options.length ? `<em>${esc(optsText(l.options))}</em>` : ''}${l.note ? `<em>↳ ${esc(l.note)}</em>` : ''}</span><span>${l.total.toLocaleString()} FCFA</span></div>`).join('')}
+      <div class="inv-sub"><span>Total de la facture</span><strong>${inv.total.toLocaleString()} FCFA</strong></div>
+    </div>`).join('') +
+    (invoices.length > 1 ? `<div class="inv-grand">${invoices.length} factures (une par vendeur) · Total : <strong>${grandTotal.toLocaleString()} FCFA</strong></div>` : '');
   document.getElementById('orderSuccess').style.display = '';
   if (typeof WHATSAPP_BUSINESS_NUMBER !== 'undefined' && WHATSAPP_BUSINESS_NUMBER) {
-    const codes = createdOrders.map(o => o.code).filter(Boolean).join(', ');
+    const codes = invoices.map(o => o.code).filter(Boolean).join(', ');
     document.getElementById('waContactLink').href = 'https://wa.me/' + encodeURIComponent(WHATSAPP_BUSINESS_NUMBER) + '?text=' + encodeURIComponent('Bonjour, ma commande ' + codes);
     document.getElementById('waContactP').hidden = false;
   }
 
-  // Affiche le ticket, puis demande au client s'il veut le télécharger
+  // Affiche les tickets (un par facture), puis demande au client s'il veut les télécharger
   document.getElementById('orderSuccess').scrollIntoView({ behavior:'smooth' });
-  // ticket dessiné, image prête, puis question au client
-  fillTicket(createdOrders, { name, phone, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress, classe, filiere, grandTotal })
-    .then(() => Promise.race([prepareTicket(), new Promise(r => setTimeout(r, 5000))]))
+  fillTickets(invoices, { name, phone, notes, deliveryDate, deliveryTime, deliveryType, deliveryAddress, classe, filiere })
+    .then(() => Promise.race([prepareTicket(), new Promise(r => setTimeout(r, 6000))]))
     .then(() => setTimeout(() => openModal('ticketAsk'), 300));
 
   // Vide le panier et réinitialise le formulaire
@@ -719,26 +774,37 @@ async function submitOrder() {
 }
 
 /* ── TICKET / PREUVE DE COMMANDE ── */
-let ticketData = null, ticketStyle = null;
-async function fillTicket(createdOrders, f) {
-  const d = {
-    platform: typeof PLATFORM_NAME !== 'undefined' ? PLATFORM_NAME : 'N Market',
-    shops: [...new Set(createdOrders.map(o => o.p.sellerName).filter(Boolean))],
-    ids: createdOrders.map(o => Number(o.order.id)),
-    codes: createdOrders.map(o => o.code).filter(Boolean),
-    date: formatDateTime(createdOrders[0].order.createdAt || new Date().toISOString()),
-    name: f.name, phone: f.phone,
-    classe: f.deliveryType === 'campus' ? `${f.classe} · ${getFiliereLabel(f.filiere)}` : '',
-    items: createdOrders.map(o => ({ name: o.p.name, qty: o.qty, total: o.total, note: o.note || '' })),
-    notes: f.notes || '',
-    delivery: `${new Date(f.deliveryDate+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})} à ${f.deliveryTime}`,
-    place: deliveryTypeLabel(f.deliveryType),
-    address: f.deliveryType === 'external' ? (f.deliveryAddress || '') : '',
-    total: f.grandTotal
-  };
-  ticketData = d;
-  ticketStyle = await dbGetTicketStyle(createdOrders.map(o => o.p.sellerId));
-  document.getElementById('ticketCard').innerHTML = ticketHTML(d, ticketStyle);
+/* lignes (une par produit / variante) → factures (une par code de reçu) */
+function buildInvoices(orders) {
+  const map = new Map();
+  orders.forEach(o => {
+    const code = o.receiptCode || ('#' + o.id);
+    if (!map.has(code)) map.set(code, { code: o.receiptCode || '', ref: code, sellerId: o.sellerId, sellerName: o.sellerName, createdAt: o.createdAt, ids: [], lines: [], total: 0 });
+    const inv = map.get(code);
+    inv.ids.push(Number(o.id)); inv.total += Number(o.total);
+    inv.lines.push({ name: o.productName, qty: Number(o.qty), total: Number(o.total), options: o.itemOptions || [], note: o.itemNote || '' });
+  });
+  return [...map.values()];
+}
+
+/* UN ticket par facture, avec le style (couleurs, alignement…) du vendeur concerné */
+let tickets = [];                      // [{ d, style }]
+async function fillTickets(invoices, f) {
+  const platform = typeof PLATFORM_NAME !== 'undefined' ? PLATFORM_NAME : 'N Market';
+  const delivery = `${new Date(f.deliveryDate+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})} à ${f.deliveryTime}`;
+  tickets = await Promise.all(invoices.map(async inv => ({
+    d: {
+      platform, shops: [inv.sellerName].filter(Boolean), ids: inv.ids, codes: inv.code ? [inv.code] : [],
+      date: formatDateTime(inv.createdAt || new Date().toISOString()),
+      name: f.name, phone: f.phone,
+      classe: f.deliveryType === 'campus' ? `${f.classe} · ${getFiliereLabel(f.filiere)}` : '',
+      items: inv.lines.map(l => ({ name: l.name, qty: l.qty, total: l.total, note: l.note, options: optsText(l.options) })),
+      notes: f.notes || '', delivery, place: deliveryTypeLabel(f.deliveryType),
+      address: f.deliveryType === 'external' ? (f.deliveryAddress || '') : '', total: inv.total
+    },
+    style: await dbGetTicketStyle([inv.sellerId])
+  })));
+  document.getElementById('ticketCard').innerHTML = tickets.map(t => `<div class="tk-one">${ticketHTML(t.d, t.style)}</div>`).join('');
   document.getElementById('ticketWrap').style.display = '';
 }
 
@@ -749,48 +815,52 @@ document.addEventListener('DOMContentLoaded', () => {
 /* Le ticket est converti en image AVANT de demander au client ce qu'il veut en faire :
    le clic « Télécharger » n'a plus qu'à enregistrer un fichier déjà prêt (les navigateurs mobiles bloquent
    un téléchargement lancé après un délai). */
-let ticketBlob = null, ticketName = 'ticket-commande.png', ticketPrep = null;
+let ticketFiles = [], ticketPrep = null;     // [{ name, blob }] — une image par facture
 
 function prepareTicket() {
-  ticketBlob = null;
-  if (!ticketData) return (ticketPrep = Promise.resolve(null));
-  const ref = (ticketData.codes[0] || ('' + ticketData.ids[0])).replace(/[^A-Za-z0-9-]/g, '');
-  ticketName = `ticket-${ref}.png`;
-  ticketPrep = ticketToBlob(ticketData, ticketStyle).then(b => (ticketBlob = b)).catch(() => null);
+  ticketFiles = [];
+  if (!tickets.length) return (ticketPrep = Promise.resolve(null));
+  ticketPrep = Promise.all(tickets.map(async (t, i) => {
+    const ref = (t.d.codes[0] || ('' + t.d.ids[0])).replace(/[^A-Za-z0-9-]/g, '');
+    const blob = await ticketToBlob(t.d, t.style).catch(() => null);
+    return blob ? { name: `facture-${ref || i + 1}.png`, blob } : null;
+  })).then(list => (ticketFiles = list.filter(Boolean)));
   return ticketPrep;
 }
 
-/* Affiche l'image du ticket plein écran (appui long pour l'enregistrer) : dernier recours */
+/* Affiche les images des tickets plein écran (appui long pour les enregistrer) : dernier recours */
 function showTicketImage() {
-  if (!ticketBlob) { showToast('Ticket', 'Fais une capture d\'écran du ticket affiché.', 'var(--orange)'); return; }
-  const url = URL.createObjectURL(ticketBlob);
+  if (!ticketFiles.length) { showToast('Ticket', 'Fais une capture d\'écran du ticket affiché.', 'var(--orange)'); return; }
+  const urls = ticketFiles.map(f => URL.createObjectURL(f.blob));
   const ov = document.createElement('div');
   ov.className = 'ticket-viewer';
-  ov.innerHTML = `<div class="tv-box"><img src="${url}" alt="Ticket de commande"><p>Appuie longuement sur l'image pour l'enregistrer, ou fais une capture d'écran.</p><button class="btn-primary" type="button">Fermer</button></div>`;
-  ov.querySelector('button').addEventListener('click', () => { ov.remove(); URL.revokeObjectURL(url); });
+  ov.innerHTML = `<div class="tv-box">${urls.map(u => `<img src="${u}" alt="Ticket de commande">`).join('')}<p>Appuie longuement sur l'image pour l'enregistrer, ou fais une capture d'écran.</p><button class="btn-primary" type="button">Fermer</button></div>`;
+  ov.querySelector('button').addEventListener('click', () => { ov.remove(); urls.forEach(u => URL.revokeObjectURL(u)); });
   document.body.appendChild(ov);
 }
 
 async function downloadTicket() {
-  if (!ticketBlob) { showToast('Un instant…', 'Préparation du ticket', 'var(--t2)'); await (ticketPrep || prepareTicket()); }
-  if (!ticketBlob) { showToast('Téléchargement impossible', 'Fais une capture d\'écran du ticket affiché.', 'var(--red)'); return; }
-  const file = new File([ticketBlob], ticketName, { type: 'image/png' });
+  if (!ticketFiles.length) { showToast('Un instant…', 'Préparation du ticket', 'var(--t2)'); await (ticketPrep || prepareTicket()); }
+  if (!ticketFiles.length) { showToast('Téléchargement impossible', 'Fais une capture d\'écran du ticket affiché.', 'var(--red)'); return; }
+  const files = ticketFiles.map(f => new File([f.blob], f.name, { type: 'image/png' }));
   const isApple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  // iPhone/iPad : l'attribut « download » est ignoré → feuille de partage (« Enregistrer l'image »)
-  if (isApple && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: 'Ticket N Market' }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  // iPhone/iPad : l'attribut « download » est ignoré → feuille de partage (« Enregistrer l'image »), toutes les factures d'un coup
+  if (isApple && navigator.canShare && navigator.canShare({ files })) {
+    try { await navigator.share({ files, title: 'Tickets N Market' }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
   }
   try {
-    const url = URL.createObjectURL(ticketBlob);
-    const a = document.createElement('a');
-    a.href = url; a.download = ticketName; a.rel = 'noopener';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
-    showToast('Ticket', 'Téléchargement lancé. Vérifie tes téléchargements.', 'var(--green)');
+    for (const f of ticketFiles) {
+      const url = URL.createObjectURL(f.blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = f.name; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      if (ticketFiles.length > 1) await new Promise(r => setTimeout(r, 450));      // laisse le navigateur accepter chaque téléchargement
+    }
+    showToast('Ticket' + (files.length > 1 ? 's' : ''), files.length > 1 ? `${files.length} factures téléchargées (une par vendeur).` : 'Téléchargement lancé. Vérifie tes téléchargements.', 'var(--green)');
   } catch (e) { showTicketImage(); }
 }
 
-/* ── RETOURS / LITIGES ── */
 async function submitReturn() {
   const code = document.getElementById('rtCode').value.trim();
   const reason = document.getElementById('rtReason').value.trim();
