@@ -2,7 +2,16 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"><meta name="google-site-verification" content="qUVYnQUcmtaSax5qMbTQDFebanwdt0T6GeVmUHQS394" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>N Market</title>
+  <title>N Market – la marketplace des étudiants de l'ESTM Dakar</title>
+  <meta data-seo name="description" content="N Market : achète et vends entre étudiants de l'ESTM à Dakar. Nourriture, boissons, vêtements, accessoires et services, livrés sur le campus. Commande en quelques clics.">
+  <link data-seo rel="canonical" href="https://n-market-sigma.vercel.app/">
+  <meta data-seo property="og:type" content="website"><meta data-seo property="og:site_name" content="N Market"><meta data-seo property="og:locale" content="fr_FR">
+  <meta data-seo property="og:title" content="N Market – la marketplace des étudiants de l'ESTM Dakar">
+  <meta data-seo property="og:description" content="Achète et vends entre étudiants de l'ESTM : produits et services livrés sur le campus.">
+  <meta data-seo property="og:url" content="https://n-market-sigma.vercel.app/"><meta data-seo property="og:image" content="https://n-market-sigma.vercel.app/assets/logo-black.png">
+  <meta data-seo name="twitter:card" content="summary"><meta data-seo name="twitter:title" content="N Market – la marketplace des étudiants de l'ESTM Dakar"><meta data-seo name="twitter:image" content="https://n-market-sigma.vercel.app/assets/logo-black.png">
+  <meta name="theme-color" content="#151515">
+  <script data-seo type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://n-market-sigma.vercel.app/#org","name":"N Market","url":"https://n-market-sigma.vercel.app/","logo":"https://n-market-sigma.vercel.app/assets/logo-black.png","description":"Marketplace des étudiants de l'ESTM à Dakar (Sénégal)."},{"@type":"WebSite","@id":"https://n-market-sigma.vercel.app/#site","url":"https://n-market-sigma.vercel.app/","name":"N Market","inLanguage":"fr","publisher":{"@id":"https://n-market-sigma.vercel.app/#org"}}]}</script>
   <link rel="icon" type="image/png" href="assets/favicon.png"><link rel="apple-touch-icon" href="assets/favicon.png">
   <style id="splashCss">#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#fff;transition:opacity .4s ease,visibility .4s}#splash.hide{opacity:0;visibility:hidden}#splash img{width:min(62vw,260px);height:auto;animation:spIn .6s cubic-bezier(.2,.8,.2,1) both}#splash .sp-bar{width:min(34vw,120px);height:3px;border-radius:3px;background:rgba(128,128,128,.25);overflow:hidden}#splash .sp-bar i{display:block;height:100%;width:40%;border-radius:3px;background:#111;animation:spBar 1.1s ease-in-out infinite}#splash .sp-estm{width:min(24vw,84px);opacity:.95;animation-delay:.15s}#splash .sp-w{display:none}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #splash{background:#0d0d0d}:root:not([data-theme="light"]) #splash .sp-b{display:none}:root:not([data-theme="light"]) #splash .sp-w{display:block}:root:not([data-theme="light"]) #splash .sp-bar i{background:#fff}}html[data-theme="dark"] #splash{background:#0d0d0d}html[data-theme="dark"] #splash .sp-b{display:none}html[data-theme="dark"] #splash .sp-w{display:block}html[data-theme="dark"] #splash .sp-bar i{background:#fff}@keyframes spIn{from{opacity:0;transform:translateY(8px) scale(.96)}}@keyframes spBar{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}@media (prefers-reduced-motion:reduce){#splash img,#splash .sp-bar i{animation:none}}</style>
   <link rel="stylesheet" href="css/style.css">
@@ -73,7 +82,6 @@
           <select class="select-sm filter-select" id="filterSelect"></select>
           <div class="result-line"><span id="resultCount" aria-live="polite"></span><div class="chips" id="activeFilters"></div></div>
           <div id="productsGrid"></div>
-          <div class="estm-foot"><img src="assets/estm-logo.svg" alt="ESTM" width="72" height="35"><span>La marketplace des étudiants de l'ESTM</span></div>
         </div>
       </div>
       <div class="fp-overlay" id="fpOverlay"></div>
@@ -178,6 +186,13 @@
         <div class="success-box" id="returnSuccess"><div class="ico">✓</div><strong>Demande envoyée !</strong><p>Le vendeur a reçu ton message et te recontactera.</p></div>
       </div>
     </div>
+    <footer class="site-footer">
+    <div class="sf-inner">
+      <p class="sf-partner">En partenariat avec <img src="assets/estm-logo.svg" alt="ESTM" width="56" height="27"></p>
+      <nav class="sf-links" aria-label="Informations légales"><a href="/mentions-legales">Mentions légales</a><a href="/conditions">Conditions générales</a><a href="/confidentialite">Confidentialité</a></nav>
+      <p class="sf-copy">© <span id="sfYear">2026</span> N Market · Tous droits réservés</p>
+    </div>
+  </footer>
   </main>
 </div>
 
@@ -212,6 +227,7 @@
         <div class="field"><label>Téléphone</label><input type="tel" id="rPhone" placeholder="+221 77 …"></div>
         <div class="field"><label>Filière</label><select id="rFiliere"><option value="">— Sélectionner —</option></select></div>
         <div class="field"><label>Mot de passe</label><input type="password" id="rPass" placeholder="Min. 8 caractères" autocomplete="new-password"></div>
+        <div class="hint reg-legal">En créant un compte, tu acceptes les <a href="/conditions" target="_blank" rel="noopener">Conditions générales</a> et la <a href="/confidentialite" target="_blank" rel="noopener">Politique de confidentialité</a>.</div>
         <button class="btn-primary" id="registerBtn">Créer mon compte</button>
         <div class="modal-link">Déjà inscrit ? <a id="goLogin">Se connecter</a></div>
       </div>

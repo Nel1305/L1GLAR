@@ -1820,13 +1820,26 @@ input[type="text"], input[type="email"], input[type="password"], input[type="tel
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --estm-blue: #6f9ceb; --estm-green: #3fc079; } }
 html[data-theme="dark"] { --estm-blue: #6f9ceb; --estm-green: #3fc079; }
 :focus-visible { outline-color: var(--estm-blue); }
-.estm-badge { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 8px 10px; border-radius: 12px; background: var(--bg3); border: 1px solid var(--b1); color: var(--t2); font-size: .68rem; line-height: 1.3; text-decoration: none; }
-.estm-badge img, .estm-foot img { background: #fff; border-radius: 8px; padding: 3px 5px; height: auto; flex: 0 0 auto; }
-.estm-badge img { width: 54px; }
-.estm-foot { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 28px 0 8px; padding: 14px 16px; border-radius: 16px; background: var(--bg3); border: 1px solid var(--b1); color: var(--t2); font-size: .78rem; text-align: left; }
-.estm-foot img { width: 64px; }
-.estm-foot::after { content: ""; flex: 0 0 4px; align-self: stretch; border-radius: 4px; background: linear-gradient(var(--estm-blue), var(--estm-green)); order: -1; }
-body[data-bnav="shop"] .estm-foot { margin-bottom: 96px; }      /* au-dessus de la barre de recherche du bas */
+/* Pied de page : logo ESTM discret + liens légaux (sans cadre) */
+.site-footer { margin: 28px 0 0; padding: 22px 16px 28px; border-top: 1px solid var(--b1); }
+.sf-inner { max-width: none; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; font-size: .74rem; color: var(--t3); }
+.sf-partner { display: inline-flex; align-items: center; gap: 10px; margin: 0; }
+.sf-partner img { height: 24px; width: auto; display: block; }
+.sf-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.sf-links a { color: var(--t2); text-decoration: none; }
+.sf-links a:hover { color: var(--t1); text-decoration: underline; }
+.sf-copy { margin: 0; flex-basis: 100%; font-size: .68rem; color: var(--t4, var(--t3)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sf-partner img { background: #fff; border-radius: 8px; padding: 3px 6px; box-sizing: content-box; } }
+html[data-theme="dark"] .sf-partner img { background: #fff; border-radius: 8px; padding: 3px 6px; box-sizing: content-box; }
+@media (max-width: 768px) {
+  .site-footer { padding-bottom: 20px; }
+  .sf-inner { flex-direction: column; align-items: flex-start; }
+  body[data-bnav="shop"] .site-footer { padding-bottom: 104px; }          /* au-dessus de la barre de recherche du bas */
+}
+/* Texte pour les robots (pages /p/… et /boutique/…) : visible seulement tant que l'appli n'a pas démarré */
+.seo-page { max-width: 720px; margin: 0 auto; padding: 28px 18px 60px; font-size: 15px; line-height: 1.6; color: var(--t1); background: var(--bg); position: relative; z-index: 1; }
+.seo-page h1 { font-size: 1.5rem; margin: 14px 0 10px; } .seo-page h2 { font-size: 1.05rem; margin: 22px 0 8px; }
+.seo-page img { max-width: 100%; height: auto; border-radius: 12px; } .seo-page ul { padding-left: 20px; } .seo-page a { color: inherit; }
 
 /* ══ Options / suppléments : fiche produit ══ */
 .po-wrap { margin: 14px 0 4px; display: grid; gap: 12px; }
@@ -1890,3 +1903,7 @@ body[data-bnav="shop"] .estm-foot { margin-bottom: 96px; }      /* au-dessus de 
 
 /* Bande du haut : bleu + vert ESTM */
 .flag-bar { background: linear-gradient(to right, var(--estm-blue) 50%, var(--estm-green) 50%); }
+
+/* Mention légale à l'inscription */
+.reg-legal{font-size:12px;line-height:1.5;margin:2px 0 4px}
+.reg-legal a{color:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}

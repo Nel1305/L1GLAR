@@ -4,3 +4,7 @@
 ## Pages
 - [Catalogue](https://n-market-sigma.vercel.app/): tous les produits disponibles
 - [Plan du site](https://n-market-sigma.vercel.app/sitemap.xml): une page par produit (/p/identifiant-nom-du-produit) avec nom, prix, vendeur et description
+- Boutiques: une page par vendeur (/boutique/nom-de-la-boutique) listant ses produits
+- [Mentions légales](https://n-market-sigma.vercel.app/mentions-legales)
+- [Conditions générales](https://n-market-sigma.vercel.app/conditions): rôle d'intermédiaire, commandes, paiement, retours, règles vendeurs
+- [Confidentialité](https://n-market-sigma.vercel.app/confidentialite): données personnelles et droits

@@ -18,6 +18,7 @@ function sellerFiliere(sellerId) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  { const sp = document.getElementById('seoPage'); if (sp) sp.remove(); const fy = document.getElementById('sfYear'); if (fy) fy.textContent = new Date().getFullYear(); }      // texte pour les robots : remplacé par l'appli (même contenu)
   // Session Supabase Auth + retour du lien « mot de passe oublié » / confirmation d'email
   db.auth.onAuthStateChange((event) => {
     if (event === 'PASSWORD_RECOVERY') openModal('recoveryModal');
@@ -178,7 +179,7 @@ function productCardHtml(p, isSponsored) {
       <div class="card-body">
         <div class="card-meta">${isSponsored ? '<span class="sp-tag">Sponsorisé</span>' : ''}${cat ? esc(cat.label) : ''}${low ? `<span class="card-low">Plus que ${p.stock}</span>` : ''}</div>
         <h3 class="card-name" data-detail="${p.id}"><a href="/p/${esc(productSlug(p))}">${esc(p.name)}</a></h3>
-        <div class="card-seller"><span>${esc(p.sellerName)}${sellerBadge(p.sellerId)}</span><span class="shop-link" data-shop="${p.sellerId}">Voir la boutique</span></div>
+        <div class="card-seller"><span>${esc(p.sellerName)}${sellerBadge(p.sellerId)}</span><a class="shop-link" href="/boutique/${esc(shopSlug({ id: p.sellerId, name: p.sellerName }))}" data-shop="${p.sellerId}">Voir la boutique</a></div>
         <div class="card-row">
           <div class="card-price">${p.price.toLocaleString()} <small>FCFA</small></div>
           ${p.rating ? `<div class="card-rating" title="Note moyenne">★ ${p.rating}${p.votes ? ` <span>(${p.votes})</span>` : ''}</div>` : ''}
@@ -201,7 +202,7 @@ function bindProductGridEvents(grid) {
     })
   );
   grid.querySelectorAll('[data-shop]').forEach(el =>
-    el.addEventListener('click', (ev) => { ev.stopPropagation(); openShop(parseInt(el.dataset.shop)); })
+    el.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); openShop(parseInt(el.dataset.shop)); })
   );
 }
 
@@ -613,6 +614,7 @@ async function openShop(sellerId) {
   const avgRating = products.length ? (products.reduce((s,p)=>s+(p.rating||0)*((p.votes||0)||1), 0) / products.reduce((s,p)=>s+((p.votes||0)||1),0)) : 0;
   const filiere = seller.filiere ? getFiliereLabel(seller.filiere) : '';
 
+  try { history.replaceState(null, '', '/boutique/' + shopSlug(seller)); } catch (e) {}
   document.getElementById('shopContent').innerHTML = `
     <div class="shop-header">
       <div class="shop-avatar">${esc((seller.name||'?')[0].toUpperCase())}</div>
@@ -1105,6 +1107,8 @@ document.addEventListener('click', e => {
 
 /* ── Lien direct vers un produit (/p/12-nom-du-produit ou ?p=12) : utile pour Google, les IA et le partage ── */
 function openDeepLinkedProduct() {
+  const sm = location.pathname.match(/^\/boutique\/(\d+)/);
+  if (sm) { openShop(parseInt(sm[1])).catch(() => {}); return; }
   const m = location.pathname.match(/^\/p\/(\d+)/) || location.search.match(/[?&]p=(\d+)/);
   if (!m) return;
   const id = parseInt(m[1]);
@@ -1114,12 +1118,14 @@ function openDeepLinkedProduct() {
 /* L'adresse du navigateur suit le produit ouvert, puis revient à l'accueil à la fermeture */
 (function watchProductModal() {
   document.addEventListener('DOMContentLoaded', () => {
-    const m = document.getElementById('productDetailModal'); if (!m) return;
-    new MutationObserver(() => {
-      try {
-        if (m.classList.contains('show')) return;
-        if (/^\/p\//.test(location.pathname)) history.replaceState(null, '', '/');
-      } catch (e) {}
-    }).observe(m, { attributes: true, attributeFilter: ['class'] });
+    [['productDetailModal', /^\/p\//], ['shopModal', /^\/boutique\//]].forEach(([id, re]) => {
+      const m = document.getElementById(id); if (!m) return;
+      new MutationObserver(() => {
+        try {
+          if (m.classList.contains('show')) return;
+          if (re.test(location.pathname)) history.replaceState(null, '', '/');
+        } catch (e) {}
+      }).observe(m, { attributes: true, attributeFilter: ['class'] });
+    });
   });
 })();

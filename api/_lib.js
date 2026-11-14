@@ -31,4 +31,31 @@ function indexHtml() {
   return fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
 }
 
-module.exports = { esc, jsonScript, slugify, productPath, origin, rest, indexHtml, SITE_NAME };
+const shopPath = s => '/boutique/' + s.id + (slugify(s.name) ? '-' + slugify(s.name) : '');
+const CAT_LABELS = { food: 'Nourriture', drink: 'Boissons', other: 'Autres' };
+const catLabel = c => CAT_LABELS[c] || (c ? String(c).charAt(0).toUpperCase() + String(c).slice(1) : 'Autres');
+const safeHttps = u => (/^https:\/\/[^\s"'<>]+$/i.test(String(u || '').trim()) ? String(u).trim() : '');
+const clip = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t; };
+const fmt = n => Math.round(Number(n) || 0).toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ');
+
+/* Assemble la page : l'appli (index.html) + balises SEO propres à la page + texte lisible par les robots.
+   - les balises SEO « génériques » de l'accueil (data-seo) sont retirées pour éviter les doublons ;
+   - le bloc #seoPage est visible tant que l'appli n'a pas démarré, puis l'appli le retire (même contenu que la fiche affichée). */
+function renderShell(html, o) {
+  html = html.replace(/<(meta|link)\b[^>]*\bdata-seo\b[^>]*>/g, '').replace(/<script\b[^>]*\bdata-seo\b[^>]*>[\s\S]*?<\/script>/g, '');
+  const head = `<base href="/">
+<meta name="robots" content="${o.noindex ? 'noindex' : 'index,follow,max-image-preview:large'}">
+${o.canonical ? `<link rel="canonical" href="${esc(o.canonical)}">` : ''}
+<meta name="description" content="${esc(o.desc)}">
+<meta property="og:type" content="${o.ogType || 'website'}"><meta property="og:site_name" content="${SITE_NAME}"><meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="${esc(o.title)}"><meta property="og:description" content="${esc(o.desc)}">${o.canonical ? `<meta property="og:url" content="${esc(o.canonical)}">` : ''}
+<meta property="og:image" content="${esc(o.image)}"><meta property="og:image:alt" content="${esc(o.imageAlt || o.title)}">
+${(o.meta || []).join('\n')}
+<meta name="twitter:card" content="${o.imageIsPhoto ? 'summary_large_image' : 'summary'}"><meta name="twitter:title" content="${esc(o.title)}"><meta name="twitter:description" content="${esc(o.desc)}"><meta name="twitter:image" content="${esc(o.image)}">
+${(o.ld || []).map(x => `<script type="application/ld+json">${jsonScript(x)}</script>`).join('\n')}`;
+  return html.replace(/<title>[^<]*<\/title>/, `<title>${esc(o.title)}</title>`)
+             .replace('<head>', '<head>' + head)
+             .replace(/<body([^>]*)>/, s => s + (o.body || ''));
+}
+
+module.exports = { esc, jsonScript, slugify, productPath, shopPath, catLabel, safeHttps, clip, fmt, renderShell, origin, rest, indexHtml, SITE_NAME };

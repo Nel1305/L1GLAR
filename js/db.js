@@ -39,6 +39,10 @@ function safeColor(c, fallback) {
   return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(c) ? c : (fallback || '#404040');
 }
 /* Adresse lisible d'un produit : 12-robe-wax-bleue (identique à celle du serveur /api/product) */
+function shopSlug(s) {
+  const t = String(s.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  return s.id + (t ? '-' + t : '');
+}
 function productSlug(p) {
   const t = String(p.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
   return p.id + (t ? '-' + t : '');

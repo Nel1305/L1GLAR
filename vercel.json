@@ -6,8 +6,24 @@
       "destination": "/api/product?slug=:slug"
     },
     {
+      "source": "/boutique/:slug",
+      "destination": "/api/shop?slug=:slug"
+    },
+    {
       "source": "/sitemap.xml",
       "destination": "/api/sitemap"
+    },
+    {
+      "source": "/mentions-legales",
+      "destination": "/legal/mentions-legales.html"
+    },
+    {
+      "source": "/conditions",
+      "destination": "/legal/conditions.html"
+    },
+    {
+      "source": "/confidentialite",
+      "destination": "/legal/confidentialite.html"
     }
   ],
   "functions": {
@@ -44,6 +60,13 @@
           "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; worker-src 'self' blob:; connect-src 'self' https://qknoqmwmvqlcejbpkkgt.supabase.co wss://qknoqmwmvqlcejbpkkgt.supabase.co https://api.emailjs.com https://maps.googleapis.com https://*.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
     }
   ]
 }
