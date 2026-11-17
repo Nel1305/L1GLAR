@@ -576,11 +576,13 @@ async function openProductDetail(id) {
       </div>
       <button class="btn-primary" id="pdAddBtn" ${isOutOfStock(p)?'disabled':''}>${isOutOfStock(p)?'Rupture de stock':'Ajouter au panier'}</button>
     </div>
+    <details class="pd-more"><summary>Livraison, paiement et retour</summary>
     <ul class="pd-info">
       <li><strong>Livraison</strong><span>Sur le campus ou à l'adresse de ton choix, à la date que tu indiques. Le vendeur te contacte pour confirmer.</span></li>
       <li><strong>Paiement</strong><span>À la remise de la commande ou par Wave, comme convenu avec le vendeur.</span></li>
       <li><strong>Retour</strong><span>Demande un retour avec le code de ton reçu (NM-…).</span></li>
     </ul>
+    </details>
     <div class="pd-reviews">
       <h4>Avis sur ce produit (${reviews.length})</h4>
       ${reviews.length ? reviews.map(r => `
@@ -603,7 +605,7 @@ async function openProductDetail(id) {
     if (!hasOpts) return;
     const unit = p.price + optsExtra(p, readOpts(p, poWrap));
     if (priceEl) priceEl.innerHTML = `${unit.toLocaleString()} <small>FCFA</small>`;
-    if (addBtn && !addBtn.disabled) addBtn.textContent = `Ajouter au panier · ${(unit * q).toLocaleString()} FCFA`;
+    if (addBtn && !addBtn.disabled) addBtn.textContent = `Ajouter · ${(unit * q).toLocaleString()} FCFA`;
   };
   const setQ = v => { q = Math.min(maxQ, Math.max(1, v)); if (qEl) qEl.textContent = q; refresh(); };
   if (poWrap) {

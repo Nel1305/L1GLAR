@@ -150,25 +150,27 @@
 
     <div id="page-chat" class="page">
       <div class="page-header"><div><div class="page-title">Messages</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge"><svg class=ic aria-hidden=true><use href=#i-lock /></svg> Accès restreint</span></div></div></div>
-      <div class="chat-wrap">
-        <div class="chat-sidebar">
-          <div class="chat-sidebar-hd">Conversations</div>
-          <div class="chat-rooms" id="chatRooms"></div>
-        </div>
-        <div class="chat-main">
-          <div class="chat-header">
-            <div class="chat-header-info">
-              <div class="chat-header-name" id="chatHeaderName">Canal général</div>
-              <div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div>
-            </div>
-            <span class="e2e-badge"><svg class=ic aria-hidden=true><use href=#i-lock /></svg> Privé</span>
+      <div class="cm" id="chatWrap">
+        <aside class="cm-side">
+          <div class="cm-side-top">
+            <div class="cm-side-title">Conversations</div>
+            <label class="cm-search"><svg class=ic aria-hidden=true><use href=#i-search /></svg><input type="search" id="chatSearch" placeholder="Rechercher un vendeur" autocomplete="off"></label>
           </div>
-          <div class="chat-messages" id="chatMessages"><div class="chat-empty"><span><svg class=ic aria-hidden=true><use href=#i-chat /></svg></span><span>Sélectionne une conversation</span></div></div>
-          <div class="chat-input-area">
-            <textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1"></textarea>
-            <button class="chat-send" id="chatSendBtn">↑</button>
+          <div class="cm-rooms" id="chatRooms"></div>
+        </aside>
+        <section class="cm-main">
+          <header class="cm-head">
+            <button type="button" class="cm-back" id="chatBack" aria-label="Retour aux conversations"><svg class=ic aria-hidden=true><use href=#i-arrow-left /></svg></button>
+            <div class="cm-head-av" id="chatHeaderAv"><svg class=ic aria-hidden=true><use href=#i-megaphone /></svg></div>
+            <div class="cm-head-info"><div class="chat-header-name" id="chatHeaderName">Canal général</div><div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div></div>
+            <span class="cm-priv"><svg class=ic aria-hidden=true><use href=#i-lock /></svg> Accès restreint</span>
+          </header>
+          <div class="cm-msgs chat-messages" id="chatMessages"></div>
+          <div class="cm-compose">
+            <textarea class="chat-input" id="chatInput" placeholder="Écrire un message…" rows="1" aria-label="Message"></textarea>
+            <button type="button" class="chat-send" id="chatSendBtn" aria-label="Envoyer"><svg class=ic aria-hidden=true><use href=#i-up /></svg></button>
           </div>
-        </div>
+        </section>
       </div>
     </div>
 
