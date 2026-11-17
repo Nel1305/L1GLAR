@@ -174,7 +174,7 @@ function productCardHtml(p, isSponsored) {
   const low = p.trackStock && p.stock > 0 && p.stock <= 3;
   const cat = getCategories().find(c => c.slug === p.cat);
   return `
-    <article class="card${isSponsored?' sponsored':''}${out?' is-out':''}">
+    <article class="card${isSponsored?' sponsored':''}${out?' is-out':''}" data-pid="${p.id}">
       <div class="card-img cat-${esc(p.cat)}" data-detail="${p.id}" role="button" tabindex="0" aria-label="Voir ${esc(p.name)}">${thumbHtml(p, p.name)}${out?'<span class="img-flag">Rupture de stock</span>':''}</div>
       <div class="card-body">
         <div class="card-meta">${isSponsored ? '<span class="sp-tag">Sponsorisé</span>' : ''}${cat ? esc(cat.label) : ''}${low ? `<span class="card-low">Plus que ${p.stock}</span>` : ''}</div>
@@ -184,23 +184,62 @@ function productCardHtml(p, isSponsored) {
           <div class="card-price">${p.price.toLocaleString()} <small>FCFA</small></div>
           ${p.rating ? `<div class="card-rating" title="Note moyenne">★ ${p.rating}${p.votes ? ` <span>(${p.votes})</span>` : ''}</div>` : ''}
         </div>
-        <button class="btn-order" data-id="${p.id}" data-name="${esc(p.name)}" ${out?'disabled':''}>${out?'Indisponible':((p.options||[]).length?'<span class="bo-full">Choisir les options</span><span class="bo-short">Choisir</span>':'<span class="bo-full">Ajouter au panier</span><span class="bo-short">Ajouter</span>')}</button>
+        <div class="card-act">${cardActionHtml(p, out)}</div>
       </div>
     </article>`;
 }
+
+/* Zone d'action d'une carte : « Ajouter au panier », ou − / + quand le produit (sans options) est déjà au panier */
+function cardActionHtml(p, out) {
+  const hasOpts = (p.options || []).length > 0;
+  const n = cartQtyOf(p.id);
+  if (!out && !hasOpts && n > 0) {
+    const max = p.trackStock ? p.stock : 99;
+    return `<div class="stepper" data-id="${p.id}">
+      <button type="button" class="st-minus" aria-label="Retirer un exemplaire">${ic('minus')}</button>
+      <div class="st-mid"><span class="st-n">${n}</span><span class="st-l">au panier</span></div>
+      <button type="button" class="st-plus" aria-label="Ajouter un exemplaire" ${n >= max ? 'disabled' : ''}>${ic('plus')}</button>
+    </div>`;
+  }
+  const label = out ? 'Indisponible' : (hasOpts ? '<span class="bo-full">Choisir les options</span><span class="bo-short">Choisir</span>' : '<span class="bo-full">Ajouter au panier</span><span class="bo-short">Ajouter</span>');
+  const inCart = !out && hasOpts && n > 0 ? `<div class="in-cart-tag">${ic('check')} ${n} au panier</div>` : '';
+  return `${inCart}<button class="btn-order" data-id="${p.id}" data-name="${esc(p.name)}" ${out?'disabled':''}>${label}</button>`;
+}
+/* Met à jour les zones d'action des cartes visibles après un changement de panier */
+function syncCardActions(changedId) {
+  document.querySelectorAll('.card[data-pid]').forEach(card => {
+    const id = parseInt(card.dataset.pid);
+    if (changedId != null && id !== changedId) return;
+    const p = allProducts.find(x => x.id === id); if (!p) return;
+    const act = card.querySelector('.card-act'); if (!act) return;
+    const had = act.querySelector('.st-n'), prev = had ? had.textContent : null;
+    act.innerHTML = cardActionHtml(p, isOutOfStock(p));
+    const nEl = act.querySelector('.st-n');
+    if (nEl && prev !== null && prev !== nEl.textContent) nEl.classList.add('tick');
+    const b = act.querySelector('.btn-order:not(:disabled)'); if (b) bindOrderBtn(b);
+  });
+}
+function bindOrderBtn(btn) {
+  btn.addEventListener('click', () => {
+    const pid = parseInt(btn.dataset.id), pr = allProducts.find(x => x.id === pid);
+    if (pr && (pr.options || []).length) { openProductDetail(pid); return; }      // taille / couleur / suppléments : à choisir sur la fiche
+    addToCart(pid, 1, (btn.closest('.card') && btn.closest('.card').querySelector('.card-img')) || btn);
+  });
+}
+/* − / + : un seul écouteur pour toute la page */
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.stepper button'); if (!b) return;
+  const id = parseInt(b.closest('.stepper').dataset.id);
+  if (b.classList.contains('st-plus')) addToCart(id, 1, null);
+  else setCartQty(cartKey(id, []), cartQtyOf(id) - 1);
+});
 
 function bindProductGridEvents(grid) {
   grid.querySelectorAll('[data-detail]').forEach(el => {
     el.addEventListener('click', (ev) => { if (ev.target.closest && ev.target.closest('a')) ev.preventDefault(); openProductDetail(parseInt(el.dataset.detail)); });
     el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProductDetail(parseInt(el.dataset.detail)); } });
   });
-  grid.querySelectorAll('.btn-order:not(:disabled)').forEach(btn =>
-    btn.addEventListener('click', () => {
-      const pid = parseInt(btn.dataset.id), pr = allProducts.find(x => x.id === pid);
-      if (pr && (pr.options || []).length) { openProductDetail(pid); return; }      // taille / couleur / suppléments : à choisir sur la fiche
-      addToCart(pid, 1, (btn.closest('.card') && btn.closest('.card').querySelector('.card-img')) || btn);
-    })
-  );
+  grid.querySelectorAll('.btn-order:not(:disabled)').forEach(bindOrderBtn);
   grid.querySelectorAll('[data-shop]').forEach(el =>
     el.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); openShop(parseInt(el.dataset.shop)); })
   );
@@ -292,9 +331,9 @@ function initFilters() {
   const cats = getCategories();
 
   wrap.innerHTML = '<button class="filter-btn active" data-filter="all">Tout</button>' +
-    cats.map(c => `<button class="filter-btn" data-filter="${esc(c.slug)}">${esc(c.emoji)} ${esc(c.label)}</button>`).join('');
+    cats.map(c => `<button class="filter-btn" data-filter="${esc(c.slug)}">${ic(catIconKey(c.emoji))} ${esc(c.label)}</button>`).join('');
   select.innerHTML = '<option value="all">Toutes les catégories</option>' +
-    cats.map(c => `<option value="${esc(c.slug)}">${esc(c.emoji)} ${esc(c.label)}</option>`).join('');
+    cats.map(c => `<option value="${esc(c.slug)}">${esc(c.label)}</option>`).join('');
 
   function setFilter(val) {
     activeFilter = val;
@@ -341,6 +380,7 @@ function loadCart() {
 function saveCart() {
   localStorage.setItem('nmarket_cart', JSON.stringify(cart));
   updateCartBadge();
+  syncCardActions();
 }
 function updateCartBadge() {
   const count = cart.reduce((s,i) => s + i.qty, 0);
@@ -624,7 +664,7 @@ async function openShop(sellerId) {
         ${avgRating ? `<div class="shop-rating">★ ${avgRating.toFixed(1)} note moyenne</div>` : ''}
       </div>
       <div class="shop-actions">
-        <button class="btn-report" id="shopReportBtn">⚠ Signaler</button>
+        <button class="btn-report" id="shopReportBtn"><svg class=ic aria-hidden=true><use href=#i-alert /></svg> Signaler</button>
       </div>
     </div>
     <div id="shopProductsGrid">
@@ -680,14 +720,14 @@ function initDeliveryFields() {
     if (s.label && (!addr.value.trim() || addr.dataset.auto === '1')) { addr.value = s.label; addr.dataset.auto = '1'; }
     const chk = document.getElementById('oMapCheck');
     if (s.lat != null) { chk.href = gmapsViewUrl(s.lat, s.lng); chk.style.display = ''; }
-    document.getElementById('oMapHint').textContent = s.lat != null ? '✅ Position enregistrée. Tu peux déplacer le repère pour l\'ajuster.' : document.getElementById('oMapHint').textContent;
+    document.getElementById('oMapHint').innerHTML = s.lat != null ? '<svg class=ic aria-hidden=true><use href=#i-check /></svg> Position enregistrée. Tu peux déplacer le repère pour l\'ajuster.' : document.getElementById('oMapHint').textContent;
   }});
   document.getElementById('oAddress').addEventListener('input', e => { e.target.dataset.auto = '0'; });
   document.getElementById('oLocateBtn').addEventListener('click', async () => {
     const btn = document.getElementById('oLocateBtn'); btn.disabled = true; btn.textContent = 'Localisation…';
     await picker.mount();
     const r = await picker.locate();
-    btn.disabled = false; btn.textContent = '📍 Utiliser ma position';
+    btn.disabled = false; btn.innerHTML = '<svg class=ic aria-hidden=true><use href=#i-pin /></svg> Utiliser ma position';
     if (r.error) showToast('Position non obtenue', r.error, 'var(--red)');
     else if (r.accuracy > 200) showToast('Position approximative', 'Précision ~' + r.accuracy + ' m : ajuste le repère sur la carte si besoin.', 'var(--t2)');
   });
@@ -739,7 +779,7 @@ async function submitOrder() {
   const grandTotal = result.grandTotal;
   document.getElementById('orderSuccessText').innerHTML = invoices.map(inv => `
     <div class="inv-box">
-      <div class="inv-title"><span class="receipt-code">🔑 ${esc(inv.code)}</span><span class="inv-shop">${esc(inv.sellerName)}</span></div>
+      <div class="inv-title"><span class="receipt-code"><svg class=ic aria-hidden=true><use href=#i-key /></svg> ${esc(inv.code)}</span><span class="inv-shop">${esc(inv.sellerName)}</span></div>
       ${inv.lines.map(l => `<div class="inv-row"><span>${Number(l.qty)}× <strong>${esc(l.name)}</strong>${l.options.length ? `<em>${esc(optsText(l.options))}</em>` : ''}${l.note ? `<em>↳ ${esc(l.note)}</em>` : ''}</span><span>${l.total.toLocaleString()} FCFA</span></div>`).join('')}
       <div class="inv-sub"><span>Total de la facture</span><strong>${inv.total.toLocaleString()} FCFA</strong></div>
     </div>`).join('') +
@@ -912,7 +952,7 @@ async function submitReview() {
   renderProducts();
   showLoader(false);
   closeModal('reviewModal');
-  showToast('Avis publié','Merci pour ton retour ! 🙏');
+  showToast('Avis publié','Merci pour ton retour !');
   await loadReviews();
   document.getElementById('rvName').value='';document.getElementById('rvText').value='';
   document.querySelectorAll('input[name="rv"]').forEach(r=>r.checked=false);
@@ -1012,11 +1052,11 @@ async function acceptTermsAndCreateAccount() {
   closeModal('termsModal');
   closeModal('authModal');
   if (r.needsConfirmation) {
-    showToast('Confirme ton email 📧', 'Un lien de confirmation vient d\'être envoyé. Clique dessus, puis connecte-toi.', 'var(--green)');
+    showToast('Confirme ton email', 'Un lien de confirmation vient d\'être envoyé. Clique dessus, puis connecte-toi.', 'var(--green)');
     return;
   }
   syncSessionUI();
-  showToast('Compte créé !', `Bienvenue ${first} 🎉`);
+  showToast('Compte créé !', `Bienvenue ${first}`);
   // Email de bienvenue (envoyé avant de quitter la page)
   let mail = Promise.resolve();
   if (typeof sendWelcomeEmail !== 'undefined') mail = Promise.race([sendWelcomeEmail(r.user).catch(() => null), new Promise(x => setTimeout(x, 2500))]);

@@ -9,10 +9,11 @@
 <script src="../js/nozoom.js"></script><script src="../js/tablecards.js"></script>
 </head>
 <body data-bnav="seller">
+<script src="../js/icons.js"></script>
 <div class="flag-bar"></div>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
 <div id="lockedScreen" style="display:none;text-align:center;padding:100px 20px;max-width:360px;margin:0 auto">
-  <div style="font-size:1.8rem;margin-bottom:14px">🔒</div>
+  <div style="font-size:1.8rem;margin-bottom:14px"><svg class=ic aria-hidden=true><use href=#i-lock /></svg></div>
   <div class="page-title" style="margin-bottom:8px">Accès refusé</div>
   <p style="color:var(--t2);font-size:.82rem;margin-bottom:22px">Connecte-toi pour accéder à ton espace vendeur.</p>
   <a href="../index.html" style="display:inline-block;padding:9px 22px;background:var(--t1);color:var(--bg);border-radius:var(--r2);text-decoration:none;font-weight:600;font-size:.82rem">← Retourner au site</a>
@@ -23,21 +24,21 @@
     <div class="logo-row"><a class="logo-link" href="../index.html" aria-label="Retour à l'accueil N Market"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> <span id="shopName">Mon commerce</span></div><div class="logo-sub">N Market</div></div></a></div>
     <nav class="nav">
       <span class="nav-label">Tableau de bord</span>
-      <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Vue globale</button>
-      <button class="nav-item" data-page="notifications"><span class="icon">🔔</span>Notifications <span class="dot" id="notifDot" style="display:none"></span></button>
+      <button class="nav-item active" data-page="dashboard"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-dash /></svg></span>Vue globale</button>
+      <button class="nav-item" data-page="notifications"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-bell /></svg></span>Notifications <span class="dot" id="notifDot" style="display:none"></span></button>
       <span class="nav-label">Ventes</span>
-      <button class="nav-item" data-page="orders"><span class="icon">📦</span>Commandes</button>
-      <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours <span class="dot" id="returnsDot" style="display:none"></span></button>
-      <button class="nav-item" data-page="products"><span class="icon">🛍</span>Mes produits</button>
+      <button class="nav-item" data-page="orders"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-box /></svg></span>Commandes</button>
+      <button class="nav-item" data-page="returns"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-return /></svg></span>Retours <span class="dot" id="returnsDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="products"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-bag /></svg></span>Mes produits</button>
       <button class="nav-item" data-page="addproduct"><span class="icon">+</span>Ajouter un produit</button>
-      <button class="nav-item" data-page="promote"><span class="icon">📣</span>Publicité</button>
+      <button class="nav-item" data-page="promote"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-megaphone /></svg></span>Publicité</button>
       <span class="nav-label">Communication</span>
-      <button class="nav-item" data-page="whatsapp"><span class="icon">🟢</span>WhatsApp <span class="soon-tag">Bientôt</span><span class="dot wa-dot" style="display:none"></span></button>
-      <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="chatDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="whatsapp"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-wa /></svg></span>WhatsApp <span class="soon-tag">Bientôt</span><span class="dot wa-dot" style="display:none"></span></button>
+      <button class="nav-item" data-page="chat"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-chat /></svg></span>Messages <span class="dot" id="chatDot" style="display:none"></span></button>
       <span class="nav-label">Compte</span>
-      <button class="nav-item" data-page="verify"><span class="icon">🛡</span>Vérification <span class="dot" id="verifDot" style="display:none"></span></button>
-      <button class="nav-item" data-page="ticketstyle"><span class="icon">🧾</span>Mon ticket</button>
-      <button class="nav-item" data-page="profile"><span class="icon">⚙</span>Mon profil</button>
+      <button class="nav-item" data-page="verify"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-shield /></svg></span>Vérification <span class="dot" id="verifDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="ticketstyle"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-receipt /></svg></span>Mon ticket</button>
+      <button class="nav-item" data-page="profile"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-gear /></svg></span>Mon profil</button>
     </nav>
     <div class="sidebar-footer">
       <div class="user-pill" id="userPill">
@@ -74,7 +75,7 @@
     <div id="page-orders" class="page">
       <div class="page-header">
         <div><div class="page-title">Commandes</div><div class="page-desc">Toutes les commandes reçues</div></div>
-        <button type="button" class="btn-ghost" onclick="openWaTemplates()">💬 Mes messages WhatsApp</button>
+        <button type="button" class="btn-ghost" onclick="openWaTemplates()"><svg class=ic aria-hidden=true><use href=#i-chat /></svg> Mes messages WhatsApp</button>
         <select class="select-sm" id="orderStatusFilter"><option value="all">Tous</option><option value="new">Nouvelles</option><option value="done">Livrées</option><option value="cancel">Annulées</option></select>
       </div>
       <div class="table-wrap"><table class="data-table"><thead><tr><th>Facture</th><th>Client</th><th>Contact</th><th>Articles</th><th>Qté</th><th>Total</th><th>Livraison</th><th>Modification</th><th>Statut</th><th></th></tr></thead><tbody id="ordersBody"></tbody></table></div>
@@ -115,7 +116,7 @@
       <div class="page-header"><div><div class="page-title">Ajouter un produit</div><div class="page-desc">Décris ce que tu vends</div></div></div>
       <div class="form-wrap">
         <div class="field"><label>Photo du produit</label>
-          <div class="photo-upload"><input type="file" accept="image/*" id="apPhoto"><div id="apPhotoPlaceholder"><div style="font-size:1.5rem;margin-bottom:6px">📷</div><div style="font-size:.8rem;font-weight:500;margin-bottom:2px">Clique ou glisse une photo</div><div style="font-size:.7rem;color:var(--t3)">JPG, PNG — max 5 Mo</div></div><img id="apPhotoPreview" class="photo-preview" alt=""></div>
+          <div class="photo-upload"><input type="file" accept="image/*" id="apPhoto"><div id="apPhotoPlaceholder"><div style="font-size:1.5rem;margin-bottom:6px"><svg class=ic aria-hidden=true><use href=#i-camera /></svg></div><div style="font-size:.8rem;font-weight:500;margin-bottom:2px">Clique ou glisse une photo</div><div style="font-size:.7rem;color:var(--t3)">JPG, PNG — max 5 Mo</div></div><img id="apPhotoPreview" class="photo-preview" alt=""></div>
         </div>
         <div class="field"><label>Nom du produit</label><input type="text" id="apName" placeholder="Ex : Crêpes au Nutella"></div>
         <div class="field"><label>Description</label><textarea id="apDesc" placeholder="Décris ton produit : ingrédients, taille, disponibilités…"></textarea></div>
@@ -123,7 +124,7 @@
           <div class="field"><label>Catégorie</label><select id="apCat"></select></div>
           <div class="field"><label>Prix (FCFA)</label><input type="number" id="apPrice" placeholder="500" min="1"></div>
         </div>
-        <div class="field"><label>Emoji (si pas de photo)</label><input type="text" id="apEmoji" placeholder="🥞" style="max-width:100px"></div>
+        <div class="f-hint" style="margin-bottom:6px">Sans photo, une icône adaptée à ton produit (selon son nom et sa catégorie) est affichée automatiquement.</div>
         <div class="divider"></div>
         <div class="f-section">
           <span class="f-label">Stock</span>
@@ -148,7 +149,7 @@
     <div id="page-whatsapp" class="page"></div>
 
     <div id="page-chat" class="page">
-      <div class="page-header"><div><div class="page-title">Messages</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Accès restreint</span></div></div></div>
+      <div class="page-header"><div><div class="page-title">Messages</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge"><svg class=ic aria-hidden=true><use href=#i-lock /></svg> Accès restreint</span></div></div></div>
       <div class="chat-wrap">
         <div class="chat-sidebar">
           <div class="chat-sidebar-hd">Conversations</div>
@@ -160,9 +161,9 @@
               <div class="chat-header-name" id="chatHeaderName">Canal général</div>
               <div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div>
             </div>
-            <span class="e2e-badge">🔒 Privé</span>
+            <span class="e2e-badge"><svg class=ic aria-hidden=true><use href=#i-lock /></svg> Privé</span>
           </div>
-          <div class="chat-messages" id="chatMessages"><div class="chat-empty"><span>💬</span><span>Sélectionne une conversation</span></div></div>
+          <div class="chat-messages" id="chatMessages"><div class="chat-empty"><span><svg class=ic aria-hidden=true><use href=#i-chat /></svg></span><span>Sélectionne une conversation</span></div></div>
           <div class="chat-input-area">
             <textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1"></textarea>
             <button class="chat-send" id="chatSendBtn">↑</button>
@@ -240,14 +241,13 @@
     <div class="modal-title">Modifier le produit</div><div class="modal-sub">Changements visibles immédiatement</div>
     <div class="modal-form">
       <input type="hidden" id="editId">
-      <div class="field"><label>Photo</label><div class="photo-upload"><input type="file" accept="image/*" id="editPhoto"><div id="editPhotoPlaceholder"><div style="font-size:1.4rem;margin-bottom:4px">📷</div><div style="font-size:.78rem;font-weight:500">Changer la photo</div></div><img id="editPhotoPreview" class="photo-preview" alt=""></div></div>
+      <div class="field"><label>Photo</label><div class="photo-upload"><input type="file" accept="image/*" id="editPhoto"><div id="editPhotoPlaceholder"><div style="font-size:1.4rem;margin-bottom:4px"><svg class=ic aria-hidden=true><use href=#i-camera /></svg></div><div style="font-size:.78rem;font-weight:500">Changer la photo</div></div><img id="editPhotoPreview" class="photo-preview" alt=""></div></div>
       <div class="field"><label>Nom</label><input type="text" id="editName"></div>
       <div class="field"><label>Description</label><textarea id="editDesc"></textarea></div>
       <div class="modal-grid">
         <div class="field"><label>Catégorie</label><select id="editCat"></select></div>
         <div class="field"><label>Prix (FCFA)</label><input type="number" id="editPrice"></div>
       </div>
-      <div class="field"><label>Emoji</label><input type="text" id="editEmoji" style="max-width:90px"></div>
       <div class="divider"></div>
       <div class="f-section">
         <span class="f-label">Stock</span>

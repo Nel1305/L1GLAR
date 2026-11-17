@@ -86,7 +86,7 @@ async function markAllNotificationsRead() {
 
 /* ── CATEGORIES ── */
 function populateCategorySelects() {
-  const opts = getCategories().map(c => `<option value="${esc(c.slug)}">${esc(c.emoji)} ${esc(c.label)}</option>`).join('');
+  const opts = getCategories().map(c => `<option value="${esc(c.slug)}">${esc(c.label)}</option>`).join('');
   document.getElementById('apCat').innerHTML  = opts;
   document.getElementById('editCat').innerHTML = opts;
 }
@@ -163,7 +163,7 @@ async function renderDashboard() {
     ? products.slice(0,6).map(p=>`
         <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r2);overflow:hidden">
           <div style="height:72px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1.8rem;position:relative;overflow:hidden">
-            ${safeImg(p.photo)?`<img src="${safeImg(p.photo)}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" alt="">`:esc(p.emoji)}
+            ${safeImg(p.photo)?`<img src="${safeImg(p.photo)}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" alt="">`:thumbHtml(p,'')}
             ${!p.available?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--red);font-weight:600;letter-spacing:.04em">INDISPO</div>`:''}
           </div>
           <div style="padding:10px">
@@ -186,13 +186,13 @@ async function renderOrders() {
     <tr>
       <td style="color:var(--t3);font-size:.7rem;white-space:nowrap">${o.receiptCode?`<span class="receipt-code">${esc(o.receiptCode)}</span>`:'#'+o.id}</td>
       <td><span style="font-weight:500">${esc(o.buyerName)}</span><div style="font-size:.68rem;color:var(--t3)">${formatDate(o.createdAt)}</div></td>
-      <td style="font-size:.72rem;color:var(--t2)">📞 ${esc(o.buyerPhone||'—')}</td>
+      <td style="font-size:.72rem;color:var(--t2)"><svg class=ic aria-hidden=true><use href=#i-phone /></svg> ${esc(o.buyerPhone||'—')}</td>
       <td>${invoiceLinesHtml(o)}</td>
       <td>${o.qty}</td>
       <td style="font-weight:500">${o.total.toLocaleString()} FCFA</td>
       <td style="font-size:.72rem">
         <div style="font-weight:500">${formatDeliveryDateTime(o)}</div>
-        <div style="color:var(--t3)">${o.deliveryType==='external'?'📍 Hors campus':'🏫 Sur le campus'}</div>
+        <div style="color:var(--t3)">${o.deliveryType==='external'?'<svg class=ic aria-hidden=true><use href=#i-pin /></svg> Hors campus':'<svg class=ic aria-hidden=true><use href=#i-school /></svg> Sur le campus'}</div>
       </td>
       <td style="max-width:120px">${invoiceNotes(o)?`<span style="font-size:.72rem;color:var(--t2);font-style:italic">${esc(invoiceNotes(o).substring(0,60))}${invoiceNotes(o).length>60?'…':''}</span>`:`<span style="color:var(--t4)">—</span>`}</td>
       <td>
@@ -202,7 +202,7 @@ async function renderOrders() {
           <option value="cancel" ${o.status==='cancel'?'selected':''}>Annulée</option>
         </select>
       </td>
-      <td style="white-space:nowrap"><button class="icon-btn edit" onclick="viewOrder('${esc(o.key)}')" title="Voir">👁</button> <button class="icon-btn wa" onclick="openWaSend('${esc(o.key)}')" title="Écrire sur WhatsApp" aria-label="Écrire sur WhatsApp">💬</button></td>
+      <td style="white-space:nowrap"><button class="icon-btn edit" onclick="viewOrder('${esc(o.key)}')" title="Voir"><svg class=ic aria-hidden=true><use href=#i-eye /></svg></button> <button class="icon-btn wa" onclick="openWaSend('${esc(o.key)}')" title="Écrire sur WhatsApp" aria-label="Écrire sur WhatsApp"><svg class=ic aria-hidden=true><use href=#i-chat /></svg></button></td>
     </tr>`).join('');
 }
 
@@ -234,12 +234,12 @@ async function renderReturnsPage() {
   tbody.innerHTML = returns.map(r => `
     <tr>
       <td style="color:var(--t3);font-size:.7rem">#${r.orderId}</td>
-      <td><span style="font-weight:500">${esc(r.buyerName||'—')}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${esc(r.buyerPhone||'—')}</div></td>
+      <td><span style="font-weight:500">${esc(r.buyerName||'—')}</span><div style="font-size:.68rem;color:var(--t3)"><svg class=ic aria-hidden=true><use href=#i-phone /></svg> ${esc(r.buyerPhone||'—')}</div></td>
       <td>${esc(r.productName||'—')}</td>
       <td style="max-width:220px;font-size:.78rem">${esc(r.reason)}</td>
       <td><span class="status-badge ${r.status==='accepted'?'status-done':r.status==='rejected'?'status-cancel':'status-new'}" style="font-size:.65rem">${r.status==='accepted'?'Acceptée':r.status==='rejected'?'Refusée':'En attente'}</span></td>
       <td style="font-size:.72rem;color:var(--t3)">${formatDate(r.createdAt)}</td>
-      <td>${r.status==='pending'?`<button class="icon-btn edit" onclick="openReturnModal(${r.id})" title="Répondre">↩</button>`:`<span style="font-size:.7rem;color:var(--t3)">Traitée</span>`}</td>
+      <td>${r.status==='pending'?`<button class="icon-btn edit" onclick="openReturnModal(${r.id})" title="Répondre"><svg class=ic aria-hidden=true><use href=#i-return /></svg></button>`:`<span style="font-size:.7rem;color:var(--t3)">Traitée</span>`}</td>
     </tr>`).join('');
   const pendingCount = returns.filter(r=>r.status==='pending').length;
   document.getElementById('returnsDot').style.display = pendingCount ? '' : 'none';
@@ -251,7 +251,7 @@ async function openReturnModal(id) {
   document.getElementById('returnId').value = r.id;
   document.getElementById('returnModalSub').textContent = `Commande #${r.orderId} · ${formatDate(r.createdAt)}`;
   document.getElementById('returnModalContent').innerHTML = `
-    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Client :</strong> ${esc(r.buyerName||'—')} · 📞 ${esc(r.buyerPhone||'—')}</div>
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Client :</strong> ${esc(r.buyerName||'—')} · <svg class=ic aria-hidden=true><use href=#i-phone /></svg> ${esc(r.buyerPhone||'—')}</div>
     <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Produit :</strong> ${esc(r.productName||'—')}</div>
     <div style="background:var(--g1);border:1px solid var(--gb1);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;margin-top:8px">${esc(r.reason)}</div>`;
   document.getElementById('returnResponse').value = '';
@@ -377,14 +377,14 @@ async function renderProductsTable() {
   if (!products.length) { tbody.innerHTML=`<tr><td colspan="8" class="table-empty">Aucun produit. <a style="color:var(--t1);cursor:pointer;text-decoration:underline" onclick="goPage('addproduct')">Ajouter →</a></td></tr>`; return; }
   tbody.innerHTML = products.map(p=>`
     <tr>
-      <td><div class="prod-thumb">${safeImg(p.photo)?`<img src="${safeImg(p.photo)}" alt="">`:esc(p.emoji)}</div></td>
+      <td><div class="prod-thumb">${safeImg(p.photo)?`<img src="${safeImg(p.photo)}" alt="">`:thumbHtml(p,'')}</div></td>
       <td><div style="font-weight:500">${esc(p.name)}</div><div style="font-size:.7rem;color:var(--t2);margin-top:2px">${esc((p.desc||'').substring(0,50))}${(p.desc||'').length>50?'…':''}</div></td>
       <td>${catBadge(p.cat)}</td>
       <td style="font-weight:500">${p.price.toLocaleString()} FCFA</td>
       <td>${p.trackStock ? (p.stock<=0?`<span class="stock-badge out" style="margin:0">Rupture</span>`:`<span style="font-weight:500">${p.stock}</span>`) : `<span style="color:var(--t4)">Illimité</span>`}</td>
       <td>${p.votes?`<div style="display:flex;align-items:center;gap:3px">${starsHtml(p.rating,'.74rem')}<span style="font-size:.68rem;color:var(--t3);margin-left:2px">(${p.votes})</span></div>`:`<span style="color:var(--t4)">—</span>`}</td>
       <td><button class="toggle ${p.available?'on':''}" onclick="toggleAvail(${Number(p.id)},${p.available?'true':'false'})"></button></td>
-      <td><div class="td-actions"><button class="icon-btn edit" onclick="openEditProduct(${p.id})" title="Modifier">✏</button><button class="icon-btn del" onclick="deleteProd(${p.id})" title="Supprimer">✕</button></div></td>
+      <td><div class="td-actions"><button class="icon-btn edit" onclick="openEditProduct(${p.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button><button class="icon-btn del" onclick="deleteProd(${p.id})" title="Supprimer">✕</button></div></td>
     </tr>`).join('');
 }
 
@@ -409,7 +409,6 @@ async function openEditProduct(id) {
   document.getElementById('editDesc').value  = p.desc||'';
   document.getElementById('editCat').value   = p.cat;
   document.getElementById('editPrice').value = p.price;
-  document.getElementById('editEmoji').value = p.emoji||'';
   document.getElementById('editStock').value = p.stock||0;
   if (p.trackStock) { document.getElementById('editTrackStock').classList.add('on'); document.getElementById('editStockFields').style.display=''; }
   else { document.getElementById('editTrackStock').classList.remove('on'); document.getElementById('editStockFields').style.display='none'; }
@@ -432,7 +431,7 @@ async function deleteProd(id) {
 /* ── ADD PRODUCT ── */
 function resetAddForm() {
   optEditors(); apOpt.set([]);
-  ['apName','apDesc','apPrice','apEmoji','apStock'].forEach(id=>document.getElementById(id).value='');
+  ['apName','apDesc','apPrice','apStock'].forEach(id=>document.getElementById(id).value='');
   const cats = getCategories();
   document.getElementById('apCat').value = cats.length ? cats[0].slug : 'food';
   document.getElementById('apPhotoPreview').style.display='none';
@@ -449,7 +448,7 @@ async function saveNewProduct() {
   const desc  = document.getElementById('apDesc').value.trim();
   const cat   = document.getElementById('apCat').value;
   const price = parseInt(document.getElementById('apPrice').value);
-  const emoji = document.getElementById('apEmoji').value.trim()||'🛍️';
+  const emoji = 'bag';
   const trackStock = document.getElementById('apTrackStock').classList.contains('on');
   const stock      = parseInt(document.getElementById('apStock').value)||0;
   const showStock  = document.getElementById('apShowStock').classList.contains('on');
@@ -463,7 +462,7 @@ async function saveNewProduct() {
   if (r.error) { showToast('Erreur', r.error, 'var(--red)'); return; }
   document.getElementById('addSuccess').classList.add('show');
   resetAddForm(); document.getElementById('addSuccess').classList.add('show');
-  showToast('Produit publié !', `"${name}" est visible. 🎉`,'var(--green)');
+  showToast('Produit publié !', `"${name}" est visible.`,'var(--green)');
 }
 
 async function saveEditProduct() {
@@ -472,14 +471,13 @@ async function saveEditProduct() {
   const desc  = document.getElementById('editDesc').value.trim();
   const cat   = document.getElementById('editCat').value;
   const price = parseInt(document.getElementById('editPrice').value);
-  const emoji = document.getElementById('editEmoji').value.trim();
   const trackStock = document.getElementById('editTrackStock').classList.contains('on');
   const stock      = parseInt(document.getElementById('editStock').value)||0;
   const showStock  = document.getElementById('editShowStock').classList.contains('on');
   if (!name||!price) { showToast('Champs manquants','Nom et prix requis.','var(--red)'); return; }
   if (trackStock && stock<0) { showToast('Stock invalide','','var(--red)'); return; }
   optEditors(); let options; try { options = editOpt.get(); } catch (e) { showToast('Options', e.message, 'var(--red)'); return; }
-  const fields = { name, desc, cat, price, emoji, trackStock, stock, showStock, options };
+  const fields = { name, desc, cat, price, trackStock, stock, showStock, options };
   if (editPhoto) fields.photo = editPhoto;
   showLoader(true);
   const r = await dbUpdateProduct(id, fields);
@@ -566,7 +564,7 @@ async function renderVerifyPage() {
   else if (st.code === 'expired') top = `<div class="vf-card bad"><div class="vf-ico">!</div><div><strong>Compte désactivé</strong><p>Le délai de vérification est dépassé. Tes produits sont masqués du catalogue. Envoie ton dossier : ton compte sera réactivé dès sa validation.</p></div></div>`;
   else {
     const rej = hist.find(h => h.status === 'rejected');
-    top = `<div class="vf-card"><div class="vf-ico">🛡</div><div><strong>${st.code === 'rejected' ? 'Dossier refusé — nouvel essai possible' : 'Fais vérifier ton compte'}</strong>
+    top = `<div class="vf-card"><div class="vf-ico"><svg class=ic aria-hidden=true><use href=#i-shield /></svg></div><div><strong>${st.code === 'rejected' ? 'Dossier refusé — nouvel essai possible' : 'Fais vérifier ton compte'}</strong>
       <p>${st.code === 'rejected' && rej && rej.admin_note ? 'Motif : ' + esc(rej.admin_note) + '. ' : ''}Sans vérification : <strong>5 produits maximum</strong> et le compte est <strong>désactivé dans ${fmtLeft(st.msLeft)}</strong>. Une fois vérifié : badge « Vérifié », plus de limite.</p></div></div>`;
   }
   const canSend = st.code !== 'verified' && st.code !== 'pending';
@@ -609,7 +607,7 @@ let _waTpl = [], _waOrder = null;
 async function openWaSend(key) {
   const o = await findInvoice(key); if (!o) return;
   _waOrder = o; _waTpl = await dbGetWaTemplates(currentUser.id);
-  document.getElementById('waSendSub').textContent = `${o.buyerName} · 📞 ${o.buyerPhone || '—'} · ${o.receiptCode || '#' + o.id}`;
+  document.getElementById('waSendSub').textContent = `${o.buyerName} · ${o.buyerPhone || '—'} · ${o.receiptCode || '#' + o.id}`;
   const box = document.getElementById('waSendChoices');
   box.innerHTML = _waTpl.map((t, i) => `<button type="button" class="wa-choice${i === 0 ? ' on' : ''}" data-i="${i}">${esc(t.label)}</button>`).join('');
   const pick = i => { box.querySelectorAll('.wa-choice').forEach(b => b.classList.toggle('on', +b.dataset.i === i)); document.getElementById('waSendText').value = waFill(_waTpl[i].text, o, currentUser.name); };

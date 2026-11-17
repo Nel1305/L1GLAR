@@ -2,7 +2,7 @@
    N MARKET — theme.js
    Gère le mode clair/sombre :
    - Par défaut : suit le réglage de l'appareil (auto)
-   - Le bouton ☀/🌙 permet de forcer clair ou sombre
+   - Le bouton <svg class=ic aria-hidden=true><use href=#i-sun /></svg>/<svg class=ic aria-hidden=true><use href=#i-moon /></svg> permet de forcer clair ou sombre
      (mémorisé dans le navigateur)
 ═══════════════════════════════════════════════════ */
 (function () {
@@ -25,9 +25,9 @@
   }
 
   function icon(theme) {
-    if (theme === 'light') return '☀️';
-    if (theme === 'dark')  return '🌙';
-    return systemPrefersLight() ? '☀️' : '🌙';
+    if (theme === 'light') return window.ic ? ic('sun') : '';
+    if (theme === 'dark')  return window.ic ? ic('moon') : '';
+    return window.ic ? ic(systemPrefersLight() ? 'sun' : 'moon') : '';
   }
 
   // Applique le thème mémorisé dès que possible (avant le rendu)
@@ -36,7 +36,7 @@
 
   function updateButtons() {
     document.querySelectorAll('.theme-toggle').forEach(btn => {
-      btn.textContent = icon(current());
+      btn.innerHTML = icon(current());
       btn.title = current() === 'light' ? 'Mode clair (cliquer pour sombre)'
                 : current() === 'dark'  ? 'Mode sombre (cliquer pour automatique)'
                 : 'Mode automatique (cliquer pour forcer un thème)';

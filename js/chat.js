@@ -31,11 +31,11 @@ function renderRooms() {
   if (!el) return;
 
   // General + Admin channel + other sellers (or all sellers if admin)
-  const rooms = [{ id:'general', name:'Canal général', icon:'📢', sub:'Annonces & discussions' }];
+  const rooms = [{ id:'general', name:'Canal général', icon:'<svg class=ic aria-hidden=true><use href=#i-megaphone /></svg>', sub:'Annonces & discussions' }];
 
   // If seller → add room to chat admin
   if (!chatUser.isAdmin) {
-    rooms.push({ id:'admin', name:'Support admin', icon:'👑', sub:'Conversation avec l\'admin' });
+    rooms.push({ id:'admin', name:'Support admin', icon:'<svg class=ic aria-hidden=true><use href=#i-crown /></svg>', sub:'Conversation avec l\'admin' });
   }
 
   // Other sellers (for seller → seller chat; admin sees all)
@@ -64,10 +64,10 @@ async function openChatRoom(roomId) {
   const sub  = document.getElementById('chatHeaderSub');
 
   if (roomId === 'general') {
-    if (hd)  hd.textContent  = '📢 Canal général';
+    if (hd)  hd.innerHTML  = '<svg class=ic aria-hidden=true><use href=#i-megaphone /></svg> Canal général';
     if (sub) sub.textContent = 'Visible par tous les vendeurs';
   } else if (roomId === 'admin') {
-    if (hd)  hd.textContent  = '👑 Support admin';
+    if (hd)  hd.innerHTML  = '<svg class=ic aria-hidden=true><use href=#i-crown /></svg> Support admin';
     if (sub) sub.textContent = 'Conversation privée';
   } else {
     const u = chatUsers.find(x => String(x.id) === roomId);
@@ -92,7 +92,7 @@ async function renderMessages(msgs) {
   if (!el) return;
 
   if (!msgs.length) {
-    el.innerHTML = `<div class="chat-empty"><span>💬</span><span>Aucun message</span><span style="font-size:.7rem;color:var(--t4)">Sois le premier à écrire !</span></div>`;
+    el.innerHTML = `<div class="chat-empty"><span><svg class=ic aria-hidden=true><use href=#i-chat /></svg></span><span>Aucun message</span><span style="font-size:.7rem;color:var(--t4)">Sois le premier à écrire !</span></div>`;
     return;
   }
 
@@ -105,7 +105,7 @@ async function renderMessages(msgs) {
     const time  = new Date(m.created_at).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
     return `
       <div class="msg-wrap ${mine?'mine':''}">
-        ${!mine ? `<div class="msg-av" style="${isAdm?'border-color:var(--orange);color:var(--orange)':''}">${isAdm?'👑':esc((m.sender_name||'?')[0])}</div>` : ''}
+        ${!mine ? `<div class="msg-av" style="${isAdm?'border-color:var(--orange);color:var(--orange)':''}">${isAdm?'<svg class=ic aria-hidden=true><use href=#i-crown /></svg>':esc((m.sender_name||'?')[0])}</div>` : ''}
         <div>
           ${!mine ? `<div class="msg-name">${esc(m.sender_name)}${isAdm?' <span style="color:var(--orange);font-size:.6rem">ADMIN</span>':''}</div>` : ''}
           <div class="msg-bubble ${isAdm&&!mine?'admin-msg':''}">

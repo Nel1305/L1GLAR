@@ -19,6 +19,7 @@
 <script src="js/nozoom.js"></script>
 </head>
 <body data-bnav="shop" class="cart-empty">
+<script src="/js/icons.js"></script>
 <div id="splash" role="status" aria-label="Chargement"><img class="sp-b" src="assets/logo-black.png" alt="N Market"><img class="sp-w" src="assets/logo-white.png" alt="" aria-hidden="true"><div class="sp-bar"><i></i></div><img class="sp-estm" src="assets/estm-logo.svg" alt="ESTM"></div>
 <div class="flag-bar"></div>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
@@ -30,10 +31,10 @@
     </div>
     <nav class="nav">
       <span class="nav-label">Catalogue</span>
-      <button class="nav-item active" data-page="products"><span class="icon">🛍</span>Produits</button>
-      <button class="nav-item" data-page="cart"><span class="icon">🛒</span>Panier <span class="cart-count" id="cartCount" style="display:none">0</span></button>
-      <button class="nav-item" data-page="reviews"><span class="icon">⭐</span>Avis</button>
-      <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours</button>
+      <button class="nav-item active" data-page="products"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-bag /></svg></span>Produits</button>
+      <button class="nav-item" data-page="cart"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-cart /></svg></span>Panier <span class="cart-count" id="cartCount" style="display:none">0</span></button>
+      <button class="nav-item" data-page="reviews"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-star /></svg></span>Avis</button>
+      <button class="nav-item" data-page="returns"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-return /></svg></span>Retours</button>
     </nav>
     <div class="sidebar-footer">
       <div id="userPill" class="user-pill">
@@ -66,7 +67,7 @@
         </aside>
         <div class="shop-main">
           <div class="toolbar">
-            <div class="search-wrap"><span class="s-icon">🔍</span><input type="search" id="searchInput" placeholder="Rechercher un produit…" autocomplete="off"></div>
+            <div class="search-wrap"><span class="s-icon"><svg class=ic aria-hidden=true><use href=#i-search /></svg></span><input type="search" id="searchInput" placeholder="Rechercher un produit…" autocomplete="off"></div>
             <select class="select-sm sort-select" id="sortSelect" aria-label="Trier">
               <option value="reco">Recommandés</option>
               <option value="new">Plus récents</option>
@@ -89,7 +90,7 @@
     <div id="page-cart" class="page">
       <div class="page-header"><div><div class="page-title">Panier</div><div class="page-desc">Vérifie ta commande avant de valider</div></div></div>
 
-      <div id="cartEmpty" class="empty" style="display:none">Ton panier est vide. Ajoute des produits depuis le catalogue 🛍</div>
+      <div id="cartEmpty" class="empty" style="display:none">Ton panier est vide. Ajoute des produits depuis le catalogue <svg class=ic aria-hidden=true><use href=#i-bag /></svg></div>
 
       <div id="cartContent">
         <div class="cart-items" id="cartItems"></div>
@@ -118,11 +119,11 @@
               <div class="delivery-type-row">
                 <label class="delivery-type-opt active" data-val="campus">
                   <input type="radio" name="deliveryType" value="campus" checked>
-                  <span class="dt-icon">🏫</span><span>Sur le campus</span>
+                  <span class="dt-icon"><svg class=ic aria-hidden=true><use href=#i-school /></svg></span><span>Sur le campus</span>
                 </label>
                 <label class="delivery-type-opt" data-val="external">
                   <input type="radio" name="deliveryType" value="external">
-                  <span class="dt-icon">📍</span><span>Hors campus</span>
+                  <span class="dt-icon"><svg class=ic aria-hidden=true><use href=#i-pin /></svg></span><span>Hors campus</span>
                 </label>
               </div>
             </div>
@@ -131,7 +132,7 @@
               <textarea id="oAddress" placeholder="Ex : Cité Keur Gorgui, villa 12, derrière la pharmacie…"></textarea>
               <div class="hint">Indique une adresse précise pour faciliter la livraison.</div>
               <div class="map-picker">
-                <button type="button" class="btn-ghost" id="oLocateBtn">📍 Utiliser ma position</button>
+                <button type="button" class="btn-ghost" id="oLocateBtn"><svg class=ic aria-hidden=true><use href=#i-pin /></svg> Utiliser ma position</button>
                 <div class="gmap-box" id="oMapBox" aria-label="Carte pour placer le lieu de livraison"></div>
                 <div class="hint" id="oMapHint">Partage ta position ou touche la carte pour placer le repère : le vendeur saura exactement où te livrer.</div>
                 <a class="map-check" id="oMapCheck" href="#" target="_blank" rel="noopener noreferrer" style="display:none">Vérifier sur Google Maps ↗</a>
@@ -150,15 +151,15 @@
             <div class="ico">✓</div>
             <strong>Commande envoyée !</strong>
             <p id="orderSuccessText"></p>
-            <p style="margin-top:8px" id="waContactP" hidden><a class="btn-ghost" id="waContactLink" target="_blank" rel="noopener noreferrer">💬 Écrire sur WhatsApp</a></p>
-            <p class="order-contact-note">🤝 <strong>Le vendeur te contactera dans peu de temps</strong> pour confirmer ta commande et la livraison. Garde ton téléphone à portée de main.</p>
-            <p class="order-contact-note">💳 <strong>Paiement :</strong> à la remise de la commande ou par Wave, comme convenu avec le vendeur.</p>
-            <p style="margin-top:8px">🧾 Ton ticket est affiché ci-dessous. Conserve-le : le code de reçu sert pour un retour.</p>
+            <p style="margin-top:8px" id="waContactP" hidden><a class="btn-ghost" id="waContactLink" target="_blank" rel="noopener noreferrer"><svg class=ic aria-hidden=true><use href=#i-chat /></svg> Écrire sur WhatsApp</a></p>
+            <p class="order-contact-note"><svg class=ic aria-hidden=true><use href=#i-users /></svg> <strong>Le vendeur te contactera dans peu de temps</strong> pour confirmer ta commande et la livraison. Garde ton téléphone à portée de main.</p>
+            <p class="order-contact-note"><svg class=ic aria-hidden=true><use href=#i-card /></svg> <strong>Paiement :</strong> à la remise de la commande ou par Wave, comme convenu avec le vendeur.</p>
+            <p style="margin-top:8px"><svg class=ic aria-hidden=true><use href=#i-receipt /></svg> Ton ticket est affiché ci-dessous. Conserve-le : le code de reçu sert pour un retour.</p>
           </div>
           <div class="ticket-wrap" id="ticketWrap" style="display:none">
             <div id="ticketCard" class="tk-host"></div>
             <div class="ticket-actions">
-              <button class="btn-ghost" id="downloadTicketBtn">⬇ Télécharger mon ticket</button>
+              <button class="btn-ghost" id="downloadTicketBtn"><svg class=ic aria-hidden=true><use href=#i-download /></svg> Télécharger mon ticket</button>
             </div>
           </div>
         </div>
@@ -187,12 +188,12 @@
       </div>
     </div>
     <footer class="site-footer">
-    <div class="sf-inner">
-      <p class="sf-partner">En partenariat avec <img src="assets/estm-logo.svg" alt="ESTM" width="56" height="27"></p>
-      <nav class="sf-links" aria-label="Informations légales"><a href="/mentions-legales">Mentions légales</a><a href="/conditions">Conditions générales</a><a href="/confidentialite">Confidentialité</a></nav>
-      <p class="sf-copy">© <span id="sfYear">2026</span> N Market · Tous droits réservés</p>
-    </div>
-  </footer>
+      <div class="sf-inner">
+        <p class="sf-partner">En partenariat avec <img class="sf-logo light" src="/assets/estm-logo-light.svg" alt="ESTM" width="46" height="22"><img class="sf-logo dark" src="/assets/estm-logo-dark.svg" alt="" aria-hidden="true" width="46" height="22"></p>
+        <nav class="sf-links" aria-label="Informations légales"><a href="/mentions-legales">Mentions légales</a><a href="/conditions">Conditions générales</a><a href="/confidentialite">Confidentialité</a></nav>
+        <p class="sf-copy">© <span id="sfYear">2026</span> N Market</p>
+      </div>
+    </footer>
   </main>
 </div>
 

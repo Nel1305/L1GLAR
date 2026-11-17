@@ -205,7 +205,7 @@ async function renderDashboard() {
       <div><div style="font-weight:500;font-size:.78rem">${esc(c.seller_name)}</div><div style="font-size:.68rem;color:var(--t3)">${esc(c.period_label)}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:.78rem;font-weight:500;color:var(--orange)">${c.amount_due.toLocaleString()} FCFA</span>
-        <button class="icon-btn edit" onclick="openPayment(${c.id})" title="Enregistrer">💳</button>
+        <button class="icon-btn edit" onclick="openPayment(${c.id})" title="Enregistrer"><svg class=ic aria-hidden=true><use href=#i-card /></svg></button>
       </div>
     </div>`).join('') || '<div style="color:var(--t3);font-size:.76rem;padding:12px 0">Aucune commission en attente ✓</div>';
 }
@@ -233,7 +233,7 @@ async function renderCommissions() {
         <span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span>
         ${c.amount_due>0?`<div class="progress-wrap"><div class="progress-bg"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--blue)'}"></div></div><div class="progress-lbl">${pct}%</div></div>`:''}
       </td>
-      <td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>`:`<span style="color:var(--green);font-size:.72rem">Soldé</span>`}</td>
+      <td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})"><svg class=ic aria-hidden=true><use href=#i-card /></svg></button>`:`<span style="color:var(--green);font-size:.72rem">Soldé</span>`}</td>
     </tr>`;
   }).join('');
 }
@@ -301,7 +301,7 @@ async function doGenerate() {
       if (res.ok) emailsSent++;
     }
     if (emailsSent > 0) {
-      showToast('Emails envoyés', `${emailsSent} vendeur(s) notifié(s) par email 📧`, 'var(--green)');
+      showToast('Emails envoyés', `${emailsSent} vendeur(s) notifié(s) par email`, 'var(--green)');
     }
   }
 }
@@ -397,7 +397,7 @@ async function viewSellerComm(sellerId) {
   if (!comms.length) { tbody.innerHTML=`<tr><td colspan="9" class="table-empty">Aucune commission pour ce vendeur</td></tr>`; return; }
   tbody.innerHTML=comms.map(c=>{
     const reste=c.amount_due-c.amount_paid;
-    return `<tr><td style="font-weight:500">${esc(c.seller_name)}</td><td style="font-size:.72rem;color:var(--t2)">${esc(c.period_label)}</td><td>${c.revenue.toLocaleString()} FCFA</td><td>${c.rate}%</td><td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td><td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td><td style="color:${reste>0?'var(--red)':'var(--green)'}; font-weight:500">${reste.toLocaleString()} FCFA</td><td><span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span></td><td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})">💳</button>`:'✓'}</td></tr>`;
+    return `<tr><td style="font-weight:500">${esc(c.seller_name)}</td><td style="font-size:.72rem;color:var(--t2)">${esc(c.period_label)}</td><td>${c.revenue.toLocaleString()} FCFA</td><td>${c.rate}%</td><td style="font-weight:500">${c.amount_due.toLocaleString()} FCFA</td><td style="color:var(--green)">${c.amount_paid.toLocaleString()} FCFA</td><td style="color:${reste>0?'var(--red)':'var(--green)'}; font-weight:500">${reste.toLocaleString()} FCFA</td><td><span class="status-badge comm-${c.status}" style="font-size:.65rem">${cLabel(c.status)}</span></td><td>${c.status!=='paid'?`<button class="icon-btn edit" onclick="openPayment(${c.id})"><svg class=ic aria-hidden=true><use href=#i-card /></svg></button>`:'✓'}</td></tr>`;
   }).join('');
 }
 
@@ -491,7 +491,7 @@ async function renderNetwork() {
 async function renderAllProducts() {
   showLoader(true); const products=await dbGetProducts(); showLoader(false);
   const tbody=document.getElementById('allProductsBody');
-  tbody.innerHTML=products.map(p=>`<tr><td><div class="prod-thumb">${safeImg(p.photo)?`<img src="${safeImg(p.photo)}" alt="">`:esc(p.emoji)}</div></td><td><div style="font-weight:500">${esc(p.name)}</div><div style="font-size:.7rem;color:var(--t2);margin-top:1px">${esc((p.desc||'').substring(0,50))}${(p.desc||'').length>50?'…':''}</div></td><td style="color:var(--t2)">${esc(p.sellerName)}</td><td>${catBadge(p.cat,'margin-bottom:0')}</td><td style="font-weight:500">${p.price.toLocaleString()} FCFA</td><td>${p.votes?starsHtml(p.rating,'.74rem'):'—'}</td><td><span class="status-badge ${p.available?'status-done':'status-cancel'}" style="font-size:.65rem">${p.available?'Disponible':'Indispo'}</span></td></tr>`).join('')||`<tr><td colspan="7" class="table-empty">Aucun produit</td></tr>`;
+  tbody.innerHTML=products.map(p=>`<tr><td><div class="prod-thumb">${safeImg(p.photo)?`<img src="${safeImg(p.photo)}" alt="">`:thumbHtml(p,'')}</div></td><td><div style="font-weight:500">${esc(p.name)}</div><div style="font-size:.7rem;color:var(--t2);margin-top:1px">${esc((p.desc||'').substring(0,50))}${(p.desc||'').length>50?'…':''}</div></td><td style="color:var(--t2)">${esc(p.sellerName)}</td><td>${catBadge(p.cat,'margin-bottom:0')}</td><td style="font-weight:500">${p.price.toLocaleString()} FCFA</td><td>${p.votes?starsHtml(p.rating,'.74rem'):'—'}</td><td><span class="status-badge ${p.available?'status-done':'status-cancel'}" style="font-size:.65rem">${p.available?'Disponible':'Indispo'}</span></td></tr>`).join('')||`<tr><td colspan="7" class="table-empty">Aucun produit</td></tr>`;
 }
 
 /* ── CATALOGUE (CLASSES) ── */
@@ -504,13 +504,13 @@ async function renderCatalog() {
   if (!cats.length) { grid.innerHTML = '<div class="table-empty">Aucune classe pour le moment. Clique sur « + Ajouter une classe ».</div>'; return; }
   grid.innerHTML = cats.map(c => `
     <div class="cat-card">
-      <div class="cat-emoji" style="background:${hexToRgba(safeColor(c.color),0.15)}">${esc(c.emoji)}</div>
+      <div class="cat-emoji" style="background:${hexToRgba(safeColor(c.color),0.15)}">${ic(catIconKey(c.emoji))}</div>
       <div class="cat-info">
         <div class="cat-name"><span class="cat-color-dot" style="background:${safeColor(c.color)}"></span>${esc(c.label)}</div>
         <div class="cat-slug">${esc(c.slug)}</div>
       </div>
       <div class="cat-actions">
-        <button class="icon-btn edit" onclick="openCatModal(${c.id})" title="Modifier">✏</button>
+        <button class="icon-btn edit" onclick="openCatModal(${c.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button>
         <button class="icon-btn del" onclick="deleteCategory(${Number(c.id)},${jsArg(c.label)})" title="Supprimer">✕</button>
       </div>
     </div>`).join('');
@@ -528,23 +528,31 @@ function openCatModal(id) {
     const c = getCategories().find(x=>x.id===id);
     document.getElementById('catModalTitle').textContent = 'Modifier la classe';
     document.getElementById('catLabel').value = c?.label||'';
-    document.getElementById('catEmojiInput').value = c?.emoji||'';
+    document.getElementById('catEmojiInput').value = catIconKey(c?.emoji);
     document.getElementById('catColor').value = c?.color||'#404040';
     document.getElementById('catSlug').value = c?.slug||'';
   } else {
     document.getElementById('catModalTitle').textContent = 'Ajouter une classe';
     document.getElementById('catLabel').value = '';
-    document.getElementById('catEmojiInput').value = '🛍️';
+    document.getElementById('catEmojiInput').value = 'bag';
     document.getElementById('catColor').value = '#404040';
     document.getElementById('catSlug').value = '';
   }
+  renderCatIconPicker();
   openModal('catModal');
+}
+
+function renderCatIconPicker() {
+  const box = document.getElementById('catIconPicker'), inp = document.getElementById('catEmojiInput');
+  if (!box || !inp) return;
+  box.innerHTML = ICON_CHOICES.map(k => `<button type="button" class="ip-btn${k===inp.value?' on':''}" data-k="${k}" aria-label="${k}" aria-pressed="${k===inp.value}">${ic(k)}</button>`).join('');
+  box.querySelectorAll('.ip-btn').forEach(b => b.addEventListener('click', () => { inp.value = b.dataset.k; renderCatIconPicker(); }));
 }
 
 async function saveCategory() {
   const id    = document.getElementById('catId').value;
   const label = document.getElementById('catLabel').value.trim();
-  const emoji = document.getElementById('catEmojiInput').value.trim() || '🛍️';
+  const emoji = catIconKey(document.getElementById('catEmojiInput').value);
   const color = document.getElementById('catColor').value;
   let   slug  = document.getElementById('catSlug').value.trim();
   if (!label) { showToast('Nom manquant','Indique un nom pour la classe.','var(--red)'); return; }
@@ -588,13 +596,13 @@ async function renderFilieres() {
   if (!filieres.length) { grid.innerHTML = '<div class="table-empty">Aucune filière pour le moment. Clique sur « + Ajouter une filière ».</div>'; return; }
   grid.innerHTML = filieres.map(f => `
     <div class="cat-card">
-      <div class="cat-emoji" style="background:var(--violet-dim)">🎓</div>
+      <div class="cat-emoji" style="background:var(--violet-dim)"><svg class=ic aria-hidden=true><use href=#i-cap /></svg></div>
       <div class="cat-info">
         <div class="cat-name">${esc(f.label)}</div>
         <div class="cat-slug">${esc(f.slug)}</div>
       </div>
       <div class="cat-actions">
-        <button class="icon-btn edit" onclick="openFiliereModal(${f.id})" title="Modifier">✏</button>
+        <button class="icon-btn edit" onclick="openFiliereModal(${f.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button>
         <button class="icon-btn del" onclick="deleteFiliere(${Number(f.id)},${jsArg(f.label)})" title="Supprimer">✕</button>
       </div>
     </div>`).join('');
@@ -658,7 +666,7 @@ async function renderReturns() {
   tbody.innerHTML = returns.map(r => `
     <tr>
       <td style="color:var(--t3);font-size:.7rem">#${r.orderId}</td>
-      <td><span style="font-weight:500">${esc(r.buyerName||'—')}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${esc(r.buyerPhone||'—')}</div></td>
+      <td><span style="font-weight:500">${esc(r.buyerName||'—')}</span><div style="font-size:.68rem;color:var(--t3)"><svg class=ic aria-hidden=true><use href=#i-phone /></svg> ${esc(r.buyerPhone||'—')}</div></td>
       <td style="color:var(--t2)">${sellerName(r.sellerId)}</td>
       <td>${esc(r.productName||'—')}</td>
       <td style="max-width:200px;font-size:.78rem">${esc(r.reason)}</td>
@@ -677,13 +685,13 @@ async function renderPromoPage() {
   const grid = document.getElementById('promoPlansGrid');
   grid.innerHTML = plans.length ? plans.map(pl => `
     <div class="cat-card">
-      <div class="cat-emoji" style="background:var(--gold-dim)">📣</div>
+      <div class="cat-emoji" style="background:var(--gold-dim)"><svg class=ic aria-hidden=true><use href=#i-megaphone /></svg></div>
       <div class="cat-info">
         <div class="cat-name">${esc(pl.label)}${pl.active?'':' <span style="color:var(--t3);font-size:.65rem">(inactive)</span>'}</div>
         <div class="cat-slug">${pl.durationDays} jour${pl.durationDays>1?'s':''} · ${pl.price.toLocaleString()} FCFA</div>
       </div>
       <div class="cat-actions">
-        <button class="icon-btn edit" onclick="openPlanModal(${pl.id})" title="Modifier">✏</button>
+        <button class="icon-btn edit" onclick="openPlanModal(${pl.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button>
         <button class="icon-btn del" onclick="deletePromoPlan(${Number(pl.id)},${jsArg(pl.label)})" title="Supprimer">✕</button>
       </div>
     </div>`).join('') : '<div class="table-empty">Aucune formule. Clique sur « + Ajouter une formule ».</div>';
@@ -812,7 +820,7 @@ async function renderBannersPage() {
         <div class="pi-meta">${esc(b.subtitle||'')}${b.linkUrl?` · ${esc(b.linkUrl)}`:''}</div>
       </div>
       <div class="cat-actions">
-        <button class="icon-btn edit" onclick="openBannerModal(${b.id})" title="Modifier">✏</button>
+        <button class="icon-btn edit" onclick="openBannerModal(${b.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button>
         <button class="icon-btn del" onclick="deleteBanner(${Number(b.id)},${jsArg(b.title)})" title="Supprimer">✕</button>
       </div>
     </div>`).join('');
@@ -923,7 +931,7 @@ async function renderReportsPage() {
     <div class="promo-item">
       <div class="pi-info">
         <div class="pi-name">${esc(r.sellerName)}</div>
-        <div class="pi-meta">${esc(r.reporterName||'Anonyme')}${r.reporterPhone?` · 📞 ${esc(r.reporterPhone)}`:''} · ${formatDate(r.createdAt)}</div>
+        <div class="pi-meta">${esc(r.reporterName||'Anonyme')}${r.reporterPhone?` · <svg class=ic aria-hidden=true><use href=#i-phone /></svg> ${esc(r.reporterPhone)}`:''} · ${formatDate(r.createdAt)}</div>
         <div class="pi-meta" style="font-style:italic;margin-top:3px">${esc(r.reason)}</div>
       </div>
       <button class="btn-primary sm" onclick="openReportReview(${r.id})">Examiner</button>
@@ -936,7 +944,7 @@ async function renderReportsPage() {
     <tr>
       <td>${esc(r.sellerName)}</td>
       <td style="max-width:240px;font-size:.78rem">${esc(r.reason)}</td>
-      <td style="font-size:.78rem;color:var(--t2)">${esc(r.reporterName||'Anonyme')}${r.reporterPhone?`<br>📞 ${esc(r.reporterPhone)}`:''}</td>
+      <td style="font-size:.78rem;color:var(--t2)">${esc(r.reporterName||'Anonyme')}${r.reporterPhone?`<br><svg class=ic aria-hidden=true><use href=#i-phone /></svg> ${esc(r.reporterPhone)}`:''}</td>
       <td><span class="status-badge ${r.status==='validated'?'status-cancel':'status-done'}">${r.status==='validated'?'Validé':'Rejeté'}</span></td>
       <td style="font-size:.72rem;color:var(--t3)">${formatDate(r.createdAt)}</td>
     </tr>`).join('') : `<tr><td colspan="5" class="table-empty">Aucun historique</td></tr>`;
@@ -952,7 +960,7 @@ async function openReportReview(id) {
   document.getElementById('reportReviewSellerId').value = r.sellerId;
   document.getElementById('reportReviewSub').textContent = `${r.sellerName} · ${formatDate(r.createdAt)}`;
   document.getElementById('reportReviewContent').innerHTML = `
-    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Signalé par :</strong> ${esc(r.reporterName||'Anonyme')}${r.reporterPhone?` · 📞 ${esc(r.reporterPhone)}`:''}</div>
+    <div style="font-size:.78rem;color:var(--t2);margin-bottom:6px"><strong>Signalé par :</strong> ${esc(r.reporterName||'Anonyme')}${r.reporterPhone?` · <svg class=ic aria-hidden=true><use href=#i-phone /></svg> ${esc(r.reporterPhone)}`:''}</div>
     <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px;font-size:.78rem;color:var(--t2);font-style:italic;margin-top:8px">${esc(r.reason)}</div>
     <div style="font-size:.74rem;color:var(--t3);margin-top:10px">Signalements déjà validés pour ce vendeur : ${validatedCount-1} / ${getReportThreshold()}</div>`;
 
@@ -998,7 +1006,7 @@ async function renderAllOrders() {
   showLoader(true); const f=document.getElementById('allOrdersFilter').value; let orders=await dbGetOrders(); showLoader(false);
   if(f!=='all') orders=orders.filter(o=>o.status===f);
   const tbody=document.getElementById('allOrdersBody');
-  tbody.innerHTML=orders.map(o=>`<tr><td style="color:var(--t3);font-size:.7rem">#${o.id}</td><td><span style="font-weight:500">${esc(o.buyerName)}</span><div style="font-size:.68rem;color:var(--t3)">📞 ${esc(o.buyerPhone||'—')}</div></td><td>${esc(o.productName)}</td><td style="color:var(--t2)">${esc(o.sellerName||'—')}</td><td style="font-weight:500">${o.total.toLocaleString()} FCFA</td><td style="font-size:.72rem"><div style="font-weight:500">${formatDeliveryDateTime(o)}</div><div style="color:var(--t3)">${o.deliveryType==='external'?`📍 ${esc((o.deliveryAddress||'Hors campus').substring(0,30))}${(o.deliveryAddress||'').length>30?'…':''}${o.deliveryLat?` <a href="${gmapsViewUrl(o.deliveryLat,o.deliveryLng)}" target="_blank" rel="noopener noreferrer">carte ↗</a>`:''}`:'🏫 Sur le campus'}</div></td><td><span class="status-badge status-${o.status}" style="font-size:.65rem">${statusLabel(o.status)}</span></td><td style="font-size:.72rem;color:var(--t3)">${formatDate(o.createdAt)}</td></tr>`).join('')||`<tr><td colspan="8" class="table-empty">Aucune commande</td></tr>`;
+  tbody.innerHTML=orders.map(o=>`<tr><td style="color:var(--t3);font-size:.7rem">#${o.id}</td><td><span style="font-weight:500">${esc(o.buyerName)}</span><div style="font-size:.68rem;color:var(--t3)"><svg class=ic aria-hidden=true><use href=#i-phone /></svg> ${esc(o.buyerPhone||'—')}</div></td><td>${esc(o.productName)}</td><td style="color:var(--t2)">${esc(o.sellerName||'—')}</td><td style="font-weight:500">${o.total.toLocaleString()} FCFA</td><td style="font-size:.72rem"><div style="font-weight:500">${formatDeliveryDateTime(o)}</div><div style="color:var(--t3)">${o.deliveryType==='external'?`<svg class=ic aria-hidden=true><use href=#i-pin /></svg> ${esc((o.deliveryAddress||'Hors campus').substring(0,30))}${(o.deliveryAddress||'').length>30?'…':''}${o.deliveryLat?` <a href="${gmapsViewUrl(o.deliveryLat,o.deliveryLng)}" target="_blank" rel="noopener noreferrer">carte ↗</a>`:''}`:'<svg class=ic aria-hidden=true><use href=#i-school /></svg> Sur le campus'}</div></td><td><span class="status-badge status-${o.status}" style="font-size:.65rem">${statusLabel(o.status)}</span></td><td style="font-size:.72rem;color:var(--t3)">${formatDate(o.createdAt)}</td></tr>`).join('')||`<tr><td colspan="8" class="table-empty">Aucune commande</td></tr>`;
 }
 
 /* ── SETTINGS ── */

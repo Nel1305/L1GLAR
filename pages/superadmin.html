@@ -11,6 +11,7 @@
 <script src="../js/nozoom.js"></script><script src="../js/tablecards.js"></script>
 </head>
 <body data-bnav="admin">
+<script src="../js/icons.js"></script>
 <div class="flag-bar"></div>
 <div id="loader"><div class="spinner"></div><p>Chargement…</p></div>
 
@@ -20,29 +21,29 @@
     <div class="logo-row"><a class="logo-link" href="../index.html" aria-label="Retour à l'accueil N Market"><div class="logo"><div class="logo-name"><span class="logo-star">★</span> Super Admin</div><div class="logo-sub">N Market</div></div></a></div>
     <nav class="nav">
       <span class="nav-label">Vue globale</span>
-      <button class="nav-item active" data-page="dashboard"><span class="icon">📊</span>Tableau de bord</button>
-      <button class="nav-item" data-page="notifications"><span class="icon">🔔</span>Notifications <span class="dot" id="notifDot" style="display:none"></span></button>
+      <button class="nav-item active" data-page="dashboard"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-dash /></svg></span>Tableau de bord</button>
+      <button class="nav-item" data-page="notifications"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-bell /></svg></span>Notifications <span class="dot" id="notifDot" style="display:none"></span></button>
       <span class="nav-label">Finances</span>
-      <button class="nav-item" data-page="commissions"><span class="icon">💰</span>Commissions</button>
-      <button class="nav-item" data-page="generate"><span class="icon">🧾</span>Générer factures</button>
+      <button class="nav-item" data-page="commissions"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-coins /></svg></span>Commissions</button>
+      <button class="nav-item" data-page="generate"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-receipt /></svg></span>Générer factures</button>
       <span class="nav-label">Vendeurs</span>
-      <button class="nav-item" data-page="verifs"><span class="icon">🛡</span>Vérifications <span class="dot" id="verifsDot" style="display:none"></span></button>
-      <button class="nav-item" data-page="sellers"><span class="icon">👥</span>Tous les vendeurs</button>
-      <button class="nav-item" data-page="network"><span class="icon">🔗</span>Réseau vendeurs</button>
-      <button class="nav-item" data-page="products"><span class="icon">🛍</span>Tous les produits</button>
-      <button class="nav-item" data-page="catalog"><span class="icon">🏷️</span>Classes du catalogue</button>
-      <button class="nav-item" data-page="filieres"><span class="icon">🎓</span>Filières</button>
-      <button class="nav-item" data-page="orders"><span class="icon">📦</span>Toutes les commandes</button>
-      <button class="nav-item" data-page="returns"><span class="icon">↩️</span>Retours / Litiges</button>
-      <button class="nav-item" data-page="promo"><span class="icon">📣</span>Publicité <span class="dot" id="promoDot" style="display:none"></span></button>
-      <button class="nav-item" data-page="banners"><span class="icon">🖼️</span>Bannières</button>
-      <button class="nav-item" data-page="reports"><span class="icon">🚩</span>Signalements <span class="dot" id="reportsDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="verifs"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-shield /></svg></span>Vérifications <span class="dot" id="verifsDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="sellers"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-users /></svg></span>Tous les vendeurs</button>
+      <button class="nav-item" data-page="network"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-link /></svg></span>Réseau vendeurs</button>
+      <button class="nav-item" data-page="products"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-bag /></svg></span>Tous les produits</button>
+      <button class="nav-item" data-page="catalog"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-tag /></svg></span>Classes du catalogue</button>
+      <button class="nav-item" data-page="filieres"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-cap /></svg></span>Filières</button>
+      <button class="nav-item" data-page="orders"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-box /></svg></span>Toutes les commandes</button>
+      <button class="nav-item" data-page="returns"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-return /></svg></span>Retours / Litiges</button>
+      <button class="nav-item" data-page="promo"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-megaphone /></svg></span>Publicité <span class="dot" id="promoDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="banners"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-image /></svg></span>Bannières</button>
+      <button class="nav-item" data-page="reports"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-flag /></svg></span>Signalements <span class="dot" id="reportsDot" style="display:none"></span></button>
       <span class="nav-label">Communication</span>
-      <button class="nav-item" data-page="whatsapp"><span class="icon">🟢</span>WhatsApp <span class="soon-tag">Bientôt</span><span class="dot wa-dot" style="display:none"></span></button>
-      <button class="nav-item" data-page="chat"><span class="icon">💬</span>Messages <span class="dot" id="adminChatDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="whatsapp"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-wa /></svg></span>WhatsApp <span class="soon-tag">Bientôt</span><span class="dot wa-dot" style="display:none"></span></button>
+      <button class="nav-item" data-page="chat"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-chat /></svg></span>Messages <span class="dot" id="adminChatDot" style="display:none"></span></button>
       <span class="nav-label">Paramètres</span>
-      <button class="nav-item" data-page="settings"><span class="icon">⚙</span>Paramètres</button>
-      <button class="nav-item" data-page="account"><span class="icon">🔐</span>Compte admin</button>
+      <button class="nav-item" data-page="settings"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-gear /></svg></span>Paramètres</button>
+      <button class="nav-item" data-page="account"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-lock /></svg></span>Compte admin</button>
     </nav>
     <div class="sidebar-footer">
       <div class="user-pill"><div class="avatar">◆</div><div class="user-info"><div class="user-name" id="adminName">Admin</div><div class="user-role">Super administrateur</div></div></div>
@@ -160,11 +161,11 @@
     </div>
 
     <div id="page-chat" class="page">
-      <div class="page-header"><div><div class="page-title">Messages vendeurs</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge">🔒 Accès restreint</span></div></div></div>
+      <div class="page-header"><div><div class="page-title">Messages vendeurs</div><div class="page-desc">Canal général + conversations privées · <span class="e2e-badge"><svg class=ic aria-hidden=true><use href=#i-lock /></svg> Accès restreint</span></div></div></div>
       <div class="chat-wrap">
         <div class="chat-sidebar"><div class="chat-sidebar-hd">Conversations</div><div class="chat-rooms" id="chatRooms"></div></div>
         <div class="chat-main">
-          <div class="chat-header"><div class="chat-header-info"><div class="chat-header-name" id="chatHeaderName">Canal général</div><div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div></div><span class="e2e-badge">🔒 Privé</span></div>
+          <div class="chat-header"><div class="chat-header-info"><div class="chat-header-name" id="chatHeaderName">Canal général</div><div class="chat-header-sub" id="chatHeaderSub">Visible par tous</div></div><span class="e2e-badge"><svg class=ic aria-hidden=true><use href=#i-lock /></svg> Privé</span></div>
           <div class="chat-messages" id="chatMessages"></div>
           <div class="chat-input-area"><textarea class="chat-input" id="chatInput" placeholder="Écrire… (Entrée pour envoyer)" rows="1"></textarea><button class="chat-send" id="chatSendBtn">↑</button></div>
         </div>
@@ -245,7 +246,7 @@
       <input type="hidden" id="catId">
       <div class="field"><label>Nom affiché</label><input type="text" id="catLabel" placeholder="Ex : Fournitures scolaires"></div>
       <div class="field-row">
-        <div class="field"><label>Emoji</label><input type="text" id="catEmojiInput" placeholder="📚" style="max-width:100%"></div>
+        <div class="field"><label>Icône</label><input type="hidden" id="catEmojiInput"><div class="icon-picker" id="catIconPicker"></div></div>
         <div class="field"><label>Couleur du badge</label><input type="color" id="catColor" value="#404040" style="height:42px;padding:4px"></div>
       </div>
       <div class="field"><label>Identifiant technique (slug)</label><input type="text" id="catSlug" placeholder="ex : fournitures"><div class="hint">Lettres minuscules, chiffres et tirets uniquement. Généré automatiquement si laissé vide.</div></div>
@@ -306,8 +307,8 @@
       <div class="field">
         <label>Affiche / Image de fond</label>
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <button type="button" class="btn-ghost" id="bannerImgTabUrl" onclick="switchBannerImgTab('url')" style="flex:1;font-size:.8rem;padding:6px 10px">🔗 URL</button>
-          <button type="button" class="btn-ghost" id="bannerImgTabFile" onclick="switchBannerImgTab('file')" style="flex:1;font-size:.8rem;padding:6px 10px">📁 Uploader une affiche</button>
+          <button type="button" class="btn-ghost" id="bannerImgTabUrl" onclick="switchBannerImgTab('url')" style="flex:1;font-size:.8rem;padding:6px 10px"><svg class=ic aria-hidden=true><use href=#i-link /></svg> URL</button>
+          <button type="button" class="btn-ghost" id="bannerImgTabFile" onclick="switchBannerImgTab('file')" style="flex:1;font-size:.8rem;padding:6px 10px"><svg class=ic aria-hidden=true><use href=#i-folder /></svg> Uploader une affiche</button>
         </div>
         <div id="bannerImgUrlField"><input type="text" id="bannerImage" placeholder="https://…"></div>
         <div id="bannerImgFileField" style="display:none">

@@ -50,7 +50,9 @@ function productSlug(p) {
 /* Vignette produit : image validée, sinon emoji (échappé) */
 function thumbHtml(p, alt) {
   const src = safeImg(p.photo);
-  return src ? `<img src="${src}" alt="${esc(alt || '')}">` : (esc(p.emoji) || catEmoji(p.cat));
+  if (src) return `<img src="${src}" alt="${esc(alt || '')}">`;
+  const cat = getCategory(p.cat);
+  return `<span class="ph-ic">${ic(productIconKey(p, catIconKey(cat ? cat.emoji : 'bag')))}</span>`;
 }
 /* Pour un argument JS dans un attribut onclick="…" : jamais de concaténation brute */
 function jsArg(v) { return esc(JSON.stringify(v === undefined ? null : v)); }
@@ -203,7 +205,7 @@ async function dbGetProducts(f = {}) {
   return (data || []).map(np);
 }
 async function dbInsertProduct(sellerId, sellerName, f) {
-  const { data, error } = await db.from('products').insert({ seller_id:sellerId, name:f.name, description:f.desc||'', category:f.cat, price:f.price, emoji:f.emoji||'🛍️', photo_url:f.photo||null, available:true, track_stock:f.trackStock||false, stock:f.trackStock?(f.stock||0):0, show_stock:f.showStock!==false, options:f.options||[] }).select().single();
+  const { data, error } = await db.from('products').insert({ seller_id:sellerId, name:f.name, description:f.desc||'', category:f.cat, price:f.price, emoji:f.emoji||'bag', photo_url:f.photo||null, available:true, track_stock:f.trackStock||false, stock:f.trackStock?(f.stock||0):0, show_stock:f.showStock!==false, options:f.options||[] }).select().single();
   if (error) return { error: error.message };
   return { product: np(data) };
 }
@@ -247,7 +249,7 @@ async function dbGetCategories() {
   return (data || []).map(ncat);
 }
 async function dbInsertCategory(f) {
-  const { data, error } = await db.from('categories').insert({ slug:f.slug, label:f.label, emoji:f.emoji||'🛍️', color:f.color||'#404040', sort_order:f.sortOrder||0 }).select().single();
+  const { data, error } = await db.from('categories').insert({ slug:f.slug, label:f.label, emoji:f.emoji||'bag', color:f.color||'#404040', sort_order:f.sortOrder||0 }).select().single();
   if (error) return { error: error.message };
   return { category: ncat(data) };
 }
@@ -267,7 +269,7 @@ async function dbDeleteCategory(id) {
   return error ? { error: error.message } : { ok: true };
 }
 function ncat(r) {
-  return { id:r.id, slug:r.slug, label:r.label, emoji:r.emoji||'🛍️', color:r.color||'#404040', sortOrder:r.sort_order||0 };
+  return { id:r.id, slug:r.slug, label:r.label, emoji:r.emoji||'bag', color:r.color||'#404040', sortOrder:r.sort_order||0 };
 }
 
 /* Cache local des catégories — chargée au démarrage de chaque page via loadCategories() */
@@ -277,9 +279,9 @@ async function loadCategories() {
   if (!_categoriesCache.length) {
     // Fallback si la table est vide / pas encore créée
     _categoriesCache = [
-      { id:0, slug:'food',  label:'Nourriture', emoji:'🥞', color:'#3de8a0', sortOrder:1 },
-      { id:0, slug:'drink', label:'Boissons',   emoji:'🥤', color:'#8a8a85', sortOrder:2 },
-      { id:0, slug:'other', label:'Autres',     emoji:'✨', color:'#9b6dff', sortOrder:3 },
+      { id:0, slug:'food',  label:'Nourriture', emoji:'food', color:'#3de8a0', sortOrder:1 },
+      { id:0, slug:'drink', label:'Boissons',   emoji:'drink', color:'#8a8a85', sortOrder:2 },
+      { id:0, slug:'other', label:'Autres',     emoji:'sparkle', color:'#9b6dff', sortOrder:3 },
     ];
   }
   return _categoriesCache;
@@ -475,9 +477,9 @@ const WA_TAGS = [
   ['{articles}', 'Liste des articles'], ['{code}', 'N° de facture'], ['{boutique}', 'Ma boutique'], ['{date_livraison}', 'Date / heure'], ['{lieu}', 'Lieu de livraison']
 ];
 const WA_DEFAULTS = [
-  { key: 'received',  label: 'Commande reçue',        text: 'Bonjour {prenom} 👋 j\'ai bien reçu ta commande {code} : {articles} — total {total}. Je te confirme la livraison prévue le {date_livraison}. — {boutique}' },
-  { key: 'preparing', label: 'Préparation en cours',  text: 'Bonjour {prenom} ! Ta commande {code} ({articles}) est en cours de préparation 🧑‍🍳. Je te préviens dès qu\'elle part. — {boutique}' },
-  { key: 'delivery',  label: 'Bientôt livré',         text: 'Bonjour {prenom} 🚚 ta commande {code} est en route et sera bientôt livrée ({lieu}). Prépare {total} si paiement à la remise. — {boutique}' },
+  { key: 'received',  label: 'Commande reçue',        text: 'Bonjour {prenom}, j\'ai bien reçu ta commande {code} : {articles} — total {total}. Je te confirme la livraison prévue le {date_livraison}. — {boutique}' },
+  { key: 'preparing', label: 'Préparation en cours',  text: 'Bonjour {prenom} ! Ta commande {code} ({articles}) est en cours de préparation. Je te préviens dès qu\'elle part. — {boutique}' },
+  { key: 'delivery',  label: 'Bientôt livré',         text: 'Bonjour {prenom}, ta commande {code} est en route et sera bientôt livrée ({lieu}). Prépare {total} si paiement à la remise. — {boutique}' },
   { key: 'custom',    label: 'Mon message',           text: 'Bonjour {prenom}, ' }
 ];
 const _waLocalKey = id => 'nm_wa_tpl_' + id;
@@ -854,16 +856,16 @@ function nn(r) {
 }
 function notifIcon(type) {
   switch (type) {
-    case 'order_new':        return '🛒';
-    case 'order_status':     return '📦';
-    case 'return_new':       return '↩️';
-    case 'return_status':    return '✅';
-    case 'promotion_new':    return '📣';
-    case 'promotion_status': return '⭐';
-    case 'seller_report':    return '⚠️';
-    case 'verification':     return '🛡';
-    case 'review_new':       return '⭐';
-    default:                 return '🔔';
+    case 'order_new':        return ic('cart');
+    case 'order_status':     return ic('box');
+    case 'return_new':       return ic('return');
+    case 'return_status':    return ic('check');
+    case 'promotion_new':    return ic('megaphone');
+    case 'promotion_status': return ic('star');
+    case 'seller_report':    return ic('alert');
+    case 'verification':     return ic('shield');
+    case 'review_new':       return ic('star');
+    default:                 return ic('bell');
   }
 }
 function timeAgo(dateStr) {
@@ -893,7 +895,7 @@ function starsHtml(r, sz) {
   return [...Array(5)].map((_,i) => `<span style="color:${i<Math.round(r)?'var(--gold)':'var(--t4)'};font-size:${sz}">★</span>`).join('');
 }
 function catLabel(c)     { const cat = getCategory(c); return cat ? cat.label : (c==='food'?'Nourriture':c==='drink'?'Boisson':'Autre'); }  /* texte brut : échapper à l'affichage */
-function catEmoji(c)     { const cat = getCategory(c); return esc(cat ? cat.emoji : '🛍️'); }
+function catEmoji(c)     { const cat = getCategory(c); return ic(catIconKey(cat ? cat.emoji : 'bag')); }
 function catBadge(c, extraStyle) {
   const cat = getCategory(c);
   const color = safeColor(cat ? cat.color : '#404040');

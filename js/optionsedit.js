@@ -31,7 +31,7 @@ function createOptionsEditor(root) {
         <div class="oe-group" data-g="${gi}">
           <div class="oe-head">
             <input class="oe-name" data-f="name" maxlength="40" placeholder="Nom (ex : Taille, Couleur, Broderie…)" value="${esc(g.name)}" aria-label="Nom de l'option">
-            <button type="button" class="oe-del" data-act="delg" title="Supprimer cette option" aria-label="Supprimer cette option">🗑</button>
+            <button type="button" class="oe-del" data-act="delg" title="Supprimer cette option" aria-label="Supprimer cette option"><svg class=ic aria-hidden=true><use href=#i-trash /></svg></button>
           </div>
           <div class="oe-meta">
             <select class="oe-type" data-f="type" aria-label="Type">

@@ -39,14 +39,14 @@ function waTime(iso) {
   return d.toDateString() === now.toDateString() ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     : d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
 }
-const WA_STATUS_ICON = { queued: '🕓', sent: '✓', delivered: '✓✓', read: '✓✓', received: '', failed: '⚠' };
+const WA_STATUS_ICON = { queued: '<svg class=ic aria-hidden=true><use href=#i-clock /></svg>', sent: '✓', delivered: '✓✓', read: '✓✓', received: '', failed: '<svg class=ic aria-hidden=true><use href=#i-alert /></svg>' };
 
 async function mountWhatsApp(isAdmin) {
   WA.isAdmin = !!isAdmin;
   const root = document.getElementById('page-whatsapp'); if (!root) return;
   if (typeof WHATSAPP_ENABLED === 'undefined' || !WHATSAPP_ENABLED) {
     root.innerHTML = `<div class="page-header"><div><div class="page-title">WhatsApp</div><div class="page-desc">Conversations avec tes clients</div></div></div>
-      <div class="coming-soon"><div class="cs-ico">🟢</div><span class="cs-tag">Bientôt disponible</span>
+      <div class="coming-soon"><div class="cs-ico"><svg class=ic aria-hidden=true><use href=#i-wa /></svg></div><span class="cs-tag">Bientôt disponible</span>
         <h3>L'intégration WhatsApp est en cours de préparation</h3>
         <p>Très bientôt, les clients recevront automatiquement leur reçu et le suivi de leur commande sur WhatsApp, et tu pourras leur répondre directement ici.</p></div>`;
     return;
@@ -60,7 +60,7 @@ async function mountWhatsApp(isAdmin) {
         <div class="chat-main">
           <div class="chat-header"><div class="chat-header-info"><div class="chat-header-name" id="waHeadName">Sélectionne une conversation</div><div class="chat-header-sub" id="waHeadSub"></div></div><a class="btn-ghost" id="waOpenApp" style="display:none;font-size:.72rem" target="_blank" rel="noopener noreferrer">Ouvrir dans WhatsApp ↗</a></div>
           <div class="wa-ctx" id="waCtx" style="display:none"></div>
-          <div class="chat-messages" id="waMessages"><div class="chat-empty"><span>💬</span><span>Sélectionne une conversation</span></div></div>
+          <div class="chat-messages" id="waMessages"><div class="chat-empty"><span><svg class=ic aria-hidden=true><use href=#i-chat /></svg></span><span>Sélectionne une conversation</span></div></div>
           <div class="wa-closed" id="waClosed" style="display:none">⏳ Le client n'a pas écrit depuis plus de 24 h : WhatsApp n'autorise pas de message libre. Attends sa réponse ou appelle-le.</div>
           <div class="chat-input-area" id="waCompose">
             <textarea class="chat-input" id="waInput" placeholder="Écrire au client… (Entrée pour envoyer)" rows="1" maxlength="1500"></textarea>
@@ -108,7 +108,7 @@ function waUpdateDot() {
 function renderWaThreads() {
   const el = document.getElementById('waThreads'); if (!el) return;
   const ths = waThreads();
-  if (!ths.length) { el.innerHTML = `<div class="chat-empty" style="padding:24px"><span>💬</span><span>Aucune conversation</span><span style="font-size:.7rem;color:var(--t4)">Elles apparaissent quand un client reçoit ou envoie un message.</span></div>`; return; }
+  if (!ths.length) { el.innerHTML = `<div class="chat-empty" style="padding:24px"><span><svg class=ic aria-hidden=true><use href=#i-chat /></svg></span><span>Aucune conversation</span><span style="font-size:.7rem;color:var(--t4)">Elles apparaissent quand un client reçoit ou envoie un message.</span></div>`; return; }
   el.innerHTML = ths.map(t => `
     <div class="chat-room ${WA.current === t.phone ? 'active' : ''}" data-phone="${esc(t.phone)}">
       <div class="chat-room-av">${esc((t.name || '#')[0].toUpperCase())}</div>
@@ -136,8 +136,8 @@ function renderWaThread(phone, scroll) {
   ctx.style.display = orders.length ? '' : 'none';
   ctx.innerHTML = orders.map(o => `<div class="wa-ord"><span>#${Number(o.id)} · ${esc(o.productName)} ×${Number(o.qty)} · ${Number(o.total).toLocaleString()} FCFA</span>
       <span class="status-badge status-${esc(o.status)}" style="font-size:.62rem">${esc(statusLabel(o.status))}</span>
-      ${o.receiptCode ? `<span class="receipt-code">🔑 ${esc(o.receiptCode)}</span>` : ''}
-      ${o.deliveryType === 'external' && o.deliveryLat ? `<a href="${gmapsDirUrl(o.deliveryLat, o.deliveryLng)}" target="_blank" rel="noopener noreferrer">🧭 Itinéraire</a>` : ''}</div>`).join('');
+      ${o.receiptCode ? `<span class="receipt-code"><svg class=ic aria-hidden=true><use href=#i-key /></svg> ${esc(o.receiptCode)}</span>` : ''}
+      ${o.deliveryType === 'external' && o.deliveryLat ? `<a href="${gmapsDirUrl(o.deliveryLat, o.deliveryLng)}" target="_blank" rel="noopener noreferrer"><svg class=ic aria-hidden=true><use href=#i-compass /></svg> Itinéraire</a>` : ''}</div>`).join('');
 
   const box = document.getElementById('waMessages');
   box.innerHTML = t.msgs.map(m => `

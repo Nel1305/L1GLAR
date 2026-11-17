@@ -100,6 +100,6 @@ async function showMapInto(boxId, lat, lng, title) {
 function mapLinksHtml(lat, lng) {
   lat = _num(lat); lng = _num(lng); if (lat == null || lng == null) return '';
   return `<div class="map-actions">
-    <a class="btn-ghost" href="${gmapsDirUrl(lat, lng)}" target="_blank" rel="noopener noreferrer">🧭 Itinéraire</a>
-    <a class="btn-ghost" href="${gmapsViewUrl(lat, lng)}" target="_blank" rel="noopener noreferrer">📍 Ouvrir dans Google Maps</a></div>`;
+    <a class="btn-ghost" href="${gmapsDirUrl(lat, lng)}" target="_blank" rel="noopener noreferrer"><svg class=ic aria-hidden=true><use href=#i-compass /></svg> Itinéraire</a>
+    <a class="btn-ghost" href="${gmapsViewUrl(lat, lng)}" target="_blank" rel="noopener noreferrer"><svg class=ic aria-hidden=true><use href=#i-pin /></svg> Ouvrir dans Google Maps</a></div>`;
 }

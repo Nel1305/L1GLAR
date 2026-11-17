@@ -14,7 +14,7 @@
   };
   const SHORT = { dashboard: 'Accueil', products: 'Produits', cart: 'Panier', orders: 'Commandes', sellers: 'Vendeurs',
                   returns: 'Retours', reviews: 'Avis', notifications: 'Alertes' };
-  const ICON  = { dashboard: '🏠', products: '🛍', cart: '🛒', orders: '📦', sellers: '👥' };
+  const ICON  = { dashboard: '<svg class=ic aria-hidden=true><use href=#i-home /></svg>', products: '<svg class=ic aria-hidden=true><use href=#i-bag /></svg>', cart: '<svg class=ic aria-hidden=true><use href=#i-cart /></svg>', orders: '<svg class=ic aria-hidden=true><use href=#i-box /></svg>', sellers: '<svg class=ic aria-hidden=true><use href=#i-users /></svg>' };
 
   function init() {
     const mode = document.body.dataset.bnav; const cfg = CFG[mode];
@@ -23,7 +23,7 @@
     if (!navItems().length) return;
 
     const labelOf = b => SHORT[b.dataset.page] || ([...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim() || b.dataset.page);
-    const iconOf  = b => ICON[b.dataset.page] || (b.querySelector('.icon') ? b.querySelector('.icon').textContent : '•');
+    const iconOf  = b => ICON[b.dataset.page] || (b.querySelector('.icon') ? b.querySelector('.icon').innerHTML : '•');
     const btnFor  = page => document.querySelector(`.sidebar .nav-item[data-page="${page}"]`);
 
     /* ── Boutique sur smartphone : pas de barre du bas. Menu « ⋯ » en haut à droite, recherche en bas ── */
@@ -55,7 +55,7 @@
       nav.appendChild(more);
       if (cfg.account) {
         const pill = document.getElementById('userPill');
-        const t = tab('bn-account', '👤', 'Compte');
+        const t = tab('bn-account', '<svg class=ic aria-hidden=true><use href=#i-user /></svg>', 'Compte');
         t.addEventListener('click', () => { closePop(); pill && pill.click(); });
         nav.appendChild(t);
       }
@@ -69,9 +69,9 @@
       if (mode === 'shop') {
         /* le compte vendeur s'ouvre depuis l'onglet « Compte » */
       } else {
-        items.push({ icon: '↩', label: 'Retour au site', run: () => { location.href = '../index.html'; } });
+        items.push({ icon: '<svg class=ic aria-hidden=true><use href=#i-return /></svg>', label: 'Retour au site', run: () => { location.href = '../index.html'; } });
         const lo = document.getElementById('logoutBtn') || document.getElementById('adminLogoutBtn');
-        if (lo) items.push({ icon: '⎋', label: 'Se déconnecter', run: () => lo.click() });
+        if (lo) items.push({ icon: ic('arrow-left'), label: 'Se déconnecter', run: () => lo.click() });
       }
       return items;
     }
@@ -111,7 +111,7 @@
         const nm = (document.getElementById('userName') || {}).textContent || '';
         const logged = nm && nm.trim() !== 'Se connecter';
         acc.querySelector('.bn-lbl').textContent = logged ? (nm.trim().split(' ')[0].slice(0, 9)) : 'Connexion';
-        acc.querySelector('.bn-ico').textContent = logged ? ((document.getElementById('userAvatar') || {}).textContent || '👤') : '👤';
+        { const av = ((document.getElementById('userAvatar') || {}).textContent || '').trim(), bi = acc.querySelector('.bn-ico'); if (logged && av && !av.includes('<')) bi.textContent = av; else bi.innerHTML = ic('user'); }
         acc.classList.toggle('logged', !!logged);
       }
     }
@@ -142,7 +142,7 @@
                     return { icon: iconOf(b), label: labelOf(b) + n, run: () => b.click() }; });
       const nm = ((document.getElementById('userName') || {}).textContent || '').trim();
       const logged = nm && nm !== 'Se connecter';
-      items.push({ icon: '👤', label: logged ? nm : 'Connexion / Créer un compte', run: () => { const pill = document.getElementById('userPill'); pill && pill.click(); } });
+      items.push({ icon: '<svg class=ic aria-hidden=true><use href=#i-user /></svg>', label: logged ? nm : 'Connexion / Créer un compte', run: () => { const pill = document.getElementById('userPill'); pill && pill.click(); } });
       pop.innerHTML = items.map((it, i) => `<button type="button" class="bn-pop-item" data-i="${i}"><span class="bn-pop-ico">${it.icon}</span><span>${it.label}</span></button>`).join('');
       pop.querySelectorAll('.bn-pop-item').forEach(el => el.addEventListener('click', () => { const it = items[+el.dataset.i]; close(); it.run(); window.scrollTo({ top: 0 }); }));
       pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
