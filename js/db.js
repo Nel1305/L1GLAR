@@ -50,7 +50,7 @@ function productSlug(p) {
 /* Vignette produit : image validée, sinon emoji (échappé) */
 function thumbHtml(p, alt) {
   const src = safeImg(p.photo);
-  if (src) return `<img src="${src}" alt="${esc(alt || '')}">`;
+  if (src) return `<img src="${src}" alt="${esc(alt || '')}" loading="lazy" decoding="async">`;
   const cat = getCategory(p.cat);
   return `<span class="ph-ic">${ic(productIconKey(p, catIconKey(cat ? cat.emoji : 'bag')))}</span>`;
 }
@@ -201,7 +201,8 @@ async function dbGetProducts(f = {}) {
   if (f.sellerId)  q = q.eq('seller_id', f.sellerId);
   if (f.available) q = q.eq('available', true);
   const { data, error } = await q;
-  if (error) { console.error(error); return []; }
+  if (error) { console.error(error); window.NM_DB_FAIL = true; return []; }
+  window.NM_DB_FAIL = false;
   return (data || []).map(np);
 }
 async function dbInsertProduct(sellerId, sellerName, f) {

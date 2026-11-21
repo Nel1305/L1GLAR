@@ -61,6 +61,18 @@
     return catIcon || 'bag';
   };
 
+  /* Boutons à deux états (.toggle) : rôle « switch » + état lu par les lecteurs d'écran */
+  function syncToggles(root) {
+    (root || document).querySelectorAll('.toggle').forEach(function (t) {
+      if (!t.hasAttribute('role')) { t.setAttribute('role', 'switch'); t.setAttribute('type', 'button'); }
+      t.setAttribute('aria-checked', t.classList.contains('on') ? 'true' : 'false');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    syncToggles();
+    var raf = 0; new MutationObserver(function () { if (!raf) raf = requestAnimationFrame(function () { raf = 0; syncToggles(); }); }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true });
+  });
+
   /* Animation « ressort » sur l'icône d'un bouton cliqué */
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('button, a, .nav-item, .filter-btn, [role=button]');

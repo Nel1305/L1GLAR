@@ -24,24 +24,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (event === 'PASSWORD_RECOVERY') openModal('recoveryModal');
   });
   { const si = document.getElementById('searchInput'); if (si && window.innerWidth <= 380) si.placeholder = 'Rechercher…'; }
-  await initSession();
-  initNav();
-  await loadCategories();
-  await loadFilieres();
-  initFilters();
-  initAuth();
-  populateFiliereSelects();
-  syncSessionUI();
-  loadCart();
-  await loadProducts();
+  document.addEventListener('nm:ready', revealProducts, { once: true });
+  // connexion lente : toutes les lectures de départ partent EN MÊME TEMPS (le cache fusionne les requêtes identiques)
+  [() => dbGetCategories(), () => dbGetFilieres(), () => dbGetProducts({ available: true }), () => dbGetPublicSellers(), () => dbGetActivePromotedProductIds(), () => dbGetAdBanners()]
+    .forEach(f => { try { Promise.resolve(f()).catch(() => {}); } catch (e) {} });
+  try {
+    await initSession();
+    initNav();
+    await loadCategories();
+    await loadFilieres();
+    initFilters();
+    initAuth();
+    populateFiliereSelects();
+    syncSessionUI();
+    loadCart();
+    await loadProducts();
+  } catch (e) { console.error(e); window.NM_DB_FAIL = true; }
   loadAdBanners();
   openDeepLinkedProduct();
+  // l'interface n'apparaît qu'une fois la base lue ; si elle est injoignable, l'écran de chargement propose de réessayer
+  if (window.NMSplash) NMSplash.ready(!window.NM_DB_FAIL);
   NMCache.startAutoRefresh(async () => { await loadProducts(); await loadAdBanners(); }, 90000,
     () => document.getElementById('page-products').classList.contains('active'));
   initDeliveryFields();
   document.getElementById('submitReturnBtn').addEventListener('click', submitReturn);
   document.getElementById('submitReportBtn').addEventListener('click', submitSellerReport);
 });
+
+/* Arrivée des articles : un petit panier traverse l'écran et dépose les cartes (transformations seulement, 12 cartes max, une fois) */
+function revealProducts() {
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const grid = document.getElementById('productsGrid');
+  if (!grid || !grid.querySelector('.card')) return;
+  const r = grid.getBoundingClientRect();
+  if (r.top > innerHeight - 60) return;                       // grille hors de l'écran (lien direct vers un produit) : pas d'animation
+  document.body.classList.add('nm-reveal');
+  const cart = document.createElement('div');
+  cart.className = 'cart-sweep'; cart.setAttribute('aria-hidden', 'true'); cart.innerHTML = ic('cart');
+  cart.style.top = Math.max(70, Math.min(r.top - 22, innerHeight - 120)) + 'px';
+  document.body.appendChild(cart);
+  setTimeout(() => { cart.remove(); document.body.classList.remove('nm-reveal'); }, 1900);
+}
 
 /* ── NAV ── */
 function initNav() {

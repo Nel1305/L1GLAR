@@ -77,8 +77,18 @@ function ticketSample(shopName) {
 }
 
 /* ticket → image PNG : dessiné hors écran à largeur fixe (identique sur tous les appareils, quel que soit le thème) */
+/* html2canvas (200 Ko) n'est chargé que quand on génère un ticket : la page d'accueil reste légère sur connexion lente */
+let _h2cPromise = null;
+function loadHtml2Canvas() {
+  if (typeof html2canvas !== 'undefined') return Promise.resolve(true);
+  if (!_h2cPromise) _h2cPromise = new Promise(res => {
+    const sc = document.createElement('script'); sc.src = '/js/vendor/html2canvas.min.js';
+    sc.onload = () => res(true); sc.onerror = () => { _h2cPromise = null; res(false); }; document.head.appendChild(sc);
+  });
+  return _h2cPromise;
+}
 async function ticketToBlob(d, style) {
-  if (typeof html2canvas === 'undefined') return null;
+  if (!(await loadHtml2Canvas())) return null;
   const host = document.createElement('div');
   host.style.cssText = 'position:fixed;left:0;top:0;width:380px;z-index:-1;pointer-events:none;background:transparent';
   host.innerHTML = ticketHTML(d, style);

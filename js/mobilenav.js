@@ -132,7 +132,18 @@
     const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'mt-more';
     btn.setAttribute('aria-label', 'Menu'); btn.setAttribute('aria-haspopup', 'true'); btn.setAttribute('aria-expanded', 'false');
     btn.innerHTML = '<span aria-hidden="true">⋯</span><span class="mt-dot" hidden></span>';
-    top.appendChild(btn);
+    /* bouton compte à côté du « ⋯ » : initiale du compte connecté, sinon icône « Se connecter » */
+    const acc = document.createElement('button'); acc.type = 'button'; acc.className = 'mt-acc';
+    const accSync = () => {
+      const nm = ((document.getElementById('userName') || {}).textContent || '').trim();
+      const logged = !!nm && nm !== 'Se connecter';
+      const av = ((document.getElementById('userAvatar') || {}).textContent || '').trim();
+      acc.classList.toggle('on', logged);
+      acc.setAttribute('aria-label', logged ? 'Mon compte (' + nm + ')' : 'Se connecter');
+      if (logged && av && av !== '?') acc.textContent = av.slice(0, 2); else acc.innerHTML = ic('user');
+    };
+    acc.addEventListener('click', () => { const pill = document.getElementById('userPill'); if (pill) pill.click(); });
+    top.appendChild(acc); top.appendChild(btn);
     const pop = document.createElement('div'); pop.className = 'bn-pop bn-pop-top'; pop.hidden = true; document.body.appendChild(pop);
     const hasDot = b => { const c = b.querySelector('.cart-count'); return !!(c && getComputedStyle(c).display !== 'none' && c.textContent.trim() !== '0'); };
     const close = () => { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
@@ -151,7 +162,7 @@
     document.addEventListener('click', e => { if (!pop.hidden && !pop.contains(e.target)) close(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
     const dot = btn.querySelector('.mt-dot');
-    const syncDot = () => { dot.hidden = !navItems().some(hasDot); };
+    const syncDot = () => { dot.hidden = !navItems().some(hasDot); accSync(); };
     syncDot(); const sb = document.querySelector('.sidebar');
     new MutationObserver(syncDot).observe(sb, { subtree: true, attributes: true, childList: true, characterData: true });
 

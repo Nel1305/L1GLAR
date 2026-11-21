@@ -1,3 +1,5 @@
+/* feuille de style principale chargée sans bloquer l'affichage de l'écran de démarrage (media=print → all une fois reçue) */
+(function () { var l = document.getElementById('mainCss'); if (!l) return; var go = function () { l.media = 'all'; }; if (l.sheet) go(); else l.addEventListener('load', go); })();
 /* ═══════════════════════════════════════════════════
    N MARKET — theme.js
    Gère le mode clair/sombre :
