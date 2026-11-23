@@ -44,3 +44,7 @@ td{color:var(--t2)}
 .lg-foot a:hover,.lg-foot a[aria-current]{color:var(--t1)}
 .lg-estm{height:3px;background:linear-gradient(90deg,var(--estm-blue) 50%,var(--estm-green) 50%)}
 @media(max-width:560px){.lg-card{padding:20px 16px;border-radius:12px}h1{font-size:22px}}
+
+/* pied fixe */
+body{padding-bottom:calc(34px + env(safe-area-inset-bottom,0px))}
+.lg-foot{position:fixed;left:0;right:0;bottom:0;z-index:20;max-width:none;margin:0;padding:0 16px env(safe-area-inset-bottom,0px);height:calc(32px + env(safe-area-inset-bottom,0px));align-items:center;background:var(--bg);border-top:1px solid var(--line);gap:4px 16px;font-size:12px}

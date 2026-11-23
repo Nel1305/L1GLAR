@@ -1905,7 +1905,6 @@ html[data-theme="dark"] { --estm-blue: #6f9ceb; --estm-green: #3fc079; }
 @media (max-width: 768px) {
   .site-footer { padding: 8px 14px 10px; margin-top: 10px; }
   .sf-inner { gap: 4px 14px; }
-  body[data-bnav="shop"] .site-footer { padding-bottom: 92px; }
 }
 
 /* ═════════ Icônes SVG (remplacent les emojis) ═════════ */
@@ -2150,22 +2149,62 @@ html[data-theme="dark"] { --mech-edge: #8f8f89; --mech-edge-soft: rgba(255,255,2
 .filter-btn svg.ic { order: 0; }
 #filterButtons.in-rail .filter-btn::before { display: none; }
 
-/* ═════════ Arrivée des articles : un panier les dépose (léger : transform + opacité) ═════════ */
-.cart-sweep { position: fixed; left: 0; z-index: 60; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg2); color: var(--t1); border: 1px solid var(--b2); box-shadow: 0 6px 12px var(--mech-drop); pointer-events: none; animation: cartSweep .95s cubic-bezier(.45,.05,.35,1) both; will-change: transform; }
-.cart-sweep .ic { width: 20px; height: 20px; }
-@keyframes cartSweep { 0% { transform: translateX(-70px) rotate(-6deg); opacity: 0; } 12% { opacity: 1; } 50% { transform: translateX(50vw) translateY(-4px) rotate(3deg); } 100% { transform: translateX(calc(100vw + 30px)) rotate(0); opacity: 0; } }
-@keyframes cardDrop { 0% { opacity: 0; transform: translateY(-28px) scale(.92); } 55% { opacity: 1; } 78% { transform: translateY(3px) scale(1.01); } 100% { opacity: 1; transform: none; } }
-.nm-reveal .grid .card { animation: cardDrop .5s cubic-bezier(.3,.9,.4,1) both; }
-.nm-reveal .grid .card:nth-child(1) { animation-delay: .10s; } .nm-reveal .grid .card:nth-child(2) { animation-delay: .18s; }
-.nm-reveal .grid .card:nth-child(3) { animation-delay: .26s; } .nm-reveal .grid .card:nth-child(4) { animation-delay: .34s; }
-.nm-reveal .grid .card:nth-child(5) { animation-delay: .42s; } .nm-reveal .grid .card:nth-child(6) { animation-delay: .50s; }
-.nm-reveal .grid .card:nth-child(7) { animation-delay: .56s; } .nm-reveal .grid .card:nth-child(8) { animation-delay: .62s; }
-.nm-reveal .grid .card:nth-child(9) { animation-delay: .68s; } .nm-reveal .grid .card:nth-child(10) { animation-delay: .74s; }
-.nm-reveal .grid .card:nth-child(11) { animation-delay: .80s; } .nm-reveal .grid .card:nth-child(12) { animation-delay: .86s; }
-.nm-reveal .grid .card:nth-child(n+13) { animation: none; }
-@media (prefers-reduced-motion: reduce) { .cart-sweep { display: none; } .nm-reveal .grid .card { animation: none; } }
-.modal-x { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
-#productDetailModal .modal-x { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
-.mt-more, .mt-acc { min-height: 44px; }
-.cm-back, .stepper button { min-height: 0; }
-.pd-buy .qty button { width: 38px; height: 38px; min-width: 38px; }
+/* ═════════ Pied de page FIXE en bas de chaque page, sur chaque appareil ═════════ */
+:root { --foot-h: 30px; }
+body { padding-bottom: calc(var(--foot-h) + env(safe-area-inset-bottom, 0px)); }
+.site-footer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; margin: 0; height: calc(var(--foot-h) + env(safe-area-inset-bottom, 0px)); padding: 0 16px env(safe-area-inset-bottom, 0px); border-top: 1px solid var(--b1); background: color-mix(in srgb, var(--bg) 94%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.site-footer .sf-inner { height: var(--foot-h); display: flex; align-items: center; justify-content: space-between; gap: 6px 16px; flex-wrap: nowrap; font-size: .68rem; }
+.site-footer .sf-links { display: flex; gap: 14px; flex: 0 1 auto; white-space: nowrap; }
+.site-footer .sf-copy { margin: 0; white-space: nowrap; color: var(--t3); font-size: .66rem; }
+.site-footer .sf-partner { margin: 0; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; color: var(--t3); }
+.site-footer .sf-logo { height: 18px; width: auto; }
+@media (min-width: 769px) { .sidebar { bottom: var(--foot-h) !important; } body[data-bnav]:not([data-bnav="shop"]) .site-footer { padding-left: 236px; } .toast { bottom: calc(20px + var(--foot-h)); } .cart-popup { bottom: calc(24px + var(--foot-h)); } .cart-fab { bottom: calc(28px + var(--foot-h)); } }
+@media (max-width: 768px) {
+  .site-footer { padding-left: 12px; padding-right: 12px; }
+  .site-footer .sf-inner { justify-content: space-between; gap: 8px; }
+  .site-footer .sf-links { gap: 9px; font-size: .62rem; }
+  .site-footer .sf-copy, .site-footer .sf-pt { display: none; }
+  .bottom-nav { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + var(--foot-h)) !important; }
+  .bn-pop { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + var(--bn-h) + 10px + var(--foot-h)) !important; }
+  .bn-pop.bn-pop-top { bottom: auto !important; }
+  .toast, .cart-popup { bottom: calc(var(--bn-h, 0px) + env(safe-area-inset-bottom, 0px) + 28px + var(--foot-h)) !important; }
+  body[data-bnav="shop"] .toast, body[data-bnav="shop"] .cart-popup { bottom: calc(84px + env(safe-area-inset-bottom, 0px) + var(--foot-h)) !important; }
+  body[data-bnav="shop"] .shop-main .toolbar { bottom: calc(var(--kb, 0px) + var(--foot-h)) !important; padding-bottom: 10px; }
+  .cart-fab { bottom: calc(env(safe-area-inset-bottom, 0px) + 86px + var(--kb, 0px) + var(--foot-h)) !important; }
+  body[data-bnav="shop"] .main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
+/* ═════════ Gros caddie de supermarché : il entre, les articles en sortent ═════════ */
+.big-cart { position: fixed; left: 0; z-index: 70; pointer-events: none; color: var(--t1); filter: drop-shadow(0 10px 14px rgba(0,0,0,.18)); will-change: transform; }
+.big-cart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.big-cart .bc-body { fill: var(--bg2); stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.big-cart .bc-line { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; opacity: .55; }
+.big-cart .bc-frame { fill: none; stroke: currentColor; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+.big-cart .bc-wheel { fill: var(--bg2); stroke: currentColor; stroke-width: 4; }
+.big-cart .bc-hub { fill: currentColor; }
+@media (prefers-reduced-motion: reduce) { .big-cart { display: none; } }
+
+/* ═════════ Boutons d'état : ronds, parfaitement circulaires (plus d'interrupteur qui glisse) ═════════ */
+.toggle { position: relative; flex: 0 0 46px; width: 46px; min-width: 46px; height: 46px; min-height: 46px; aspect-ratio: 1 / 1; padding: 0; border-radius: 50%; border: 1px solid var(--b3); background: var(--bg3); color: var(--t3); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font: 700 .62rem/1 inherit; letter-spacing: .04em; box-shadow: 0 3px 0 var(--mech-edge-soft), inset 0 1px 0 rgba(255,255,255,.08); transition: transform .08s ease-out, box-shadow .08s ease-out, background .15s, color .15s, border-color .15s; }
+.toggle::before { content: 'OFF'; position: static; transform: none; color: inherit; }
+.toggle::after { content: none !important; }
+.toggle.on { background: var(--estm-green, #2e8b57); border-color: var(--estm-green, #2e8b57); color: #fff; transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.25), inset 0 2px 4px rgba(0,0,0,.28), 0 0 0 4px rgba(46,139,87,.22); }
+.toggle.on::before { content: 'ON'; position: static; color: #fff; }
+.toggle:active { transform: translateY(3px); box-shadow: 0 0 0 var(--mech-edge-soft), inset 0 2px 4px rgba(0,0,0,.25); }
+.toggle:focus-visible { outline: 2px solid var(--t1); outline-offset: 3px; }
+.toggle-row .toggle { margin-left: 12px; }
+/* cases des filtres : même bouton rond ON / OFF */
+.fp-check input { appearance: none; -webkit-appearance: none; flex: 0 0 40px; width: 40px; height: 40px; min-width: 40px; aspect-ratio: 1 / 1; border-radius: 50%; margin: 0; padding: 0; position: relative; cursor: pointer; background: var(--bg3); border: 1px solid var(--b3); box-shadow: 0 3px 0 var(--mech-edge-soft); transition: transform .08s, box-shadow .08s, background .15s; }
+.fp-check input::after { content: 'OFF'; position: absolute; inset: 0; width: auto; height: auto; top: 0; left: 0; background: none; box-shadow: none; border-radius: 0; display: flex; align-items: center; justify-content: center; font: 700 .58rem/1 inherit; letter-spacing: .04em; color: var(--t3); transition: none; }
+.fp-check input:checked { background: var(--estm-green, #2e8b57); border-color: var(--estm-green, #2e8b57); transform: translateY(2px); box-shadow: inset 0 2px 4px rgba(0,0,0,.28), 0 0 0 3px rgba(46,139,87,.22); }
+.fp-check input:checked::after { content: 'ON'; left: 0; color: #fff; }
+.fp-check input:active { transform: translateY(3px); box-shadow: none; }
+.fp-check::after, .fp-check:has(input:checked)::after { content: none; }
+.fp-check { gap: 12px; }
+/* autres cases à cocher (consentements, options) : rond parfait avec coche */
+.check-row input[type=checkbox], .tk-check input[type=checkbox], .oe-req input[type=checkbox] { appearance: none; -webkit-appearance: none; flex: 0 0 26px; width: 26px; height: 26px; min-width: 26px; aspect-ratio: 1 / 1; border-radius: 50%; margin: 0; padding: 0; position: relative; cursor: pointer; background: var(--bg3); border: 1.5px solid var(--b3); box-shadow: 0 2px 0 var(--mech-edge-soft); transition: transform .08s, box-shadow .08s, background .15s; vertical-align: middle; }
+.check-row input[type=checkbox]::after, .tk-check input[type=checkbox]::after, .oe-req input[type=checkbox]::after { content: ''; position: absolute; left: 50%; top: 46%; width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: translate(-50%, -50%) rotate(45deg) scale(0); transition: transform .12s cubic-bezier(.3,1.6,.5,1); }
+.check-row input[type=checkbox]:checked, .tk-check input[type=checkbox]:checked, .oe-req input[type=checkbox]:checked { background: var(--estm-green, #2e8b57); border-color: var(--estm-green, #2e8b57); transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,.25); }
+.check-row input[type=checkbox]:checked::after, .tk-check input[type=checkbox]:checked::after, .oe-req input[type=checkbox]:checked::after { transform: translate(-50%, -50%) rotate(45deg) scale(1); }
+.check-row, .tk-check, .oe-req { display: flex; align-items: center; gap: 10px; }
+@media (max-width: 768px) { .toggle, .fp-check input { min-height: 0; } }
