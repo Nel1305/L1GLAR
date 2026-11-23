@@ -120,6 +120,7 @@ async function goPage(name) {
   if (name==='promote')    await renderPromotePage();
   if (name==='profile')    loadProfile();
   if (name==='ticketstyle') await renderTicketStylePage();
+  if (name==='shopdesign') await renderShopDesignPage();
   if (name==='verify')     await renderVerifyPage();
   if (name==='whatsapp')   await mountWhatsApp(false);
   if (name==='chat' && !chatInited) await initChat(currentUser, false);
@@ -384,7 +385,7 @@ async function renderProductsTable() {
       <td>${p.trackStock ? (p.stock<=0?`<span class="stock-badge out" style="margin:0">Rupture</span>`:`<span style="font-weight:500">${p.stock}</span>`) : `<span style="color:var(--t4)">Illimité</span>`}</td>
       <td>${p.votes?`<div style="display:flex;align-items:center;gap:3px">${starsHtml(p.rating,'.74rem')}<span style="font-size:.68rem;color:var(--t3);margin-left:2px">(${p.votes})</span></div>`:`<span style="color:var(--t4)">—</span>`}</td>
       <td><button class="toggle ${p.available?'on':''}" onclick="toggleAvail(${Number(p.id)},${p.available?'true':'false'})"></button></td>
-      <td><div class="td-actions"><button class="icon-btn edit" onclick="openEditProduct(${p.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button><button class="icon-btn del" onclick="deleteProd(${p.id})" title="Supprimer">✕</button></div></td>
+      <td><div class="td-actions"><button class="icon-btn edit" onclick="openEditProduct(${p.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button><button class="icon-btn del" onclick="deleteProd(${p.id})" title="Supprimer" aria-label="Supprimer"><svg class=ic aria-hidden=true><use href=#i-trash /></svg></button></div></td>
     </tr>`).join('');
 }
 
@@ -669,6 +670,96 @@ async function renderTicketStylePage() {
       const r = await dbSaveTicketStyle(_ts);
       if (r.ok) showToast('Ticket enregistré', 'Tes clients le verront à leur prochaine commande.', 'var(--green)');
       else showToast('Enregistrement impossible', /function|does not exist|schema cache/i.test(r.error) ? 'Exécute secure_12_ticket_style.sql dans Supabase.' : r.error, 'var(--red)');
+    });
+  }
+  sync();
+}
+
+
+/* ── MA BOUTIQUE : personnalisation + aperçu en direct ── */
+let _sd = null, _sdLogo, _sdBanner, _sdImgs = { logo: '', banner: '' };   // _sdLogo/_sdBanner : undefined = inchangé
+const SD_COLORS = ['#111111', '#2e8b57', '#0b6bcb', '#7a3fd0', '#d6336c', '#e8590c', '#c9a227', '#0f766e', '#b42318', '#6b4f3a'];
+async function renderShopDesignPage() {
+  const $ = id => document.getElementById(id);
+  const d = await dbGetMyShopDesign(currentUser.id);
+  _sd = sanitizeShopStyle(d.style); _sdImgs = { logo: d.logo, banner: d.banner }; _sdLogo = _sdBanner = undefined;
+  const myProds = (await dbGetProducts({ sellerId: currentUser.id })).slice(0, 12);
+  const paint = () => {
+    const prods = myProds.length ? myProds : [1, 2, 3, 4].map(i => ({ id: -i, sellerId: currentUser.id, sellerName: currentUser.name, name: 'Produit exemple ' + i, price: 1500 * i, cat: i % 2 ? 'food' : 'other', emoji: 'bag', photo: null, options: [], rating: 0, votes: 0 }));
+    const pg = renderShopPage({
+      seller: { name: currentUser.name, bio: currentUser.bio, verified: currentUser.verified }, style: _sd,
+      imgs: { logo: _sdLogo !== undefined ? _sdLogo : _sdImgs.logo, banner: _sdBanner !== undefined ? _sdBanner : _sdImgs.banner },
+      products: prods, promoted: [], catLabel: s => (getCategories().find(c => c.slug === s) || {}).label || s,
+      cardHtml: p => `<article class="card"><div class="card-img">${thumbHtml(p, p.name)}</div><div class="card-body"><h3 class="card-name">${esc(p.name)}</h3><div class="card-row"><div class="card-price">${p.price.toLocaleString()} <small>FCFA</small></div></div><div class="card-act"><button class="btn-order" type="button">Ajouter au panier</button></div></div></article>`,
+      info: { badge: '', meta: `${currentUser.filiere ? esc(getFiliereLabel(currentUser.filiere)) + ' · ' : ''}${prods.length} produits`, rating: '', actions: '' }
+    });
+    $('sdPreview').innerHTML = pg.html;
+  };
+  const sync = () => {
+    $('sdTagline').value = _sd.tagline; $('sdAnnounce').value = _sd.announce;
+    document.querySelectorAll('#sdShape button').forEach(b => b.classList.toggle('active', b.dataset.v === _sd.logoShape));
+    document.querySelectorAll('#sdHeader button').forEach(b => b.classList.toggle('active', b.dataset.v === _sd.headerStyle));
+    $('sdSwatches').innerHTML = SD_COLORS.map(c => `<button type="button" class="sd-sw${c === _sd.color ? ' on' : ''}" data-c="${c}" style="background:${c}" aria-label="Couleur ${c}"></button>`).join('')
+      + `<label class="sd-sw${SD_COLORS.includes(_sd.color) ? '' : ' on'}" style="background:conic-gradient(red,yellow,lime,aqua,blue,magenta,red);position:relative;cursor:pointer"><input type="color" id="sdColor" value="${_sd.color}" style="opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer"></label>`;
+    $('sdLayouts').innerHTML = SHOP_LAYOUTS.map(l => `<button type="button" class="sd-opt${l.id === _sd.layout ? ' on' : ''}" data-l="${l.id}">${l.name}<small>${l.hint}</small></button>`).join('');
+    $('sdPatterns').innerHTML = SHOP_PATTERNS.map(([id, n]) => `<button type="button" class="sd-opt pat-${id}${id === _sd.pattern ? ' on' : ''}" data-p="${id}"><span class="sd-pat"></span>${n}</button>`).join('');
+    $('sdZones').innerHTML = _sd.pattern === 'none' ? '' : '<span style="font-size:.76rem;color:var(--t3)">Appliquer le motif à :</span>' + SHOP_ZONES.map(([z, n]) => `<button type="button" class="filter-btn${_sd.patternOn.includes(z) ? ' active' : ''}" data-z="${z}">${n}</button>`).join('');
+    $('sdBlocks').innerHTML = _sd.blocks.map((b, i) => `<div class="sd-block${_sd.hidden && _sd.hidden.includes(b) ? ' off' : ''}"><span class="sd-bn">${SHOP_BLOCKS[b]}</span><button type="button" class="icon-btn" data-up="${i}" aria-label="Monter" ${i === 0 ? 'disabled' : ''}>${ic('up')}</button><button type="button" class="icon-btn dn" data-dn="${i}" aria-label="Descendre" ${i === _sd.blocks.length - 1 ? 'disabled' : ''}>${ic('up')}</button></div>`).join('')
+      + SD_HIDEABLE().map(b => `<label class="check-row"><input type="checkbox" data-show="${b}" ${_sd.blocks.includes(b) ? 'checked' : ''}> Afficher « ${SHOP_BLOCKS[b]} »</label>`).join('');
+    const lg = _sdLogo !== undefined ? _sdLogo : _sdImgs.logo, bn = _sdBanner !== undefined ? _sdBanner : _sdImgs.banner;
+    $('sdLogoThumb').className = 'sd-thumb' + (_sd.logoShape === 'square' ? ' sq' : '');
+    $('sdLogoThumb').innerHTML = lg ? `<img src="${shopImg(lg)}" alt="">` : ic('image');
+    $('sdBannerThumb').innerHTML = bn ? `<img src="${shopImg(bn)}" alt="">` : ic('image');
+    paint();
+  };
+  const SD_HIDEABLE = () => ['announce', 'about', 'featured', 'filters'].filter(b => true);
+  if (!renderShopDesignPage._bound) {
+    renderShopDesignPage._bound = true;
+    $('sdTagline').addEventListener('input', e => { _sd.tagline = e.target.value; paint(); });
+    $('sdAnnounce').addEventListener('input', e => { _sd.announce = e.target.value; paint(); });
+    document.addEventListener('input', e => { if (e.target.id === 'sdColor') { _sd.color = e.target.value; paint(); } });
+    document.addEventListener('change', e => { if (e.target.id === 'sdColor') sync(); });
+    $('page-shopdesign').addEventListener('click', e => {
+      const t = e.target.closest('button'); if (!t) return;
+      if (t.dataset.c) _sd.color = t.dataset.c;
+      else if (t.dataset.l) _sd.layout = t.dataset.l;
+      else if (t.dataset.p) _sd.pattern = t.dataset.p;
+      else if (t.dataset.z) { const i = _sd.patternOn.indexOf(t.dataset.z); i >= 0 ? _sd.patternOn.splice(i, 1) : _sd.patternOn.push(t.dataset.z); }
+      else if (t.closest('#sdShape')) _sd.logoShape = t.dataset.v;
+      else if (t.closest('#sdHeader')) _sd.headerStyle = t.dataset.v;
+      else if (t.dataset.up != null) { const i = +t.dataset.up; [_sd.blocks[i - 1], _sd.blocks[i]] = [_sd.blocks[i], _sd.blocks[i - 1]]; }
+      else if (t.dataset.dn != null) { const i = +t.dataset.dn; [_sd.blocks[i + 1], _sd.blocks[i]] = [_sd.blocks[i], _sd.blocks[i + 1]]; }
+      else if (t.id === 'sdLogoDel') { _sdLogo = ''; }
+      else if (t.id === 'sdBannerDel') { _sdBanner = ''; }
+      else if (t.id === 'sdReset') { _sd = sanitizeShopStyle(null); }
+      else return;
+      sync();
+    });
+    $('page-shopdesign').addEventListener('change', e => {
+      const t = e.target;
+      if (t.dataset && t.dataset.show) {
+        const b = t.dataset.show;
+        if (t.checked && !_sd.blocks.includes(b)) _sd.blocks.splice(_sd.blocks.indexOf('products'), 0, b);
+        if (!t.checked) _sd.blocks = _sd.blocks.filter(x => x !== b);
+        sync();
+      }
+    });
+    $('sdLogo').addEventListener('change', async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try { _sdLogo = await compressImageFile(f, 256, 0.85, true); sync(); } catch (x) { showToast('Image illisible', 'Choisis un fichier JPG ou PNG.', 'var(--red)'); }
+      e.target.value = '';
+    });
+    $('sdBanner').addEventListener('change', async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try { _sdBanner = await compressImageFile(f, 1100, 0.75, false); sync(); } catch (x) { showToast('Image illisible', 'Choisis un fichier JPG ou PNG.', 'var(--red)'); }
+      e.target.value = '';
+    });
+    $('sdSave').addEventListener('click', async () => {
+      showLoader(true);
+      const r = await dbSaveShopStyle(_sd, _sdLogo, _sdBanner);
+      showLoader(false);
+      if (r.ok) { if (_sdLogo !== undefined) _sdImgs.logo = _sdLogo; if (_sdBanner !== undefined) _sdImgs.banner = _sdBanner; _sdLogo = _sdBanner = undefined; showToast('Boutique enregistrée', 'Les clients voient déjà ta nouvelle page.', 'var(--green)'); }
+      else showToast('Enregistrement impossible', /function|does not exist|schema cache|column/i.test(r.error) ? 'Exécute secure_15_shop_style.sql dans Supabase.' : r.error, 'var(--red)');
     });
   }
   sync();

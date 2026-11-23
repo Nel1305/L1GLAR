@@ -54,7 +54,7 @@
       <div class="ad-banners-list" id="adBannersList"></div>
       <div class="shop-layout">
         <aside class="filters-panel" id="filtersPanel" aria-label="Filtres">
-          <div class="fp-head"><strong>Filtres</strong><button type="button" class="fp-close" id="fpClose" aria-label="Fermer">✕</button></div>
+          <div class="fp-head"><strong>Filtres</strong><button type="button" class="fp-close" id="fpClose" aria-label="Fermer"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button></div>
           <div class="fp-group">
             <div class="fp-title">Prix (FCFA)</div>
             <div class="fp-price"><input type="number" inputmode="numeric" min="0" id="fPriceMin" placeholder="Min"><span>–</span><input type="number" inputmode="numeric" min="0" id="fPriceMax" placeholder="Max"></div>
@@ -203,7 +203,7 @@
 
 <div class="overlay" id="authModal">
   <div class="modal">
-    <button class="modal-x" data-close="authModal">✕</button>
+    <button class="modal-x" data-close="authModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div id="viewLogin">
       <div class="modal-title">Connexion</div><div class="modal-sub">Accède à ton espace vendeur</div>
       <div class="modal-form" id="loginFormEmail">
@@ -242,7 +242,7 @@
 
 <div class="overlay" id="recoveryModal">
   <div class="modal">
-    <button class="modal-x" data-close="recoveryModal">✕</button>
+    <button class="modal-x" data-close="recoveryModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div class="modal-title">Nouveau mot de passe</div><div class="modal-sub">Choisis un mot de passe d'au moins 8 caractères</div>
     <div class="modal-form">
       <div class="field"><label>Nouveau mot de passe</label><input type="password" id="newPass" autocomplete="new-password"></div>
@@ -253,7 +253,7 @@
 
 <div class="overlay" id="termsModal">
   <div class="modal modal-lg">
-    <button class="modal-x" data-close="termsModal">✕</button>
+    <button class="modal-x" data-close="termsModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div class="modal-title">Conditions pour devenir vendeur sur N Market</div>
     <div class="modal-sub">À lire avant de créer ta boutique</div>
     <div class="terms-content">
@@ -262,10 +262,10 @@
 
       <h4>2. Comment ça fonctionne</h4>
       <ul>
-        <li>Tu crées ton compte avec ton prénom, nom, email, téléphone et ta filière.</li>
+        <li>Tu crées ton compte avec ton prénom, nom, téléphone, une adresse de connexion et ta filière.</li>
         <li>Tu ajoutes tes produits (nom, description, prix, photo, catégorie, stock si besoin).</li>
         <li>Les clients commandent depuis le catalogue, choisissent une date/heure et un lieu de livraison (sur le campus ou une adresse).</li>
-        <li>Tu reçois une notification par email pour chaque nouvelle commande, avec les coordonnées du client.</li>
+        <li>Tu reçois une notification dans ton espace vendeur pour chaque nouvelle commande, avec les coordonnées du client.</li>
         <li>Une commission de service (taux fixé par l'administration) s'applique sur les ventes réalisées via la plateforme, facturée périodiquement.</li>
         <li>Tu peux mettre tes produits en avant (section "Sponsorisé") via la page Publicité, selon les formules proposées.</li>
       </ul>
@@ -310,7 +310,7 @@
 
 <div class="overlay" id="reviewModal">
   <div class="modal">
-    <button class="modal-x" data-close="reviewModal">✕</button>
+    <button class="modal-x" data-close="reviewModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div class="modal-title">Laisser un avis</div><div class="modal-sub">Note un produit commandé</div>
     <div class="modal-form">
       <div class="field"><label>Ton prénom</label><input type="text" id="rvName" placeholder="Ex : Fatou"></div>
@@ -340,7 +340,7 @@
 
 <div class="overlay" id="howModal">
   <div class="modal">
-    <button class="modal-x" data-close="howModal" aria-label="Fermer">✕</button>
+    <button class="modal-x" data-close="howModal" aria-label="Fermer"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <h2 class="how-title">Bienvenue sur N Market</h2>
     <p class="how-sub">Comment ça marche, en 4 points :</p>
     <ol class="how-list">
@@ -355,21 +355,21 @@
 
 <div class="overlay" id="productDetailModal">
   <div class="modal modal-lg">
-    <button class="modal-x" data-close="productDetailModal">✕</button>
+    <button class="modal-x" data-close="productDetailModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div id="pdContent"></div>
   </div>
 </div>
 
 <div class="overlay" id="shopModal">
   <div class="modal modal-lg">
-    <button class="modal-x" data-close="shopModal">✕</button>
+    <button class="modal-x" data-close="shopModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div id="shopContent"></div>
   </div>
 </div>
 
 <div class="overlay" id="reportModal">
   <div class="modal">
-    <button class="modal-x" data-close="reportModal">✕</button>
+    <button class="modal-x" data-close="reportModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div class="modal-title">Signaler ce vendeur</div>
     <div class="modal-sub" id="reportModalSub">Décris le problème rencontré. Le Super Admin examinera ton signalement.</div>
     <div class="modal-form">
@@ -395,6 +395,6 @@
 <script src="js/splash.js"></script>
 <script src="js/config.js"></script><script src="js/db.js"></script><script src="js/cache.js"></script><script src="js/maps.js"></script><script src="js/mobilenav.js"></script><script src="js/vendor/emailjs.min.js"></script>
 <script src="js/email.js"></script>
-<script src="js/ticket.js"></script>
+<script src="js/ticket.js"></script><script src="js/shopstyle.js"></script>
 <script src="js/main.js"></script>
 </body></html>

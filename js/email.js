@@ -17,6 +17,7 @@ function initEmailJS() {
    Envoyé à l'inscription
 ════════════════════════════════════════ */
 async function sendWelcomeEmail(user) {
+  if (typeof EMAIL_NOTIFS_ENABLED === 'undefined' || !EMAIL_NOTIFS_ENABLED) return { ok: false, disabled: true };
   if (typeof emailjs === 'undefined') {
     console.warn('EmailJS non chargé');
     return { ok: false };
@@ -45,6 +46,7 @@ async function sendWelcomeEmail(user) {
    Envoyé quand l'admin génère les factures
 ════════════════════════════════════════ */
 async function sendInvoiceEmail(seller, commission) {
+  if (typeof EMAIL_NOTIFS_ENABLED === 'undefined' || !EMAIL_NOTIFS_ENABLED) return { ok: false, disabled: true };
   if (typeof emailjs === 'undefined') {
     console.warn('EmailJS non chargé');
     return { ok: false };
@@ -97,6 +99,7 @@ async function sendInvoiceEmail(seller, commission) {
     reçoit des emails, pour ses factures et notifications)
 ════════════════════════════════════════ */
 async function sendSellerOrderNotifEmail(seller, order, product) {
+  if (typeof EMAIL_NOTIFS_ENABLED === 'undefined' || !EMAIL_NOTIFS_ENABLED) return { ok: false, disabled: true };
   if (typeof emailjs === 'undefined') return { ok: false };
 
   const deliveryDateLabel = order.deliveryDate

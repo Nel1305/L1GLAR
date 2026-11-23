@@ -44,7 +44,7 @@ function createOptionsEditor(root) {
             <div class="oe-choice" data-c="${ci}">
               <input class="oe-label" data-f="label" maxlength="40" placeholder="${g.type === 'multi' ? 'Ex : Broderie' : 'Ex : M'}" value="${esc(c.label)}" aria-label="Choix">
               <span class="oe-plus">+</span><input class="oe-price" data-f="price" type="number" inputmode="numeric" min="0" step="1" placeholder="0" value="${c.price ? Number(c.price) : ''}" aria-label="Prix en plus (FCFA)"><span class="oe-cur">FCFA</span>
-              <button type="button" class="oe-del" data-act="delc" title="Retirer ce choix" aria-label="Retirer ce choix">✕</button>
+              <button type="button" class="oe-del" data-act="delc" title="Retirer ce choix" aria-label="Retirer ce choix"><svg class=ic aria-hidden=true><use href=#i-x /></svg></button>
             </div>`).join('')}
           </div>
           <button type="button" class="oe-addc" data-act="addc">+ Ajouter un choix</button>

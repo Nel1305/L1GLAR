@@ -133,6 +133,7 @@ async function goPage(name) {
   if (name==='dashboard')   await renderDashboard();
   if (name==='notifications') await renderNotificationsPage();
   if (name==='commissions') await renderCommissions();
+  if (name==='billwa')      await renderBillWa();
   if (name==='verifs')      await renderVerifs();
   if (name==='sellers')     await renderSellers();
   if (name==='network')     await renderNetwork();
@@ -278,7 +279,7 @@ async function doGenerate() {
   }
   showLoader(false);
   const total=preview.reduce((s,p)=>s+p.amountDue,0);
-  document.getElementById('genSuccessText').innerHTML=`${preview.length} factures · Total : <strong>${total.toLocaleString()} FCFA</strong>`;
+  document.getElementById('genSuccessText').innerHTML=`${preview.length} factures · Total : <strong>${total.toLocaleString()} FCFA</strong><br><a href="#" style="text-decoration:underline" onclick="goPage('billwa');return false">Envoyer les factures par WhatsApp →</a>`;
   document.getElementById('genSuccess').classList.add('show');
   btn.disabled=true;
   showToast('Factures générées !',`${preview.length} vendeurs facturés`,'var(--green)');
@@ -511,7 +512,7 @@ async function renderCatalog() {
       </div>
       <div class="cat-actions">
         <button class="icon-btn edit" onclick="openCatModal(${c.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button>
-        <button class="icon-btn del" onclick="deleteCategory(${Number(c.id)},${jsArg(c.label)})" title="Supprimer">✕</button>
+        <button class="icon-btn del" onclick="deleteCategory(${Number(c.id)},${jsArg(c.label)})" title="Supprimer" aria-label="Supprimer"><svg class=ic aria-hidden=true><use href=#i-trash /></svg></button>
       </div>
     </div>`).join('');
 }
@@ -603,7 +604,7 @@ async function renderFilieres() {
       </div>
       <div class="cat-actions">
         <button class="icon-btn edit" onclick="openFiliereModal(${f.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button>
-        <button class="icon-btn del" onclick="deleteFiliere(${Number(f.id)},${jsArg(f.label)})" title="Supprimer">✕</button>
+        <button class="icon-btn del" onclick="deleteFiliere(${Number(f.id)},${jsArg(f.label)})" title="Supprimer" aria-label="Supprimer"><svg class=ic aria-hidden=true><use href=#i-trash /></svg></button>
       </div>
     </div>`).join('');
 }
@@ -692,7 +693,7 @@ async function renderPromoPage() {
       </div>
       <div class="cat-actions">
         <button class="icon-btn edit" onclick="openPlanModal(${pl.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button>
-        <button class="icon-btn del" onclick="deletePromoPlan(${Number(pl.id)},${jsArg(pl.label)})" title="Supprimer">✕</button>
+        <button class="icon-btn del" onclick="deletePromoPlan(${Number(pl.id)},${jsArg(pl.label)})" title="Supprimer" aria-label="Supprimer"><svg class=ic aria-hidden=true><use href=#i-trash /></svg></button>
       </div>
     </div>`).join('') : '<div class="table-empty">Aucune formule. Clique sur « + Ajouter une formule ».</div>';
 
@@ -821,7 +822,7 @@ async function renderBannersPage() {
       </div>
       <div class="cat-actions">
         <button class="icon-btn edit" onclick="openBannerModal(${b.id})" title="Modifier"><svg class=ic aria-hidden=true><use href=#i-edit /></svg></button>
-        <button class="icon-btn del" onclick="deleteBanner(${Number(b.id)},${jsArg(b.title)})" title="Supprimer">✕</button>
+        <button class="icon-btn del" onclick="deleteBanner(${Number(b.id)},${jsArg(b.title)})" title="Supprimer" aria-label="Supprimer"><svg class=ic aria-hidden=true><use href=#i-trash /></svg></button>
       </div>
     </div>`).join('');
 }
@@ -1150,3 +1151,66 @@ document.addEventListener('DOMContentLoaded', () => {
   if (b) b.addEventListener('click', () => decideVerif(false));
   document.querySelectorAll('[data-close="verifModal"]').forEach(x => x.addEventListener('click', () => { closeModal('verifModal'); currentVerif = null; }));
 });
+
+
+/* ══════════ FACTURES PAR WHATSAPP (file d'envoi : un clic = un vendeur) ══════════ */
+const BW_TPL_DEFAULT = "Bonjour {nom},\nVoici ta facture de commission N Market pour {periode} : {montant} FCFA (CA {ca} FCFA, taux {taux} %).\nDétail de la facture : {lien}\nPaiement avant le {echeance} :\n- Wave : {wave}\n- Orange Money : {orange}\nIndique la référence {ref} dans le paiement. Merci !";
+let _bw = { comms: [], users: [] };
+function bwTemplate() { try { return localStorage.getItem('nm_bw_tpl') || BW_TPL_DEFAULT; } catch (e) { return BW_TPL_DEFAULT; } }
+function bwMessage(c, u) {
+  const n = v => Math.round(Number(v) || 0).toLocaleString('fr-FR').replace(/\u202f/g, ' ');
+  const orange = (typeof ORANGE_MONEY_NUMBER !== 'undefined' && ORANGE_MONEY_NUMBER) ? ORANGE_MONEY_NUMBER : '';
+  const map = { nom: (u && u.firstName) || c.seller_name, periode: c.period_label, ca: n(c.revenue), taux: c.rate, montant: n(c.amount_due), reste: n(c.amount_due - c.amount_paid),
+    echeance: c.due_date ? new Date(c.due_date).toLocaleDateString('fr-FR') : 'la date indiquée', lien: location.origin + '/facture.html?t=' + (c.bill_token || ''), ref: 'N° ' + String(c.id).padStart(5, '0'), wave: WAVE_NUMBER, orange };
+  let t = bwTemplate().replace(/\{(\w+)\}/g, (m, k) => k in map ? map[k] : m);
+  if (!orange) t = t.split('\n').filter(l => !/Orange Money/i.test(l) || /\{orange\}/.test(l)).join('\n');
+  return t;
+}
+async function renderBillWa() {
+  const $ = id => document.getElementById(id);
+  const [comms, users] = await Promise.all([dbGetCommissions(), dbGetAllUsers()]);
+  _bw = { comms, users };
+  const periods = [...new Set(comms.map(c => c.period_label))];
+  const cur = $('bwPeriod').value;
+  $('bwPeriod').innerHTML = '<option value="">Toutes les périodes</option>' + periods.map(p => `<option ${p === cur ? 'selected' : ''}>${esc(p)}</option>`).join('');
+  $('bwTpl').value = bwTemplate();
+  if (!renderBillWa._bound) {
+    renderBillWa._bound = true;
+    $('bwPeriod').addEventListener('change', paintBillWa);
+    $('bwOnlyUnpaid').addEventListener('change', paintBillWa);
+    $('bwTpl').addEventListener('input', e => { try { localStorage.setItem('nm_bw_tpl', e.target.value); } catch (x) {} paintBillWa(); });
+    $('bwTplReset').addEventListener('click', () => { try { localStorage.removeItem('nm_bw_tpl'); } catch (x) {} $('bwTpl').value = BW_TPL_DEFAULT; paintBillWa(); });
+    $('bwNext').addEventListener('click', () => { const b = document.querySelector('#bwList [data-send]:not([disabled]):not(.done)'); if (b) b.click(); else showToast('Terminé', 'Toutes les factures de la liste ont été envoyées.', 'var(--green)'); });
+    $('bwList').addEventListener('click', async e => {
+      const b = e.target.closest('[data-send]'); if (!b) return;
+      const c = _bw.comms.find(x => x.id === +b.dataset.send), u = _bw.users.find(x => x.id === c.seller_id);
+      const url = waLink(u && u.phone, bwMessage(c, u));
+      if (!url) { showToast('Numéro invalide', `Pas de numéro WhatsApp valide pour ${c.seller_name}.`, 'var(--red)'); return; }
+      window.open(url, '_blank', 'noopener');
+      const { error } = await db.rpc('fn_mark_bill_sent', { p_id: c.id });
+      c.wa_sent_at = error ? c.wa_sent_at : new Date().toISOString();
+      paintBillWa();
+    });
+    $('bwList').addEventListener('click', e => {
+      const b = e.target.closest('[data-copy]'); if (!b) return;
+      const c = _bw.comms.find(x => x.id === +b.dataset.copy), u = _bw.users.find(x => x.id === c.seller_id);
+      (navigator.clipboard ? navigator.clipboard.writeText(bwMessage(c, u)) : Promise.reject()).then(() => showToast('Message copié', c.seller_name, 'var(--green)'), () => {});
+    });
+  }
+  paintBillWa();
+}
+function paintBillWa() {
+  const $ = id => document.getElementById(id);
+  const per = $('bwPeriod').value, only = $('bwOnlyUnpaid').checked;
+  const list = _bw.comms.filter(c => (!per || c.period_label === per) && (!only || c.status !== 'paid'));
+  const missing = list.length && !('bill_token' in list[0]);
+  const sent = list.filter(c => c.wa_sent_at).length;
+  $('bwCount').textContent = `${sent} / ${list.length} envoyée${sent > 1 ? 's' : ''}`;
+  if (missing) { $('bwList').innerHTML = '<div class="empty">Exécute secure_16_factures_whatsapp.sql dans Supabase pour activer les liens de facture.</div>'; return; }
+  $('bwList').innerHTML = list.length ? list.map(c => {
+    const u = _bw.users.find(x => x.id === c.seller_id), ok = !!waPhone(u && u.phone), done = !!c.wa_sent_at;
+    return `<div class="bw-item${done ? ' done' : ''}"><div class="bw-head"><div><strong>${esc(c.seller_name)}</strong><small>${esc(c.period_label)} · ${Math.round(c.amount_due - c.amount_paid).toLocaleString('fr-FR')} FCFA à payer · ${ok ? esc(u.phone) : 'numéro manquant'}</small></div>
+      <div class="bw-act"><button type="button" class="icon-btn" data-copy="${c.id}" title="Copier le message" aria-label="Copier le message">${ic('link')}</button><button type="button" class="btn-primary${done ? ' done' : ''}" data-send="${c.id}" ${ok ? '' : 'disabled'}>${ic('wa')} ${done ? 'Renvoyer' : 'Envoyer'}</button></div></div>
+      <pre class="bw-msg">${esc(bwMessage(c, u))}</pre>${done ? `<div class="bw-sent">Envoyée le ${new Date(c.wa_sent_at).toLocaleString('fr-FR')}</div>` : ''}</div>`;
+  }).join('') : '<div class="empty">Aucune facture pour ce filtre.</div>';
+}

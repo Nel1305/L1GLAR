@@ -37,6 +37,7 @@
       <button class="nav-item" data-page="chat"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-chat /></svg></span>Messages <span class="dot" id="chatDot" style="display:none"></span></button>
       <span class="nav-label">Compte</span>
       <button class="nav-item" data-page="verify"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-shield /></svg></span>Vérification <span class="dot" id="verifDot" style="display:none"></span></button>
+      <button class="nav-item" data-page="shopdesign"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-palette /></svg></span>Ma boutique</button>
       <button class="nav-item" data-page="ticketstyle"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-receipt /></svg></span>Mon ticket</button>
       <button class="nav-item" data-page="profile"><span class="icon"><svg class=ic aria-hidden=true><use href=#i-gear /></svg></span>Mon profil</button>
     </nav>
@@ -180,6 +181,31 @@
     </div>
 
     <div id="page-verify" class="page"></div>
+    <div id="page-shopdesign" class="page">
+      <div class="page-header"><div><div class="page-title">Ma boutique</div><div class="page-desc">Logo, couleurs, motifs et disposition de ta page boutique</div></div><button class="btn-primary" id="sdSave">Enregistrer</button></div>
+      <div class="sd-wrap">
+        <div class="sd-controls">
+          <div class="f-section"><span class="f-label">Logo et bannière</span>
+            <div class="sd-imgs"><div class="sd-thumb" id="sdLogoThumb"></div>
+              <div class="sd-drop"><div class="sd-row"><label class="btn-ghost" style="cursor:pointer">Choisir un logo<input type="file" id="sdLogo" accept="image/*" hidden></label><button type="button" class="btn-ghost" id="sdLogoDel">Retirer</button></div>
+              <div class="sd-row" id="sdShape"><button type="button" class="filter-btn" data-v="round">Rond</button><button type="button" class="filter-btn" data-v="square">Carré</button></div></div></div>
+            <div class="sd-banner" id="sdBannerThumb" style="margin-top:12px"></div>
+            <div class="sd-row" style="margin-top:8px"><label class="btn-ghost" style="cursor:pointer">Choisir une bannière<input type="file" id="sdBanner" accept="image/*" hidden></label><button type="button" class="btn-ghost" id="sdBannerDel">Retirer</button></div>
+          </div>
+          <div class="f-section"><span class="f-label">Couleur de la boutique</span><div class="sd-swatches" id="sdSwatches"></div></div>
+          <div class="f-section"><span class="f-label">Modèle de page (selon ce que tu vends)</span><div class="sd-opts" id="sdLayouts"></div></div>
+          <div class="f-section"><span class="f-label">En-tête</span><div class="sd-row" id="sdHeader"><button type="button" class="filter-btn" data-v="banner">Bannière</button><button type="button" class="filter-btn" data-v="solid">Aplat de couleur</button><button type="button" class="filter-btn" data-v="minimal">Sobre</button></div></div>
+          <div class="f-section"><span class="f-label">Motif</span><div class="sd-opts" id="sdPatterns"></div>
+            <div class="sd-row" id="sdZones" style="margin-top:10px"></div></div>
+          <div class="f-section"><span class="f-label">Textes</span>
+            <div class="field"><label>Slogan (80 car. max)</label><input type="text" id="sdTagline" maxlength="80" placeholder="Ex : Fait maison, livré à l'ESTM"></div>
+            <div class="field"><label>Annonce (160 car. max)</label><input type="text" id="sdAnnounce" maxlength="160" placeholder="Ex : Commandes avant 11h = livraison à la pause"></div></div>
+          <div class="f-section"><span class="f-label">Blocs de la page (ordre et affichage)</span><div class="sd-blocks" id="sdBlocks"></div></div>
+          <button class="btn-ghost" id="sdReset" type="button">Rétablir le style par défaut</button>
+        </div>
+        <div class="sd-preview"><div class="tk-preview-label">Aperçu en direct</div><div id="sdPreview"></div></div>
+      </div>
+    </div>
     <div id="page-ticketstyle" class="page">
       <div class="page-header"><div><div class="page-title">Mon ticket</div><div class="page-desc">Personnalise le ticket que tes clients reçoivent après leur commande</div></div></div>
       <div class="tk-editor">
@@ -239,7 +265,7 @@
 
 <div class="overlay" id="editProductModal">
   <div class="modal modal-lg">
-    <button class="modal-x" data-close="editProductModal">✕</button>
+    <button class="modal-x" data-close="editProductModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div class="modal-title">Modifier le produit</div><div class="modal-sub">Changements visibles immédiatement</div>
     <div class="modal-form">
       <input type="hidden" id="editId">
@@ -272,7 +298,7 @@
 
 
 <div class="overlay" id="waSendModal">
-  <div class="modal"><button class="modal-x" data-close="waSendModal">✕</button>
+  <div class="modal"><button class="modal-x" data-close="waSendModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div class="modal-title">Écrire au client sur WhatsApp</div><div class="modal-sub" id="waSendSub"></div>
     <div id="waSendChoices" class="wa-choices"></div>
     <label class="wa-lbl" for="waSendText">Message (modifiable avant l'envoi)</label>
@@ -283,7 +309,7 @@
   </div>
 </div>
 <div class="overlay" id="waTplModal">
-  <div class="modal"><button class="modal-x" data-close="waTplModal">✕</button>
+  <div class="modal"><button class="modal-x" data-close="waTplModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div class="modal-title">Mes messages WhatsApp</div><div class="modal-sub">Les balises entre accolades sont remplacées automatiquement par les infos de la commande.</div>
     <div class="wa-tags" id="waTagChips"></div>
     <div id="waTplList"></div>
@@ -291,14 +317,14 @@
   </div>
 </div>
 <div class="overlay" id="orderDetailModal">
-  <div class="modal"><button class="modal-x" data-close="orderDetailModal">✕</button>
+  <div class="modal"><button class="modal-x" data-close="orderDetailModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div class="modal-title">Détail commande</div><div class="modal-sub" id="orderDetailSub"></div>
     <div id="orderDetailContent"></div>
   </div>
 </div>
 
 <div class="overlay" id="returnModal">
-  <div class="modal"><button class="modal-x" data-close="returnModal">✕</button>
+  <div class="modal"><button class="modal-x" data-close="returnModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div class="modal-title">Demande de retour</div><div class="modal-sub" id="returnModalSub"></div>
     <div id="returnModalContent" style="margin-bottom:14px"></div>
     <div class="modal-form">
@@ -314,7 +340,7 @@
 
 <div class="overlay" id="termsModal">
   <div class="modal modal-lg">
-    <button class="modal-x" data-close="termsModal">✕</button>
+    <button class="modal-x" data-close="termsModal"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button>
     <div class="modal-title">Conditions pour devenir vendeur sur N Market</div>
     <div class="modal-sub">À lire avant de créer ta boutique</div>
     <div class="terms-content">
@@ -326,7 +352,7 @@
         <li>Tu crées ton compte avec ton prénom, nom, email, téléphone et ta filière.</li>
         <li>Tu ajoutes tes produits (nom, description, prix, photo, catégorie, stock si besoin).</li>
         <li>Les clients commandent depuis le catalogue, choisissent une date/heure et un lieu de livraison (sur le campus ou une adresse).</li>
-        <li>Tu reçois une notification par email pour chaque nouvelle commande, avec les coordonnées du client.</li>
+        <li>Tu reçois une notification dans ton espace vendeur pour chaque nouvelle commande, avec les coordonnées du client.</li>
         <li>Une commission de service (taux fixé par l'administration à 2%) s'applique sur les ventes réalisées via la plateforme, facturée périodiquement.</li>
         <li>Tu peux mettre tes produits en avant (section "Sponsorisé") via la page Publicité, selon les formules proposées.</li>
       </ul>
@@ -372,7 +398,7 @@
 
 <div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
 <script src="../js/vendor/supabase.js"></script>
-<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/ticket.js"></script><script src="../js/optionsedit.js"></script><script src="../js/cache.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script><script src="../js/mobilenav.js"></script>
+<script src="../js/config.js"></script><script src="../js/db.js"></script><script src="../js/ticket.js"></script><script src="../js/shopstyle.js"></script><script src="../js/optionsedit.js"></script><script src="../js/cache.js"></script><script src="../js/maps.js"></script><script src="../js/wa.js"></script><script src="../js/mobilenav.js"></script>
 <script src="../js/crypto.js"></script><script src="../js/chat.js"></script>
 <script src="../js/vendor/emailjs.min.js"></script>
 <script src="../js/email.js"></script>

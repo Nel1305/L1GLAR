@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Facture de commission — N Market</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png">
+<style>
+:root{--bg:#f4f4f1;--card:#fff;--t1:#111;--t2:#555;--t3:#888;--line:#e4e4df;--ok:#1d7a46;--warn:#b45309;--btn:#111;--btn-on:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#0f0f0f;--card:#1a1a1a;--t1:#f2f2f2;--t2:#bbb;--t3:#888;--line:#2c2c2c;--ok:#4cc98a;--warn:#f0a35a;--btn:#f2f2f2;--btn-on:#111}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t1);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:20px 16px 60px}
+.w{max-width:560px;margin:0 auto}.brand{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-weight:800;font-size:1.2rem}.brand small{font-weight:500;color:var(--t3);font-size:.78rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px}
+h1{font-size:1.05rem;margin:0 0 2px}.sub{color:var(--t3);font-size:.82rem;margin-bottom:16px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:.92rem}.row span:first-child{color:var(--t2)}.row b{text-align:right}
+.total{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;padding:14px;border-radius:14px;background:var(--bg)}.total b{font-size:1.5rem}
+.st{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.74rem;font-weight:700;border:1px solid currentColor}.st.paid{color:var(--ok)}.st.pending{color:var(--warn)}
+h2{font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin:22px 0 8px}
+.pay{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}.pay div{flex:1;min-width:0}.pay small{color:var(--t3);display:block}.pay strong{font-size:1.05rem;letter-spacing:.02em}
+button{font:inherit;cursor:pointer;border:0;border-radius:99px;padding:10px 16px;background:var(--btn);color:var(--btn-on);font-weight:700;min-height:44px}
+button.g{background:transparent;color:var(--t1);border:1px solid var(--line)}
+.note{font-size:.8rem;color:var(--t3);margin-top:14px}.err{text-align:center;padding:30px 10px;color:var(--t2)}
+@media print{body{background:#fff;color:#000;padding:0}.card{border:0}button,.nopr{display:none!important}}
+</style>
+</head>
+<body>
+<div class="w">
+  <div class="brand"><span>N Market</span><small>Facture de commission</small></div>
+  <div class="card" id="box"><div class="err">Chargement…</div></div>
+</div>
+<script src="/js/config.js"></script>
+<script>
+(function(){
+  const box=document.getElementById('box');
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const n=v=>Math.round(Number(v)||0).toLocaleString('fr-FR').replace(/ /g,' ');
+  const d=v=>v?new Date(v).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'—';
+  const t=(new URLSearchParams(location.search).get('t')||'').toLowerCase();
+  const fail=m=>{box.innerHTML='<div class="err">'+m+'</div>'};
+  if(!/^[0-9a-f]{24}$/.test(t)){fail('Lien de facture invalide.');return;}
+  fetch(SUPABASE_URL+'/rest/v1/rpc/fn_public_bill',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_token:t})})
+    .then(r=>r.ok?r.json():Promise.reject()).then(b=>{
+      if(!b){fail('Facture introuvable. Vérifie le lien reçu sur WhatsApp.');return;}
+      const ref='N° '+String(b.ref).padStart(5,'0'),rest=Math.max(0,b.amount_due-b.amount_paid),paid=rest<=0;
+      const copy=(v,id)=>'<button class="g nopr" data-copy="'+esc(v)+'" id="'+id+'">Copier</button>';
+      let pay='';
+      if(!paid){
+        pay='<h2>Comment payer</h2>';
+        if(WAVE_NUMBER)pay+='<div class="pay"><div><small>Wave'+(WAVE_NAME?' · '+esc(WAVE_NAME):'')+'</small><strong>'+esc(WAVE_NUMBER)+'</strong></div>'+copy(WAVE_NUMBER,'c1')+'</div>';
+        if(typeof ORANGE_MONEY_NUMBER!=='undefined'&&ORANGE_MONEY_NUMBER)pay+='<div class="pay"><div><small>Orange Money'+(ORANGE_MONEY_NAME?' · '+esc(ORANGE_MONEY_NAME):'')+'</small><strong>'+esc(ORANGE_MONEY_NUMBER)+'</strong></div>'+copy(ORANGE_MONEY_NUMBER,'c2')+'</div>';
+        pay+='<p class="note">Envoie exactement <b>'+n(rest)+' FCFA</b> et indique la référence <b>'+ref+'</b>. Une fois le paiement reçu, il est enregistré sur ta facture.</p>';
+      }
+      box.innerHTML='<h1>Facture '+ref+'</h1><div class="sub">Émise le '+d(b.created_at)+' · '+esc(b.seller_name)+'</div>'
+        +'<div class="row"><span>Période</span><b>'+esc(b.period_label)+'</b></div>'
+        +'<div class="row"><span>Chiffre d\'affaires réalisé</span><b>'+n(b.revenue)+' FCFA</b></div>'
+        +'<div class="row"><span>Taux de commission</span><b>'+esc(b.rate)+' %</b></div>'
+        +'<div class="row"><span>Commission due</span><b>'+n(b.amount_due)+' FCFA</b></div>'
+        +'<div class="row"><span>Déjà payé</span><b>'+n(b.amount_paid)+' FCFA</b></div>'
+        +'<div class="row"><span>Échéance</span><b>'+d(b.due_date)+'</b></div>'
+        +'<div class="total"><span>Reste à payer <span class="st '+(paid?'paid':'pending')+'">'+(paid?'Payée':'À payer')+'</span></span><b>'+n(rest)+' FCFA</b></div>'
+        +pay+'<div class="nopr" style="margin-top:18px"><button class="g" onclick="print()">Imprimer / enregistrer en PDF</button></div>';
+      box.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(!c)return;(navigator.clipboard?navigator.clipboard.writeText(c.dataset.copy):Promise.reject()).then(()=>{c.textContent='Copié'},()=>{});});
+    }).catch(()=>fail('Impossible de charger la facture. Réessaie dans un instant.'));
+})();
+</script>
+</body>
+</html>

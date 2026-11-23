@@ -186,12 +186,15 @@ async function dbGetAllUsers() {
 }
 /* Vitrine publique : aucun email / téléphone */
 async function dbGetPublicSellers() {
-  const { data, error } = await db.from('public_sellers').select('id, name, bio, shop_open, filiere, verified').order('name');
-  if (error) { console.error(error); return []; }
+  let { data, error } = await db.from('public_sellers').select('id, name, bio, shop_open, filiere, verified, shop_style').order('name');
+  if (error) {                                            // secure_15 pas encore lancé : colonne shop_style absente
+    ({ data, error } = await db.from('public_sellers').select('id, name, bio, shop_open, filiere, verified').order('name'));
+    if (error) { console.error(error); return []; }
+  }
   return (data || []).map(nu);
 }
 function nu(r) {
-  return { id:r.id, firstName:r.first_name||(r.name||'?'), lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, isBlocked:r.is_blocked||false, blockedReason:r.blocked_reason||'', billingPeriod:r.billing_period||'monthly', filiere:r.filiere||'', createdAt:r.created_at,
+  return { shopStyle:r.shop_style||null, id:r.id, firstName:r.first_name||(r.name||'?'), lastName:r.last_name, name:r.name, email:r.email, phone:r.phone, bio:r.bio, shopOpen:r.shop_open, isBlocked:r.is_blocked||false, blockedReason:r.blocked_reason||'', billingPeriod:r.billing_period||'monthly', filiere:r.filiere||'', createdAt:r.created_at,
            verified:!!r.verified, verificationStatus:r.verification_status||'none', verifDeadline:r.verif_deadline||null, verifSubmittedAt:r.verif_submitted_at||null };
 }
 
@@ -935,7 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 /* ── COMPRESSION D'IMAGE (réduit fortement la bande passante : les photos sont stockées dans la base) ── */
-function compressImageFile(file, maxDim, quality) {
+function compressImageFile(file, maxDim, quality, keepAlpha) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
     fr.onerror = () => reject(new Error('Lecture impossible'));
@@ -946,8 +949,8 @@ function compressImageFile(file, maxDim, quality) {
         let { width: w, height: h } = img;
         const k = Math.min(1, maxDim / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k);
         const c = document.createElement('canvas'); c.width = w; c.height = h;
-        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
-        resolve(c.toDataURL('image/jpeg', quality));
+        const ctx = c.getContext('2d'); if (!keepAlpha) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); } ctx.drawImage(img, 0, 0, w, h);
+        resolve(keepAlpha ? c.toDataURL('image/webp', quality) : c.toDataURL('image/jpeg', quality));
       };
       img.src = fr.result;
     };
@@ -1045,5 +1048,20 @@ async function dbAdminReviewVerification(id, approve, note) {
 async function dbAdminRevokeVerification(userId, reason) {
   const { error } = await db.rpc('admin_revoke_verification', { p_user_id: userId, p_reason: reason || null });
   if (window.NMCache) NMCache.invalidate('*volatile');
+  return error ? { error: error.message } : { ok: true };
+}
+
+
+/* ── BOUTIQUE PERSONNALISÉE (secure_15) ── */
+async function dbGetShopImages(id) {                     // logo + bannière : chargés seulement à l'ouverture d'une boutique
+  const { data } = await db.from('public_sellers').select('shop_logo, shop_banner').eq('id', id).maybeSingle().then(r => r, () => ({ data: null }));
+  return { logo: data && data.shop_logo || '', banner: data && data.shop_banner || '' };
+}
+async function dbGetMyShopDesign(id) {
+  const { data } = await db.from('users').select('shop_style, shop_logo, shop_banner').eq('id', id).maybeSingle().then(r => r, () => ({ data: null }));
+  return data ? { style: data.shop_style, logo: data.shop_logo || '', banner: data.shop_banner || '' } : { style: null, logo: '', banner: '' };
+}
+async function dbSaveShopStyle(style, logo, banner) {    // logo/banner : undefined = inchangé, '' = retirer
+  const { error } = await db.rpc('fn_set_shop_style', { p_style: sanitizeShopStyle(style), p_logo: logo === undefined ? '' : logo, p_banner: banner === undefined ? '' : banner, p_set_logo: logo !== undefined, p_set_banner: banner !== undefined });
   return error ? { error: error.message } : { ok: true };
 }

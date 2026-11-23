@@ -158,7 +158,7 @@ function renderActiveChips() {
   if (fPriceMin != null || fPriceMax != null) chips.push(['price', (fPriceMin != null ? fPriceMin.toLocaleString() : '0') + ' – ' + (fPriceMax != null ? fPriceMax.toLocaleString() : '∞') + ' FCFA']);
   if (fStock) chips.push(['stock', 'En stock']);
   if (fRating) chips.push(['rating', '4 ★ et plus']);
-  box.innerHTML = chips.map(([k, t]) => `<button type="button" class="chip" data-rm="${k}">${esc(t)} <span aria-hidden="true">✕</span><span class="sr">retirer</span></button>`).join('') +
+  box.innerHTML = chips.map(([k, t]) => `<button type="button" class="chip" data-rm="${k}">${esc(t)} <span aria-hidden="true"><svg class=ic aria-hidden=true><use href=#i-x /></svg></span><span class="sr">retirer</span></button>`).join('') +
     (chips.length > 1 ? '<button type="button" class="chip-clear" data-rm="all">Tout effacer</button>' : '');
   box.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.rm;
@@ -552,7 +552,7 @@ function renderCart() {
           <span>${i.qty}</span>
           <button data-act="inc" data-id="${esc(i.key)}">+</button>
         </div>
-        <div class="ci-remove" data-act="rm" data-id="${esc(i.key)}" title="Retirer">✕</div>
+        <div class="ci-remove" data-act="rm" data-id="${esc(i.key)}" title="Retirer"><svg class=ic aria-hidden=true><use href=#i-x /></svg></div>
       </div>
       <div class="ci-note-wrap">
         <textarea class="ci-note" data-note="${esc(i.key)}" rows="1" placeholder="Précision pour ce produit (ex : sans sucre, sauce à part…)">${esc(i.note||'')}</textarea>
@@ -685,9 +685,10 @@ async function openProductDetail(id) {
 /* ── BOUTIQUE VENDEUR ── */
 async function openShop(sellerId) {
   showLoader(true);
-  const [products, seller] = await Promise.all([
+  const [products, seller, imgs] = await Promise.all([
     dbGetProducts({ sellerId, available: true }),
-    (async () => { if (!allSellers.length) allSellers = await dbGetPublicSellers(); return allSellers.find(u=>u.id===sellerId); })()
+    (async () => { if (!allSellers.length) allSellers = await dbGetPublicSellers(); return allSellers.find(u=>u.id===sellerId); })(),
+    dbGetShopImages(sellerId)
   ]);
   showLoader(false);
   if (!seller) return;
@@ -701,23 +702,20 @@ async function openShop(sellerId) {
   const filiere = seller.filiere ? getFiliereLabel(seller.filiere) : '';
 
   try { history.replaceState(null, '', '/boutique/' + shopSlug(seller)); } catch (e) {}
-  document.getElementById('shopContent').innerHTML = `
-    <div class="shop-header">
-      <div class="shop-avatar">${esc((seller.name||'?')[0].toUpperCase())}</div>
-      <div class="shop-info">
-        <div class="shop-name">${esc(seller.name)}${seller.verified ? vBadge() : ''}</div>
-        <div class="shop-meta">${filiere?esc(filiere)+' · ':''}${products.length} produit${products.length>1?'s':''}</div>
-        ${avgRating ? `<div class="shop-rating">★ ${avgRating.toFixed(1)} note moyenne</div>` : ''}
-      </div>
-      <div class="shop-actions">
-        <button class="btn-report" id="shopReportBtn"><svg class=ic aria-hidden=true><use href=#i-alert /></svg> Signaler</button>
-      </div>
-    </div>
-    <div id="shopProductsGrid">
-      ${ordered.length ? `<div class="grid">${ordered.map(p => productCardHtml(p, promotedIds.includes(p.id))).join('')}</div>` : '<div class="empty">Ce vendeur n\'a aucun produit disponible pour le moment.</div>'}
-    </div>
-  `;
-  bindProductGridEvents(document.getElementById('shopProductsGrid'));
+  const page = renderShopPage({
+    seller, style: seller.shopStyle, imgs, products: ordered, promoted: promotedIds,
+    cardHtml: productCardHtml,
+    catLabel: slug => { const c = getCategories().find(x => x.slug === slug); return c ? c.label : ''; },
+    info: {
+      badge: seller.verified ? vBadge() : '',
+      meta: `${filiere?esc(filiere)+' · ':''}${products.length} produit${products.length>1?'s':''}`,
+      rating: avgRating ? avgRating.toFixed(1) : '',
+      actions: `<button class="btn-report" id="shopReportBtn">${ic('alert')} Signaler</button>`
+    }
+  });
+  const root = document.getElementById('shopContent');
+  root.innerHTML = page.html;
+  page.bind(root, r => bindProductGridEvents(r));
   document.getElementById('shopReportBtn').addEventListener('click', () => openReportModal(seller.id, seller.name));
   openModal('shopModal');
 }

@@ -16,7 +16,9 @@ const EMAILJS_TEMPLATE_SELLER_NOTIF = 'template_seller_notif'; // ← template n
 
 /* ── 3. PAIEMENT WAVE ── */
 const WAVE_NUMBER = '+221 77 597 71 14'; // ← Ton numéro Wave pour recevoir les paiements
-const WAVE_NAME = 'Nel\'si';           // ← Ton prénom affiché dans le mail
+const WAVE_NAME = 'Nel\'si';
+const ORANGE_MONEY_NUMBER = '';           // ← Ton numéro Orange Money (laisser vide pour ne pas l'afficher)
+const ORANGE_MONEY_NAME = '';           // ← Ton prénom affiché dans le mail
 
 /* ── 4. PLATEFORME ── */
 const PLATFORM_NAME = 'N Market';
@@ -41,3 +43,6 @@ const MAP_DEFAULT_CENTER = { lat: 14.6937, lng: -17.4441 };
 const WHATSAPP_ENABLED = false;
 const WHATSAPP_DEFAULT_CC = '221';     // indicatif ajouté aux numéros locaux à 9 chiffres (221 = Sénégal)
 const WHATSAPP_BUSINESS_NUMBER = '';   // numéro WhatsApp Business affiché aux clients (ex : '221771234567')
+
+/* ── NOTIFICATIONS PAR EMAIL : désactivées (tout passe par la plateforme et WhatsApp). Mettre true pour les réactiver. ── */
+const EMAIL_NOTIFS_ENABLED = false;
