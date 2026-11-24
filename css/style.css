@@ -2175,15 +2175,7 @@ body { padding-bottom: calc(var(--foot-h) + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* ═════════ Gros caddie de supermarché : il entre, les articles en sortent ═════════ */
-.big-cart { position: fixed; left: 0; z-index: 70; pointer-events: none; color: var(--t1); filter: drop-shadow(0 10px 14px rgba(0,0,0,.18)); will-change: transform; }
-.big-cart svg { width: 100%; height: auto; display: block; overflow: visible; }
-.big-cart .bc-body { fill: var(--bg2); stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
-.big-cart .bc-line { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; opacity: .55; }
-.big-cart .bc-frame { fill: none; stroke: currentColor; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
-.big-cart .bc-wheel { fill: var(--bg2); stroke: currentColor; stroke-width: 4; }
-.big-cart .bc-hub { fill: currentColor; }
-@media (prefers-reduced-motion: reduce) { .big-cart { display: none; } }
-
+@media (prefers-reduced-motion: reduce) { 
 /* ═════════ Boutons d'état : ronds, parfaitement circulaires (plus d'interrupteur qui glisse) ═════════ */
 .toggle { position: relative; flex: 0 0 46px; width: 46px; min-width: 46px; height: 46px; min-height: 46px; aspect-ratio: 1 / 1; padding: 0; border-radius: 50%; border: 1px solid var(--b3); background: var(--bg3); color: var(--t3); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font: 700 .62rem/1 inherit; letter-spacing: .04em; box-shadow: 0 3px 0 var(--mech-edge-soft), inset 0 1px 0 rgba(255,255,255,.08); transition: transform .08s ease-out, box-shadow .08s ease-out, background .15s, color .15s, border-color .15s; }
 .toggle::before { content: 'OFF'; position: static; transform: none; color: inherit; }

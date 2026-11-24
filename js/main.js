@@ -51,40 +51,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('submitReportBtn').addEventListener('click', submitSellerReport);
 });
 
-/* Arrivée des articles : un gros caddie de supermarché entre à l'écran, les articles en sortent un à un puis il repart.
-   Uniquement des transformations (léger) ; 10 cartes maximum ; une seule fois ; coupé si « réduire les animations ». */
-const CADDIE_SVG = '<svg viewBox="0 0 130 104" aria-hidden="true"><path class="bc-frame" d="M4 8h16l9 18"/><path class="bc-body" d="M24 22h100l-11 40H37z"/><path class="bc-line" d="M54 26l3 32M76 26l1 32M98 26l-2 32M32 42h86"/><path class="bc-frame" d="M37 62l5 15h66"/><circle class="bc-wheel" cx="50" cy="90" r="8"/><circle class="bc-wheel" cx="100" cy="90" r="8"/><circle class="bc-hub" cx="50" cy="90" r="2.6"/><circle class="bc-hub" cx="100" cy="90" r="2.6"/></svg>';
+/* Arrivée des articles : des agents (un par boutique, son nom affiché) posent les cartes avec des lasers (js/agents.js). 10 cartes max. */
 function revealProducts() {
-  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  if (!Element.prototype.animate) return;
+  if (!window.NMAgents || !NMAgents.enabled) return;
   const grid = document.getElementById('productsGrid');
   if (!grid) return;
   const cards = [...grid.querySelectorAll('.card')].filter(c => { const r = c.getBoundingClientRect(); return r.top < innerHeight - 70 && r.bottom > 60; }).slice(0, 10);
-  if (!cards.length) return;                                  // grille hors de l'écran (lien direct vers un produit) : pas d'animation
-  const mobile = innerWidth <= 768, W = mobile ? 170 : 240, H = W * 104 / 130;
-  const gr = grid.getBoundingClientRect();
-  const left = (innerWidth - W) / 2;
-  const top = Math.max(64, Math.min(gr.top - H * 0.15, innerHeight - H - 90));
-  const cx = left + W * 0.58, cy = top + H * 0.34;           // ouverture du panier : d'où sortent les articles
-  const cart = document.createElement('div');
-  cart.className = 'big-cart'; cart.setAttribute('aria-hidden', 'true'); cart.innerHTML = CADDIE_SVG;
-  cart.style.cssText = 'width:' + W + 'px;top:' + top + 'px;left:' + left + 'px';
-  document.body.appendChild(cart);
-  const IN = 520, STEP = 85, FLY = 700;
-  const outAt = IN + cards.length * STEP + 250;
-  cart.animate([{ transform: 'translateX(' + (-(left + W + 30)) + 'px) rotate(-3deg)' }, { transform: 'translateX(0) rotate(0)' }], { duration: IN, easing: 'cubic-bezier(.2,.8,.25,1)', fill: 'both' });
-  cart.animate([{ transform: 'translateX(0) rotate(0)', opacity: 1 }, { transform: 'translateX(' + (innerWidth - left + 30) + 'px) rotate(2deg)', opacity: 1 }], { duration: 620, delay: outAt, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' });
-  cards.forEach((card, i) => {
-    const r = card.getBoundingClientRect();
-    const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2);
-    card.animate([
-      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.12) rotate(-14deg)', opacity: 0, offset: 0 },
-      { transform: 'translate(' + dx * 0.55 + 'px,' + (dy * 0.55 - 70) + 'px) scale(.6) rotate(6deg)', opacity: 1, offset: 0.4 },
-      { transform: 'translate(0,3px) scale(1.02) rotate(0)', opacity: 1, offset: 0.82 },
-      { transform: 'none', opacity: 1, offset: 1 }
-    ], { duration: FLY, delay: IN + i * STEP, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'backwards' });
-  });
-  setTimeout(() => cart.remove(), outAt + 700);
+  NMAgents.deliver(cards, c => { const s = c.querySelector('.card-seller span'); return s ? s.firstChild && s.firstChild.textContent : ''; });
 }
 
 /* ── NAV ── */

@@ -6,9 +6,9 @@
   if (!el) { window.NMSplash = { ready: function () { document.dispatchEvent(new Event('nm:ready')); } }; return; }
   var msg = el.querySelector('#spMsg'), err = el.querySelector('#spErr'), retry = el.querySelector('#spRetry');
   var t0 = Date.now(), done = false, failed = false;
-  function say(t) { if (msg) { msg.textContent = t; msg.hidden = false; } }
-  function fail(t) { failed = true; el.classList.add('fail'); say(t); if (err) err.hidden = false; }
-  var t1 = setTimeout(function () { if (!done && !failed) say('Connexion lente… on charge encore, garde la page ouverte.'); }, 6000);
+  function say(t, sub) { if (msg) { msg.textContent = t; msg.hidden = false; } if (window.NMAgents) NMAgents.net(t, sub || ''); }
+  function fail(t) { failed = true; el.classList.add('fail'); say('Connexion impossible', t); if (err) err.hidden = false; }
+  var t1 = setTimeout(function () { if (!done && !failed) say('Connexion faible', 'Vérifie ton internet. On charge encore, garde la page ouverte.'); }, 6000);
   var t2 = setTimeout(function () { if (!done) fail('Le serveur met trop de temps à répondre.'); }, 25000);
   if (retry) retry.addEventListener('click', function () { location.reload(); });
   window.addEventListener('online', function () { if (!done) location.reload(); });
@@ -22,9 +22,10 @@
       (function go() {                                   // on attend aussi que la feuille de style soit appliquée (pas d'interface « nue »)
         if (css && css.media !== 'all' && Date.now() - tw < 10000) return setTimeout(go, 60);
       setTimeout(function () {
+        (window.NMAgents ? NMAgents.finish() : Promise.resolve()).then(function () {
         el.classList.add('hide');
         document.dispatchEvent(new Event('nm:ready'));
-        setTimeout(function () { el.remove(); }, 450);
+        setTimeout(function () { el.remove(); }, 450); });
       }, wait);
       })();
     }
