@@ -218,6 +218,6 @@
     setTimeout(function () { cards.forEach(function (c) { c.style.opacity = ''; }); layer.remove(); }, 6000);     // sécurité
   }
 
-  window.NMAgents = { start: start, net: net, netClear: netClear, finish: finish, deliver: deliver, enabled: !!CAN };
-  var sp = document.getElementById('splash'); if (sp && !window.__nmAgStarted) { window.__nmAgStarted = 1; start(sp); }
+  /* L'atelier de démarrage (cinématique + bouton « Passer ») est retiré : seul reste le dépôt des articles par les agents. */
+  window.NMAgents = { net: function () {}, netClear: function () {}, finish: function () { return Promise.resolve(); }, deliver: deliver, enabled: !!CAN };
 })();
